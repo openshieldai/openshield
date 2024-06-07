@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/openshield/openshield/lib"
+	"github.com/openshieldai/openshield/lib"
 	"github.com/stretchr/testify/assert"
 )
 

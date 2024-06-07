@@ -8,8 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
-	"github.com/openshield/openshield/lib"
-	"github.com/openshield/openshield/lib/openai"
+	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/lib/openai"
 )
 
 func setupRoute(app *fiber.App, path string, routeSettings lib.Route, routesSettings lib.Routes, keyGenerator ...func(c *fiber.Ctx) string) {
