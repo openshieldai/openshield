@@ -1,0 +1,10 @@
+{
+  "custom": {
+    "enabled": false,
+    "models": [{
+      "id": "davinci:ft-persio-2023-03-06-11-44-36",
+      "modelType": "davinci",
+      "enabled": false
+    }]
+  }
+}

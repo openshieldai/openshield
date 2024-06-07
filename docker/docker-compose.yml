@@ -1,0 +1,21 @@
+version: '3'
+services:
+  openshield:
+    build:
+        context: ../
+        dockerfile: Dockerfile
+    environment:
+      - ENV=production
+      - PORT="3005"
+      - SETTINGS_ROUTES_STORAGE_REDIS_URL=redis://redis:6379/0
+      - SETTINGS_OPENAI_API_KEY_HASH=xxxx
+      - SETTINGS_OPENSHIELD_API_KEY=da23d7a4-037c-4845-ba3f-207e90dc9880
+    pid: host
+    ports:
+      - "8080:3005"
+    links:
+      - redis
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"

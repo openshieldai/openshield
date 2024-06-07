@@ -1,0 +1,161 @@
+{
+  "gpt-3.5": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "gpt-3.5-turbo-16k",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-1106",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-instruct-0914",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-instruct",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-0125",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-0301",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-0613",
+        "enabled": true
+      },
+      {
+        "id": "gpt-3.5-turbo-16k-0613",
+        "enabled": true
+      }
+    ]
+  },
+  "gpt-4": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "gpt-4-1106-preview",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4o-2024-05-13",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4o",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-turbo-2024-04-09",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-turbo",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-0125-preview",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-turbo-preview",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-0613",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-1106-vision-preview",
+        "enabled": true
+      },
+      {
+        "id": "gpt-4-vision-preview",
+        "enabled": true
+      }
+    ]
+  },
+  "babbage": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "babbage-002",
+        "enabled": true
+      }
+    ]
+  },
+  "davinci": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "davinci-002",
+        "enabled": true
+      }
+    ]
+  },
+  "tts": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "tts-1-hd-1106",
+        "enabled": true
+      },
+      {
+        "id": "tts-1-hd",
+        "enabled": true
+      },
+      {
+        "id": "tts-1",
+        "enabled": true
+      },
+      {
+        "id": "tts-1-1106",
+        "enabled": true
+      }
+    ]
+  },
+  "text-embedding": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "text-embedding-3-small",
+        "enabled": true
+      },
+      {
+        "id": "text-embedding-3-large",
+        "enabled": true
+      },
+      {
+        "id": "text-embedding-ada-002",
+        "enabled": true
+      }
+    ]
+  },
+  "dall-e": {
+    "enabled": true,
+    "models": [
+      {
+        "id": "dall-e-3",
+        "enabled": true
+      },
+      {
+        "id": "dall-e-2",
+        "enabled": true
+      }
+    ]
+  }
+}

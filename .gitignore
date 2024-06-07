@@ -20,3 +20,8 @@
 # Go workspace file
 go.work
 go.work.sum
+.idea
+.env
+test-client/node_modules
+test-client/src/index.js
+.DS_Store

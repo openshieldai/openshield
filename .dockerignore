@@ -1,0 +1,6 @@
+*.md
+LICENSE
+renovate.json
+.env*
+test-client
+docker

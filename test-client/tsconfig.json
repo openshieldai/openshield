@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "es2021",
+    "strict": true,
+    "moduleResolution": "Bundler"
+  },
+  "include": [ "src" ],
+  "exclude": [ "src/_shims" ]
+}
