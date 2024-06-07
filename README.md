@@ -1,9 +1,16 @@
 # OpenShield - Firewall for AI models
 
 ## Features
-- Rate limiting for custom ratelimit OpenAI endpoints
+- You can set custom rate limits for OpenAI endpoints
 - Tokenizer calculation for OpenAI models
 - Disable any OpenAI basic models and handling your custom models
+
+## Incoming features
+- Rate limiting per user
+- Rate limiting per model
+- Prompts manager
+- Content filtering / Keyword filtering based by LLM/Vector models
+- OpenMeter integration
 
 #### OpenShield is a firewall designed for AI models.
 
