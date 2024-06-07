@@ -1,5 +1,10 @@
 # OpenShield - Firewall for AI models
 
+## Features
+- Rate limiting for custom ratelimit OpenAI endpoints
+- Tokenizer calculation for OpenAI models
+- Disable any OpenAI basic models and handling your custom models
+
 #### OpenShield is a firewall designed for AI models.
 
 - `ENV`: Specifies the environment in which the application is running. Possible values are `testing` and `production`.
@@ -38,6 +43,16 @@ thisateststringfortokenizer
 #### Output:
 ```
 {"model":"gpt-3.5","prompts":"thisateststringfortokenizer","tokens":6}
+```
+
+## Disable OpenAI models
+- You can set false any models in db/models.json file.
+- You can add your custom model into db/customModels.json file.
+
+## Local development
+.env is supported in local development. Create a .env file in the root directory with the following content:
+```
+ENV=development go run main.go
 ```
 
 ## Local test
