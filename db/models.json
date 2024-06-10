@@ -3,40 +3,44 @@
     "enabled": true,
     "models": [
       {
-        "id": "gpt-3.5-turbo-16k",
-        "enabled": true
-      },
-      {
-        "id": "gpt-3.5-turbo-1106",
-        "enabled": true
-      },
-      {
-        "id": "gpt-3.5-turbo-instruct-0914",
-        "enabled": true
-      },
-      {
-        "id": "gpt-3.5-turbo-instruct",
-        "enabled": true
-      },
-      {
         "id": "gpt-3.5-turbo-0125",
-        "enabled": true
-      },
-      {
-        "id": "gpt-3.5-turbo",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000015
       },
       {
         "id": "gpt-3.5-turbo-0301",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000015
       },
       {
         "id": "gpt-3.5-turbo-0613",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000015
+      },
+      {
+        "id": "gpt-3.5-turbo-1106",
+        "enabled": true,
+        "price": 0.0000010
+      },
+      {
+        "id": "gpt-3.5-turbo-16k",
+        "enabled": true,
+        "price": 0.0000030
       },
       {
         "id": "gpt-3.5-turbo-16k-0613",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000030
+      },
+      {
+        "id": "gpt-3.5-turbo-instruct",
+        "enabled": true,
+        "price": 0.0000015
+      },
+      {
+        "id": "gpt-3.5-turbo-instruct-0914",
+        "enabled": true,
+        "price": 0.0000015
       }
     ]
   },
@@ -44,48 +48,59 @@
     "enabled": true,
     "models": [
       {
-        "id": "gpt-4-1106-preview",
-        "enabled": true
-      },
-      {
-        "id": "gpt-4o-2024-05-13",
-        "enabled": true
-      },
-      {
-        "id": "gpt-4o",
-        "enabled": true
-      },
-      {
-        "id": "gpt-4-turbo-2024-04-09",
-        "enabled": true
-      },
-      {
-        "id": "gpt-4-turbo",
-        "enabled": true
+        "id": "gpt-4",
+        "enabled": true,
+        "price": 0.0000300
       },
       {
         "id": "gpt-4-0125-preview",
-        "enabled": true
-      },
-      {
-        "id": "gpt-4-turbo-preview",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000100
       },
       {
         "id": "gpt-4-0613",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000100
       },
       {
-        "id": "gpt-4",
-        "enabled": true
+        "id": "gpt-4-1106-preview",
+        "enabled": true,
+        "price": 0.0000100
       },
       {
         "id": "gpt-4-1106-vision-preview",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000100
+      },
+      {
+        "id": "gpt-4-turbo",
+        "enabled": true,
+        "price": 0.0000300
+      },
+      {
+        "id": "gpt-4-turbo-2024-04-09",
+        "enabled": true,
+        "price": 0.0000100
+      },
+      {
+        "id": "gpt-4-turbo-preview",
+        "enabled": true,
+        "price": 0.0000100
       },
       {
         "id": "gpt-4-vision-preview",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000100
+      },
+      {
+        "id": "gpt-4o",
+        "enabled": true,
+        "price": 0.0000050
+      },
+      {
+        "id": "gpt-4o-2024-05-13",
+        "enabled": true,
+        "price": 0.0000050
       }
     ]
   },
@@ -94,7 +109,8 @@
     "models": [
       {
         "id": "babbage-002",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000004
       }
     ]
   },
@@ -103,7 +119,8 @@
     "models": [
       {
         "id": "davinci-002",
-        "enabled": true
+        "enabled": true,
+        "price": 0.0000020
       }
     ]
   },
@@ -112,19 +129,23 @@
     "models": [
       {
         "id": "tts-1-hd-1106",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00003000
       },
       {
         "id": "tts-1-hd",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00003000
       },
       {
         "id": "tts-1",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00001500
       },
       {
         "id": "tts-1-1106",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00001500
       }
     ]
   },
@@ -133,15 +154,18 @@
     "models": [
       {
         "id": "text-embedding-3-small",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00000002
       },
       {
         "id": "text-embedding-3-large",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00000013
       },
       {
         "id": "text-embedding-ada-002",
-        "enabled": true
+        "enabled": true,
+        "price": 0.00000010
       }
     ]
   },
@@ -150,11 +174,32 @@
     "models": [
       {
         "id": "dall-e-3",
-        "enabled": true
+        "quality": "hd",
+        "enabled": true,
+         "prices": {
+             "1024x1024": "0.080",
+             "1024x1792": "0.120",
+             "1792x1024": "0.120"
+         }
+      },
+      {
+        "id": "dall-e-3",
+        "quality": "standard",
+        "enabled": true,
+        "prices": {
+          "1024x1024": "0.040",
+          "1024x1792": "0.080",
+          "1792x1024": "0.080"
+        }
       },
       {
         "id": "dall-e-2",
-        "enabled": true
+        "enabled": true,
+        "prices": {
+          "1024x1024": "0.0020",
+          "512x512": "0.0018",
+          "256x256": "0.0016"
+        }
       }
     ]
   }

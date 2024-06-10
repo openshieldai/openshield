@@ -89,7 +89,7 @@ func TestTokenizer(t *testing.T) {
 	//TestClean(t)
 
 	reqBody := bytes.NewBuffer([]byte("thisateststringfortokenizer"))
-	req, _ := http.NewRequest("POST", "/tokenizer/gpt-3.5", reqBody)
+	req, _ := http.NewRequest("POST", "/tokenizer/gpt-3.5-turbo-0125", reqBody)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(
 		"Authorization",
@@ -100,7 +100,7 @@ func TestTokenizer(t *testing.T) {
 	bodyString := string(bodyBytes)
 
 	assert.Equal(t, 200, resp.StatusCode, "Expected status code 200")
-	assert.Equal(t, `{"model":"gpt-3.5","prompts":"thisateststringfortokenizer","tokens":6}`, bodyString, `Expected {"model":"gpt-3.5","prompts":"thisateststringfortokenizer","tokens":6}}`)
+	assert.Equal(t, `{"currency":"USD","model":"gpt-3.5-turbo-0125","price":0.000003,"prompts":"thisateststringfortokenizer","tokens":6}`, bodyString, `Expected {"currency":"USD","model":"gpt-3.5-turbo-0125","price":0.000003,"prompts":"thisateststringfortokenizer","tokens":6}`)
 }
 
 func TestChatCompletion(t *testing.T) {
