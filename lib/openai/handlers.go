@@ -1,9 +1,12 @@
 package openai
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -66,17 +69,9 @@ func getMergedGroups(basicModelFilePath, customModelFilePath string) (map[string
 }
 
 func ListModelsHandler(c *fiber.Ctx) error {
-	authToken, err := lib.AuthHeaderParser(c)
-	if err != nil {
-		return c.Status(401).JSON(fiber.Map{
-			"error": interface{}(fiber.Map{
-				"message": "Unauthorized",
-				"type":    "invalid_request_error",
-				"param":   "Authorization",
-			}),
-		})
-	}
-	client = openai.NewClient(authToken)
+	settings := lib.NewSettings()
+	openAIAPIKey := settings.OpenAI.APIKey
+	client = openai.NewClient(openAIAPIKey)
 
 	models, err := client.ListModels(c.Context())
 	if err != nil {
@@ -108,16 +103,8 @@ func ListModelsHandler(c *fiber.Ctx) error {
 }
 
 func GetModelHandler(c *fiber.Ctx) error {
-	authToken, err := lib.AuthHeaderParser(c)
-	if err != nil {
-		return c.Status(401).JSON(fiber.Map{
-			"error": interface{}(fiber.Map{
-				"message": "Unauthorized",
-				"type":    "invalid_request_error",
-				"param":   "Authorization",
-			}),
-		})
-	}
+	settings := lib.NewSettings()
+	openAIAPIKey := settings.OpenAI.APIKey
 
 	groups, err := getMergedGroups("./db/models.json", "./db/customModels.json")
 	if err != nil {
@@ -154,7 +141,7 @@ func GetModelHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	client = openai.NewClient(authToken)
+	client = openai.NewClient(openAIAPIKey)
 	res, err := client.GetModel(c.Context(), c.Params("model"))
 	if err != nil {
 		return lib.ErrorResponse(c, err)
@@ -163,21 +150,57 @@ func GetModelHandler(c *fiber.Ctx) error {
 }
 
 func ChatCompletionHandler(c *fiber.Ctx) error {
-	authToken, err := lib.AuthHeaderParser(c)
+	settings := lib.NewSettings()
+	openAIAPIKey := settings.OpenAI.APIKey
+	token, err := lib.AuthHeaderParser(c)
 	if err != nil {
 		return c.Status(401).JSON(fiber.Map{
 			"error": interface{}(fiber.Map{
 				"message": "Unauthorized",
-				"type":    "invalid_request_error",
-				"param":   "Authorization",
+				"type":    "authentication_error",
 			}),
 		})
 	}
 
-	client = openai.NewClient(authToken)
+	apiKey, err := lib.GetApiKey(token)
+	if err != nil {
+		return c.Status(401).JSON(fiber.Map{
+			"error": interface{}(fiber.Map{
+				"message": "Unauthorized",
+				"type":    "authentication_error",
+			}),
+		})
+
+	}
+
+	lib.AuditLogs(string(c.BodyRaw()), "openai_chat_completion", apiKey.Id, "input")
+
+	var openAIData []byte
+
+	if settings.OpenShield.PIIService.Status {
+		bodyReader := bytes.NewReader(c.BodyRaw())
+		resp, err := http.Post(settings.OpenShield.PIIService.URL, "application/json", bodyReader)
+		if err != nil {
+			log.Printf("Error uploading data to PIIService: %v", err)
+		}
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Printf("Error closing response body: %v", err)
+			}
+		}(resp.Body)
+
+		body, err := io.ReadAll(resp.Body)
+		openAIData = body
+	} else {
+		openAIData = c.BodyRaw()
+	}
+
+	client = openai.NewClient(openAIAPIKey)
 	req := new(openai.ChatCompletionRequest)
-	if err := c.BodyParser(req); err != nil {
-		log.Printf("Error parsing request body: %v", err)
+	err = json.Unmarshal(openAIData, req)
+	if err != nil {
+		log.Printf("Error unmarshalling openAIData: %v", err)
 		return c.Status(400).JSON(fiber.Map{
 			"error": interface{}(fiber.Map{
 				"message": "Invalid request body",
@@ -196,5 +219,7 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 			}),
 		})
 	}
+	outputJsonData, err := json.Marshal(res)
+	lib.AuditLogs(string(outputJsonData), "openai_chat_completion", apiKey.Id, "output")
 	return c.JSON(res)
 }

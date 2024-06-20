@@ -38,9 +38,9 @@ func setupOpenAIRoutes(app *fiber.App) {
 		setupRoute(app, path, routeSettings, settings.Routes)
 	}
 
-	app.Get("/openai/v1/models", lib.AuthOpenAIMiddleware(), openai.ListModelsHandler)
-	app.Get("/openai/v1/models/:model", lib.AuthOpenAIMiddleware(), openai.GetModelHandler)
-	app.Post("/openai/v1/chat/completions", lib.AuthOpenAIMiddleware(), openai.ChatCompletionHandler)
+	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
+	app.Get("/openai/v1/models/:model", lib.AuthOpenShieldMiddleware(), openai.GetModelHandler)
+	app.Post("/openai/v1/chat/completions", lib.AuthOpenShieldMiddleware(), openai.ChatCompletionHandler)
 }
 
 func setupOpenShieldRoutes(app *fiber.App) {

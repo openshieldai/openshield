@@ -16,14 +16,16 @@ import (
 )
 
 type Settings struct {
-	Log        log
+	Log        Log
 	OpenAI     openai
 	OpenShield openShield
 	Routes     Routes
+	Database   Database
 }
 
-type log struct {
+type Log struct {
 	DisableColor bool
+	AuditLog     bool
 }
 
 type openai struct {
@@ -50,10 +52,21 @@ type Routes struct {
 	KeyGenerator func(c *fiber.Ctx) string
 }
 
+type pIIService struct {
+	URL    string
+	Status bool
+}
+
 type openShield struct {
 	APIKey      string
 	Port        int
 	Environment string
+	PIIService  pIIService
+}
+
+type Database struct {
+	URL           string
+	AutoMigration bool
 }
 
 func getEnvAsInt(envVar string, defaultValue int) int {
@@ -102,30 +115,24 @@ func NewSettings() Settings {
 	}
 	env := getEnvAsString("ENV", "production")
 	settingsOpenShieldPort := getEnvAsInt("PORT", 3005)
-	settingsLogDisableColor := getEnvAsBool("SETTINGS_LOG_DISABLE_COLORS", true)
-	testingOpenAIApiKey := getEnvAsString("TESTING_OPENAI_API_KEY", "")
-	settingsOpenAIApiKeyHash := getEnvAsString("SETTINGS_OPENAI_API_KEY_HASH", "")
-	//settingsRoutesStorageMemcacheServers := getEnvAsString("SETTINGS_ROUTES_STORAGE_MEMCACHE_SERVERS", "localhost:11211")
-	settingsRoutesOpenAIModelsRateLimitMax := getEnvAsInt("SETTINGS_ROUTES_OPENAI_MODELS_MAX", 50)
-	settingsRoutesOpenAIModelRateLimitMax := getEnvAsInt("SETTINGS_ROUTES_OPENAI_MODEL_MAX", 50)
-	settingsRoutesOpenAIModelRateLimitExpiration := getEnvAsInt("SETTINGS_ROUTES_OPENAI_MODEL_EXPIRATION", 1)
-	settingsRoutesOpenAIModelsRateLimitExpiration := getEnvAsInt("SETTINGS_ROUTES_OPENAI_MODELS_EXPIRATION", 1)
-	settingsRoutesOpenAIModelRateLimitTime := getEnvAsDuration("SETTINGS_ROUTES_OPENAI_MODEL_TIME", time.Minute)
-	settingsRoutesOpenAIModelsRateLimitTime := getEnvAsDuration("SETTINGS_ROUTES_OPENAI_MODELS_TIME", time.Minute)
-	settingsRoutesOpenAIChatCompletionsRateLimitMax := getEnvAsInt("SETTINGS_ROUTES_OPENAI_CHAT_COMPLETIONS_MAX", 50)
-	settingsRoutesOpenAIChatCompletionsRateLimitExpiration := getEnvAsInt("SETTINGS_ROUTES_OPENAI_CHAT_COMPLETIONS_EXPIRATION", 1)
-	settingsRoutesOpenAIChatCompletionsRateLimitTime := getEnvAsDuration("SETTINGS_ROUTES_OPENAI_CHAT_COMPLETIONS_TIME", time.Minute)
-	settingsRoutesTokenizerRateLimitMax := getEnvAsInt("SETTINGS_ROUTES_OPENAI_TOKENIZER_MAX", 50)
-	settingsRoutesTokenizerRateLimitExpiration := getEnvAsInt("SETTINGS_ROUTES_OPENAI_TOKENIZER_EXPIRATION", 1)
-	settingsRoutesTokenizerRateLimitTime := getEnvAsDuration("SETTINGS_ROUTES_OPENAI_TOKENIZER_TIME", time.Minute)
-	settingsOpenShieldApiKey := getEnvAsString("SETTINGS_OPENSHIELD_API_KEY", "")
-	if settingsOpenShieldApiKey == "" {
-		panic("SETTINGS_OPENSHIELD_API_KEY is required")
-	}
-	settingsRoutesStorageRedisURL := getEnvAsString("SETTINGS_ROUTES_STORAGE_REDIS_URL", "redis://localhost:6379")
-	settingsRoutesStorageRedisTLS := getEnvAsBool("SETTINGS_ROUTES_STORAGE_REDIS_TLS", false)
+	settingsLogDisableColor := getEnvAsBool("LOG_DISABLE_COLORS", true)
+	openAIApiKey := getEnvAsString("OPENAI_API_KEY", "")
+	settingsRoutesOpenAIModelsRateLimitMax := getEnvAsInt("ROUTES_OPENAI_MODELS_MAX", 50)
+	settingsRoutesOpenAIModelRateLimitMax := getEnvAsInt("ROUTES_OPENAI_MODEL_MAX", 50)
+	settingsRoutesOpenAIModelRateLimitExpiration := getEnvAsInt("ROUTES_OPENAI_MODEL_EXPIRATION", 1)
+	settingsRoutesOpenAIModelsRateLimitExpiration := getEnvAsInt("ROUTES_OPENAI_MODELS_EXPIRATION", 1)
+	settingsRoutesOpenAIModelRateLimitTime := getEnvAsDuration("ROUTES_OPENAI_MODEL_TIME", time.Minute)
+	settingsRoutesOpenAIModelsRateLimitTime := getEnvAsDuration("ROUTES_OPENAI_MODELS_TIME", time.Minute)
+	settingsRoutesOpenAIChatCompletionsRateLimitMax := getEnvAsInt("ROUTES_OPENAI_CHAT_COMPLETIONS_MAX", 50)
+	settingsRoutesOpenAIChatCompletionsRateLimitExpiration := getEnvAsInt("ROUTES_OPENAI_CHAT_COMPLETIONS_EXPIRATION", 1)
+	settingsRoutesOpenAIChatCompletionsRateLimitTime := getEnvAsDuration("ROUTES_OPENAI_CHAT_COMPLETIONS_TIME", time.Minute)
+	settingsRoutesTokenizerRateLimitMax := getEnvAsInt("ROUTES_OPENAI_TOKENIZER_MAX", 50)
+	settingsRoutesTokenizerRateLimitExpiration := getEnvAsInt("ROUTES_OPENAI_TOKENIZER_EXPIRATION", 1)
+	settingsRoutesTokenizerRateLimitTime := getEnvAsDuration("ROUTES_OPENAI_TOKENIZER_TIME", time.Minute)
+	settingsRateLimitRedisURL := getEnvAsString("RATE_LIMIT_REDIS_URL", "redis://localhost:6379")
+	settingsRateLimitRedisTLS := getEnvAsBool("RATE_LIMIT_REDIS_TLS", false)
 	var redisTlsCfg *tls.Config
-	if settingsRoutesStorageRedisTLS {
+	if settingsRateLimitRedisTLS {
 		redisTlsCfg = &tls.Config{
 			MinVersion:       tls.VersionTLS12,
 			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
@@ -137,16 +144,23 @@ func NewSettings() Settings {
 			},
 		}
 	}
+	settingsDatabaseURL := getEnvAsString("DATABASE_URL", "")
+	if settingsDatabaseURL == "" {
+		fmt.Println("DATABASE_URL is required")
+		os.Exit(1)
+	}
+	settingsAutoMigration := getEnvAsBool("AUTO_MIGRATION", false)
 
-	if env == "testing" {
-		if testingOpenAIApiKey == "" {
-			fmt.Println("TESTING_OPENAI_API_KEY is required")
-			os.Exit(1)
-		}
+	if openAIApiKey == "" {
+		fmt.Println("OPENAI_API_KEY is required")
+		os.Exit(1)
 	}
 
-	if settingsOpenAIApiKeyHash == "" {
-		fmt.Println("SETTINGS_OPENAI_API_KEY_HASH is required")
+	settingsAuditLog := getEnvAsBool("AUDIT_LOG", false)
+	settingsOpenShieldPIIServiceURL := getEnvAsString("OPENSHIELD_PII_SERVICE_URL", "")
+	settingsOpenShieldPIIServiceStatus := getEnvAsBool("OPENSHIELD_PII_SERVICE_STATUS", false)
+	if settingsOpenShieldPIIServiceURL == "" && settingsOpenShieldPIIServiceStatus {
+		fmt.Println("OPENSHIELD_PII_SERVICE_URL is required")
 		os.Exit(1)
 	}
 
@@ -161,22 +175,29 @@ func NewSettings() Settings {
 	}
 
 	return Settings{
-		Log: log{
+		Database: Database{
+			URL:           settingsDatabaseURL,
+			AutoMigration: settingsAutoMigration,
+		},
+		Log: Log{
 			DisableColor: settingsLogDisableColor,
+			AuditLog:     settingsAuditLog,
 		},
 		OpenAI: openai{
-			APIKey:     testingOpenAIApiKey,
-			APIKeyHash: settingsOpenAIApiKeyHash,
+			APIKey: openAIApiKey,
 		},
 		OpenShield: openShield{
-			APIKey:      settingsOpenShieldApiKey,
 			Port:        settingsOpenShieldPort,
 			Environment: env,
+			PIIService: pIIService{
+				URL:    settingsOpenShieldPIIServiceURL,
+				Status: settingsOpenShieldPIIServiceStatus,
+			},
 		},
 		Routes: Routes{
 			Storage: redis.New(
 				redis.Config{
-					URL:       settingsRoutesStorageRedisURL,
+					URL:       settingsRateLimitRedisURL,
 					PoolSize:  10 * runtime.GOMAXPROCS(0),
 					Reset:     false,
 					TLSConfig: redisTlsCfg,
