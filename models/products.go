@@ -6,7 +6,7 @@ import (
 
 type Products struct {
 	Base        Base      `gorm:"embedded"`
-	Status      string    `gorm:"status;<-:false;not null;default:'active'"`
+	Status      Status    `sql:"status;<-:false;not null;type:enum('active', 'inactive', 'archived');default:'active';default:'active'"`
 	Name        string    `gorm:"name;<-:false;not null"`
 	WorkspaceID uuid.UUID `gorm:"workspace_id;type:uuid;<-:false;not null"`
 	Tags        string    `gorm:"tags;<-:false"`

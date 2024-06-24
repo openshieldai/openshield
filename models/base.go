@@ -13,3 +13,13 @@ type Base struct {
 	UpdatedAt time.Time       `gorm:"updated_at;<-:false;default:now();not null"`
 	DeletedAt *gorm.DeletedAt `gorm:"deleted_at;index;<-:false"`
 }
+
+type Status string
+
+// CREATE TYPE status AS ENUM ('active', 'inactive', 'archived');
+
+const (
+	Active   Status = "active"
+	Inactive Status = "inactive"
+	Archived Status = "archived"
+)
