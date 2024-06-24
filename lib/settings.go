@@ -1,9 +1,7 @@
 package lib
 
 import (
-	"crypto/sha256"
 	"crypto/tls"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"runtime"
@@ -26,6 +24,7 @@ type Settings struct {
 type Log struct {
 	DisableColor bool
 	AuditLog     bool
+	Usage        bool
 }
 
 type openai struct {
@@ -104,6 +103,16 @@ func getEnvAsBool(envVar string, defaultValue bool) bool {
 	return value
 }
 
+//func getEnvAsStatus(envVar string, defaultValue string) string {
+//	value := os.Getenv(envVar)
+//	switch value {
+//	case "active":
+//	case "inactive":
+//		return value
+//	}
+//	return defaultValue
+//}
+
 func NewSettings() Settings {
 	if os.Getenv("ENV") == "development" {
 		cwd, _ := os.Getwd()
@@ -156,23 +165,15 @@ func NewSettings() Settings {
 		os.Exit(1)
 	}
 
-	settingsAuditLog := getEnvAsBool("AUDIT_LOG", false)
+	settingsAuditLog := getEnvAsBool("AUDIT_LOG_ENABLED", false)
 	settingsOpenShieldPIIServiceURL := getEnvAsString("OPENSHIELD_PII_SERVICE_URL", "")
-	settingsOpenShieldPIIServiceStatus := getEnvAsBool("OPENSHIELD_PII_SERVICE_STATUS", false)
+	settingsOpenShieldPIIServiceStatus := getEnvAsBool("OPENSHIELD_PII_SERVICE_ENABLED", false)
 	if settingsOpenShieldPIIServiceURL == "" && settingsOpenShieldPIIServiceStatus {
 		fmt.Println("OPENSHIELD_PII_SERVICE_URL is required")
 		os.Exit(1)
 	}
 
-	keyGenerator := func(c *fiber.Ctx) string {
-		key, err := AuthHeaderParser(c)
-		if err != nil {
-			return ""
-		}
-		hashedKey := sha256.Sum256([]byte(key))
-		hashedKeyString := hex.EncodeToString(hashedKey[:])
-		return hashedKeyString
-	}
+	settingsUsage := getEnvAsBool("USAGE_ENABLED", false)
 
 	return Settings{
 		Database: Database{
@@ -182,6 +183,7 @@ func NewSettings() Settings {
 		Log: Log{
 			DisableColor: settingsLogDisableColor,
 			AuditLog:     settingsAuditLog,
+			Usage:        settingsUsage,
 		},
 		OpenAI: openai{
 			APIKey: openAIApiKey,
@@ -202,7 +204,6 @@ func NewSettings() Settings {
 					Reset:     false,
 					TLSConfig: redisTlsCfg,
 				}),
-			KeyGenerator: keyGenerator,
 			OpenAI: OpenAIRoutes{
 
 				Model: Route{

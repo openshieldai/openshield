@@ -17,7 +17,13 @@ func DB() *gorm.DB {
 	}
 
 	if settings.Database.AutoMigration {
-		err := connection.AutoMigrate(&models.ApiKeys{}, &models.Products{}, &models.Workspaces{}, &models.Tags{}, &models.AuditLogs{})
+		err := connection.AutoMigrate(&models.ApiKeys{},
+			&models.Products{},
+			&models.Workspaces{},
+			&models.Tags{},
+			&models.AuditLogs{},
+			&models.Usage{},
+			&models.AiModels{})
 		if err != nil {
 			log.Panic(err)
 		}
