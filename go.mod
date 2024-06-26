@@ -7,7 +7,7 @@ require (
 	github.com/gofiber/storage/redis v1.3.4
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/sashabaranov/go-openai v1.26.0
+	github.com/sashabaranov/go-openai v1.26.1
 	github.com/stretchr/testify v1.9.0
 	github.com/tiktoken-go/tokenizer v0.1.1
 	gorm.io/driver/postgres v1.5.9
