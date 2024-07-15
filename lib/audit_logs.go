@@ -10,9 +10,9 @@ import (
 )
 
 func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, c *fiber.Ctx) {
-	settings := NewSettings()
+	config := GetConfig()
 
-	if settings.Log.AuditLog {
+	if config.Settings.AuditLogging.Enabled {
 		auditLog := models.AuditLogs{
 			Message:     message,
 			Type:        logType,

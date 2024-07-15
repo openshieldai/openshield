@@ -17,12 +17,11 @@ func AuthOpenShieldMiddleware() fiber.Handler {
 	return keyauth.New(keyauth.Config{
 		Validator: func(c *fiber.Ctx, key string) (bool, error) {
 			var apiKey = models.ApiKeys{ApiKey: key, Status: models.Active}
-			result := DB().First(&apiKey)
+			result := DB().Find(&apiKey)
 			if result.Error != nil {
 				log.Println("Error: ", result.Error)
 				return false, keyauth.ErrMissingOrMalformedAPIKey
 			}
-
 			hashedAPIKey := sha256.Sum256([]byte(key))
 			hashedKey := sha256.Sum256([]byte(apiKey.ApiKey))
 

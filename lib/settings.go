@@ -113,6 +113,44 @@ func getEnvAsBool(envVar string, defaultValue bool) bool {
 //	return defaultValue
 //}
 
+type RouteSettings struct {
+	Storage   *redis.Storage
+	RateLimit *RateLimiting
+}
+
+func GetRouteSettings() RouteSettings {
+	config := GetConfig()
+
+	var redisTlsCfg *tls.Config
+	if config.Settings.Redis.SSL {
+		redisTlsCfg = &tls.Config{
+			MinVersion:       tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+		}
+	}
+
+	// Assuming Route can have a Storage field of type *redis.Storage
+	return RouteSettings{
+		RateLimit: &RateLimiting{
+			Max:        config.Settings.RateLimit.Max,
+			Window:     config.Settings.RateLimit.Window,
+			Expiration: config.Settings.RateLimit.Expiration,
+		},
+		Storage: redis.New(redis.Config{
+			URL:       config.Settings.Redis.URI,
+			PoolSize:  10 * runtime.GOMAXPROCS(0),
+			Reset:     false,
+			TLSConfig: redisTlsCfg,
+		}),
+	}
+}
+
 func NewSettings() Settings {
 	if os.Getenv("ENV") == "development" {
 		cwd, _ := os.Getwd()
@@ -160,10 +198,10 @@ func NewSettings() Settings {
 	}
 	settingsAutoMigration := getEnvAsBool("AUTO_MIGRATION", false)
 
-	if openAIApiKey == "" {
-		fmt.Println("OPENAI_API_KEY is required")
-		os.Exit(1)
-	}
+	//if openAIApiKey == "" {
+	//	fmt.Println("OPENAI_API_KEY is required")
+	//	os.Exit(1)
+	//}
 
 	settingsAuditLog := getEnvAsBool("AUDIT_LOG_ENABLED", false)
 	settingsOpenShieldPIIServiceURL := getEnvAsString("OPENSHIELD_PII_SERVICE_URL", "")

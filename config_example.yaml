@@ -1,0 +1,52 @@
+settings:
+  network:
+      port: 3005
+  database:
+      uri: "postgres://"
+  cache:
+      redis_uri: "redis://"
+      ssl: false
+      enabled: true
+      ttl: 3600
+  audit_logging:
+      enabled: true
+  usage_logging:
+      enabled: true
+
+providers:
+  openai:
+    enabled: false
+  huggingface:
+    enabled: true
+
+filters:
+  input:
+    - name: "pii_example"
+      type: "pii_filter"
+      config:
+        model_name: "value1"
+        model_url: "value2"
+        model_type: ""
+      action:
+        type: "block" # blocking and logging
+  #      - type: "mask" # masking and logging
+  #      - type: "transparent" # logging
+
+    - name: "prompt_injection"
+      type: "prompt_injection"
+      config:
+        model_name: "value1"
+        model_url: "value2"
+        model_type: ""
+      action:
+        type: "block"
+  #      - type: "transparent" # logging
+  output:
+    - name: "pii_example"
+      type: "pii_filter"
+      config:
+        model_name: "value1"
+        model_url: "value2"
+        model_type: ""
+      action:
+        type: "block"

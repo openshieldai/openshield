@@ -3,11 +3,10 @@ package openai
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/openshieldai/openshield/filters"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/sashabaranov/go-openai"
 )
@@ -78,26 +77,48 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 	lib.AuditLogs(inputJson.String(), "openai_chat_completion", apiKey.Id, "input", c)
 
 	var openAIData []byte
+	openAIData = c.BodyRaw()
 
-	if settings.OpenShield.PIIService.Status {
-		bodyReader := bytes.NewReader(c.BodyRaw())
-		// TODO: Use Fiber Client here
-		resp, err := http.Post(settings.OpenShield.PIIService.URL, "application/json", bodyReader)
-		if err != nil {
-			log.Printf("Error uploading data to PIIService: %v", err)
-		}
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				log.Printf("Error closing response body: %v", err)
-			}
-		}(resp.Body)
-
-		body, err := io.ReadAll(resp.Body)
-		openAIData = body
-	} else {
-		openAIData = c.BodyRaw()
-	}
+	//if settings.OpenShield.PIIService.Status {
+	//	bodyReader := bytes.NewReader(c.BodyRaw())
+	//	log.Printf("PIIService Request Body: %s", c.BodyRaw())
+	//	log.Printf("PIIService URL: %s", settings.OpenShield.PIIService.URL)
+	//
+	//	// TODO: Use Fiber Client here
+	//	resp, err := http.Post(settings.OpenShield.PIIService.URL, "application/json", bodyReader)
+	//	if err != nil {
+	//		log.Printf("Error uploading data to PIIService: %v", err)
+	//	} else {
+	//		log.Printf("PIIService Response Status: %s", resp.Status)
+	//	}
+	//	defer func(Body io.ReadCloser) {
+	//		err := Body.Close()
+	//		if err != nil {
+	//			log.Printf("Error closing response body: %v", err)
+	//		}
+	//	}(resp.Body)
+	//
+	//	body, err := io.ReadAll(resp.Body)
+	//	if err != nil {
+	//		log.Printf("Error reading PIIService response body: %v", err)
+	//	} else {
+	//		var jsonBody interface{}
+	//		if err := json.Unmarshal(body, &jsonBody); err != nil {
+	//			log.Printf("Error unmarshalling PIIService response: %v", err)
+	//		} else {
+	//			formattedBody, err := json.Marshal(jsonBody)
+	//			if err != nil {
+	//				log.Printf("Error marshalling formatted JSON: %v", err)
+	//			} else {
+	//				log.Printf("PIIService Response Body: %s", formattedBody)
+	//				lib.AuditLogs(string(formattedBody), "pii_filter", apiKey.Id, "anonymized", c)
+	//			}
+	//		}
+	//	}
+	//	openAIData = body
+	//} else {
+	//	openAIData = c.BodyRaw()
+	//}
 
 	client = openai.NewClient(openAIAPIKey)
 	req := new(openai.ChatCompletionRequest)
@@ -111,6 +132,7 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 			}),
 		})
 	}
+	filters.Input(c, req.Messages[0].Role)
 
 	res, err := client.CreateChatCompletion(c.Context(), *req)
 	if err != nil {

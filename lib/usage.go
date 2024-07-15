@@ -6,16 +6,16 @@ import (
 )
 
 func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string) {
-	settings := NewSettings()
+	config := GetConfig()
 
-	if settings.Log.Usage {
+	if config.Settings.UsageLogging.Enabled {
 		aiModel, err := GetModel(modelName)
 		if err != nil {
 			log.Error("Error: ", err)
 			return
 		}
 
-		costs := models.Usage{
+		usage := models.Usage{
 			ModelID:              aiModel.Id,
 			PredictedTokensCount: predictedTokensCount,
 			PromptTokensCount:    promptTokensCount,
@@ -25,9 +25,9 @@ func Usage(modelName string, predictedTokensCount int, promptTokensCount int, co
 			RequestType:          requestType,
 		}
 		db := DB()
-		db.Create(&costs)
+		db.Create(&usage)
 	} else {
-		log.Debug("Cost logs is disabled")
+		log.Debug("Usage logs is disabled")
 		return
 	}
 

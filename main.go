@@ -12,10 +12,10 @@ import (
 	"github.com/openshieldai/openshield/lib/openai"
 )
 
-func setupRoute(app *fiber.App, path string, routeSettings lib.Route, routesSettings lib.Routes, keyGenerator ...func(c *fiber.Ctx) string) {
+func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, keyGenerator ...func(c *fiber.Ctx) string) {
 	config := limiter.Config{
-		Max:        routeSettings.RateLimitMax,
-		Expiration: time.Duration(routeSettings.RateLimitExpiration) * routeSettings.RateLimitTime,
+		Max:        routesSettings.RateLimit.Max,
+		Expiration: time.Duration(routesSettings.RateLimit.Expiration) * time.Second * time.Duration(routesSettings.RateLimit.Window),
 		Storage:    routesSettings.Storage,
 	}
 
@@ -34,8 +34,8 @@ func setupOpenAIRoutes(app *fiber.App) {
 		"/openai/v1/chat/completions": settings.Routes.OpenAI.ChatCompletions,
 	}
 
-	for path, routeSettings := range routes {
-		setupRoute(app, path, routeSettings, settings.Routes)
+	for path := range routes {
+		setupRoute(app, path, lib.GetRouteSettings())
 	}
 
 	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
@@ -49,29 +49,29 @@ func setupOpenShieldRoutes(app *fiber.App) {
 		"/tokenizer/:model": settings.Routes.Tokenizer,
 	}
 
-	for path, routeSettings := range routes {
-		setupRoute(app, path, routeSettings, settings.Routes)
+	for path := range routes {
+		setupRoute(app, path, lib.GetRouteSettings())
 	}
 
 	app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
 }
 
 func main() {
-	settings := lib.NewSettings()
+	config := lib.GetConfig()
 
 	app := fiber.New(fiber.Config{
-		Prefork:       true,
-		CaseSensitive: false,
-		StrictRouting: true,
-		ServerHeader:  "openshield",
-		AppName:       "OpenShield",
+		Prefork:           false,
+		CaseSensitive:     false,
+		StrictRouting:     true,
+		StreamRequestBody: true,
+		ServerHeader:      "openshield",
+		AppName:           "OpenShield",
 	})
 	app.Use(requestid.New())
 	app.Use(logger.New())
 
 	app.Use(logger.New(logger.Config{
-		DisableColors: settings.Log.DisableColor,
-		Format:        "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
+		Format: "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
 	}))
 
 	app.Use(func(c *fiber.Ctx) error {
@@ -83,7 +83,7 @@ func main() {
 	setupOpenAIRoutes(app)
 	setupOpenShieldRoutes(app)
 
-	err := app.Listen(":" + strconv.Itoa(settings.OpenShield.Port))
+	err := app.Listen(":" + strconv.Itoa(config.Settings.Network.Port))
 	if err != nil {
 		panic(err.Error())
 	}
