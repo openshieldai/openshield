@@ -19,8 +19,9 @@ var inputTypes = InputTypes{
 	PIIFilter:         "pii_filter",
 }
 
-func Input(c *fiber.Ctx, userPrompt string) error {
+func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 	config := lib.GetConfig()
+	var result string
 
 	for input := range config.Filters.Input {
 		inputConfig := config.Filters.Input[input]
@@ -31,22 +32,27 @@ func Input(c *fiber.Ctx, userPrompt string) error {
 			}
 		case inputTypes.PromptInjection:
 			if inputConfig.Enabled {
-				agent := fiber.Post(inputConfig.Config.ModelURL+inputConfig.Config.ModelName).Set("Authorization", "Bearer "+config.Secrets.HuggingFaceAPIKey)
-
-				log.Printf("User Prompt: %s\n", userPrompt)
-				agent.Body([]byte(userPrompt)) // set body received by request
-				statusCode, body, errs := agent.Bytes()
-				if len(errs) > 0 {
-					return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-						"errs": errs,
-					})
+				//agent := fiber.Post(inputConfig.Config.ModelURL+inputConfig.Config.ModelName).Set("Authorization", "Bearer "+config.Secrets.HuggingFaceAPIKey)
+				//
+				//log.Printf("User Prompt: %s\n", userPrompt)
+				//agent.Body([]byte(userPrompt)) // set body received by request
+				//statusCode, body, errs := agent.Bytes()
+				//if len(errs) > 0 {
+				//	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				//		"errs": errs,
+				//	})
+				//}
+				//
+				//log.Println("Prompt Injection")
+				//log.Printf("Status Code: %d\n", statusCode)
+				js, err := lib.Javascript()
+				if err != nil {
+					log.Printf("ERROR: %s\n", js)
 				}
-
-				log.Println("Prompt Injection")
-				log.Printf("Status Code: %d\n", statusCode)
+				log.Printf("User Prompt: %s\n", js)
 
 				// pass status code and body received by the proxy
-				return c.Status(statusCode).Send(body)
+				result = string(js)
 			}
 		case inputTypes.PIIFilter:
 			if inputConfig.Enabled {
@@ -56,5 +62,5 @@ func Input(c *fiber.Ctx, userPrompt string) error {
 			log.Printf("ERROR: Invalid input filter type %s\n", inputConfig.Type)
 		}
 	}
-	return nil
+	return result, nil
 }

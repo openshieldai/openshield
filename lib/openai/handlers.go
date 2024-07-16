@@ -132,9 +132,32 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 			}),
 		})
 	}
-	filters.Input(c, req.Messages[0].Role)
 
-	res, err := client.CreateChatCompletion(c.Context(), *req)
+	filteredResp, err := filters.Input(c, req.Messages[0].Role)
+	if err != nil {
+		log.Printf("Error filtering input: %v", err)
+		return c.Status(500).JSON(fiber.Map{
+			"error": interface{}(fiber.Map{
+				"message": "Internal server error",
+				"type":    "server_error",
+			}),
+		})
+
+	}
+
+	var request openai.ChatCompletionRequest
+	err = json.Unmarshal([]byte(filteredResp), &request)
+	if err != nil {
+		log.Printf("Error unmarshalling filtered response: %v", err)
+		return c.Status(400).JSON(fiber.Map{
+			"error": interface{}(fiber.Map{
+				"message": "Invalid filtered response format",
+				"type":    "invalid_request_error",
+			}),
+		})
+	}
+
+	res, err := client.CreateChatCompletion(c.Context(), request)
 	if err != nil {
 		log.Printf("Error creating chat completion: %v", err)
 		return c.Status(500).JSON(fiber.Map{
