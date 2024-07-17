@@ -1,4 +1,4 @@
-package filters
+package rules
 
 import (
 	"log"
@@ -23,8 +23,8 @@ func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 	config := lib.GetConfig()
 	var result string
 
-	for input := range config.Filters.Input {
-		inputConfig := config.Filters.Input[input]
+	for input := range config.Rules.Input {
+		inputConfig := config.Rules.Input[input]
 		switch inputConfig.Type {
 		case inputTypes.LanguageDetection:
 			if inputConfig.Enabled {
@@ -45,14 +45,10 @@ func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 				//
 				//log.Println("Prompt Injection")
 				//log.Printf("Status Code: %d\n", statusCode)
-				js, err := lib.Javascript()
-				if err != nil {
-					log.Printf("ERROR: %s\n", js)
-				}
-				log.Printf("User Prompt: %s\n", js)
+				log.Printf("User Prompt: %s\n", userPrompt)
 
 				// pass status code and body received by the proxy
-				result = string(js)
+				result = userPrompt
 			}
 		case inputTypes.PIIFilter:
 			if inputConfig.Enabled {

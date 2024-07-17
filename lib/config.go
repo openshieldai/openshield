@@ -18,7 +18,7 @@ type FeatureToggle struct {
 // Configuration Represents the entire YAML configuration
 type Configuration struct {
 	Settings  Setting   `mapstructure:"settings"`
-	Filters   Filters   `mapstructure:"filters"`
+	Rules     Rules     `mapstructure:"rules"`
 	Secrets   Secrets   `mapstructure:"secrets"`
 	Providers Providers `mapstructure:"providers"`
 }
@@ -78,14 +78,14 @@ type CacheConfig struct {
 	TTL      int    `mapstructure:"ttl,default=60"`
 }
 
-// Filters section contains input and output filter configurations
-type Filters struct {
-	Input  []Filter `mapstructure:"input,default=[]"`
-	Output []Filter `mapstructure:"output,default=[]"`
+// Rules section contains input and output rule configurations
+type Rules struct {
+	Input  []Rule `mapstructure:"input,default=[]"`
+	Output []Rule `mapstructure:"output,default=[]"`
 }
 
-// Filter defines a filter configuration
-type Filter struct {
+// Rule defines a rule configuration
+type Rule struct {
 	Enabled bool   `mapstructure:"enabled,default=false"`
 	Name    string `mapstructure:"name"`
 	Type    string `mapstructure:"type"`

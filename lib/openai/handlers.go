@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/openshieldai/openshield/filters"
 	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/rules"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -133,7 +133,7 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	filteredResp, err := filters.Input(c, req.Messages[0].Role)
+	filteredResp, err := rules.Input(c, req.Messages[0].Role)
 	if err != nil {
 		log.Printf("Error filtering input: %v", err)
 		return c.Status(500).JSON(fiber.Map{
