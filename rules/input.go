@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"github.com/pemistahl/lingua-go"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,6 +21,14 @@ var inputTypes = InputTypes{
 	PIIFilter:         "pii_filter",
 }
 
+type ChatRequest struct {
+	Model    string `json:"model"`
+	Messages []struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	} `json:"messages"`
+}
+
 func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 	config := lib.GetConfig()
 	var result string
@@ -28,8 +38,37 @@ func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 		switch inputConfig.Type {
 		case inputTypes.LanguageDetection:
 			if inputConfig.Enabled {
-				log.Println("Language Detection")
+				languageMap := map[string]lingua.Language{
+					"English":   lingua.English,
+					"French":    lingua.French,
+					"German":    lingua.German,
+					"Spanish":   lingua.Spanish,
+					"Hungarian": lingua.Hungarian,
+				}
+
+				var languages []lingua.Language
+				for _, lang := range inputConfig.Config.Languages {
+					if l, ok := languageMap[lang]; ok {
+						languages = append(languages, l)
+					} else {
+						log.Printf("WARNING: Unsupported language in config: %s\n", lang)
+					}
+				}
+				detector := lingua.NewLanguageDetectorBuilder().
+					FromLanguages(languages...).
+					Build()
+
+				englishConfidence := detector.ComputeLanguageConfidence(userPrompt, lingua.English)
+
+				result := "above 85%"
+				if englishConfidence <= 0.85 {
+					result = "below 85%"
+					return result, fmt.Errorf("English probability too low: %.2f", englishConfidence)
+				}
+				log.Printf("Language Detection: English probability %s (%.2f)\n", result, englishConfidence)
+				return userPrompt, nil
 			}
+
 		case inputTypes.PromptInjection:
 			if inputConfig.Enabled {
 				//agent := fiber.Post(inputConfig.Config.ModelURL+inputConfig.Config.ModelName).Set("Authorization", "Bearer "+config.Secrets.HuggingFaceAPIKey)

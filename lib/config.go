@@ -95,10 +95,11 @@ type Rule struct {
 
 // Config holds the configuration specifics of a filter
 type Config struct {
-	ModelName string `mapstructure:"model_name"`
-	ModelURL  string `mapstructure:"model_url"`
-	ModelType string `mapstructure:"model_type"`
-	Threshold int    `mapstructure:"threshold,omitempty,default=0.5"`
+	ModelName string   `mapstructure:"model_name"`
+	ModelURL  string   `mapstructure:"model_url"`
+	ModelType string   `mapstructure:"model_type"`
+	Threshold int      `mapstructure:"threshold,omitempty,default=0.5"`
+	Languages []string `mapstructure:"languages"`
 }
 
 type ActionType string
