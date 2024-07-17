@@ -2,11 +2,10 @@ package rules
 
 import (
 	"fmt"
-	"github.com/pemistahl/lingua-go"
-	"log"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/openshieldai/openshield/lib"
+	"github.com/pemistahl/lingua-go"
+	"log"
 )
 
 type InputTypes struct {
@@ -38,12 +37,10 @@ func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 		switch inputConfig.Type {
 		case inputTypes.LanguageDetection:
 			if inputConfig.Enabled {
-				languageMap := map[string]lingua.Language{
-					"English":   lingua.English,
-					"French":    lingua.French,
-					"German":    lingua.German,
-					"Spanish":   lingua.Spanish,
-					"Hungarian": lingua.Hungarian,
+				languageMap := make(map[string]lingua.Language)
+
+				for i := lingua.Afrikaans; i < lingua.Unknown; i++ {
+					languageMap[i.String()] = i
 				}
 
 				var languages []lingua.Language
