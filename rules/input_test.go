@@ -3,6 +3,7 @@ package rules
 import (
 	"encoding/json"
 	"github.com/valyala/fasthttp"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,9 +15,6 @@ func TestInput(t *testing.T) {
 	t.Run("English Input", func(t *testing.T) {
 		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
 		defer app.ReleaseCtx(ctx)
-
-		ctx.Request().Header.Set("Content-Type", "application/json")
-		ctx.Request().Header.Set("Authorization", "Bearer ....")
 
 		requestBody := ChatRequest{
 			Model: "gpt-4",
@@ -34,9 +32,7 @@ func TestInput(t *testing.T) {
 			t.Fatalf("Failed to marshal request body: %v", err)
 		}
 
-		ctx.Request().SetBody(jsonBody)
-
-		result, err := Input(ctx, "What is the meaning of life?")
+		result, err := Input(ctx, string(jsonBody))
 
 		if err != nil {
 			t.Errorf("Expected no error, but got: %v", err)
@@ -46,12 +42,9 @@ func TestInput(t *testing.T) {
 		}
 	})
 
-	t.Run("Hungarian Input", func(t *testing.T) {
+	t.Run("Non-English Input", func(t *testing.T) {
 		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
 		defer app.ReleaseCtx(ctx)
-
-		ctx.Request().Header.Set("Content-Type", "application/json")
-		ctx.Request().Header.Set("Authorization", "Bearer ....")
 
 		requestBody := ChatRequest{
 			Model: "gpt-4",
@@ -69,15 +62,15 @@ func TestInput(t *testing.T) {
 			t.Fatalf("Failed to marshal request body: %v", err)
 		}
 
-		ctx.Request().SetBody(jsonBody)
-
-		result, err := Input(ctx, "Ennek nem kéne angolnak lennie")
+		result, err := Input(ctx, string(jsonBody))
 
 		if err == nil {
 			t.Errorf("Expected an error, but got none")
+		} else if !strings.Contains(err.Error(), "English probability too low") {
+			t.Errorf("Expected error message to contain 'English probability too low', but got '%s'", err.Error())
 		}
-		if result != "below 85%" {
-			t.Errorf("Expected result 'below 85%%', but got %s", result)
+		if result != "" {
+			t.Errorf("Expected empty result, but got %s", result)
 		}
 	})
 }

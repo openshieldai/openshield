@@ -1,11 +1,15 @@
 package rules
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/openshieldai/openshield/lib"
-	"github.com/pemistahl/lingua-go"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 )
 
 type InputTypes struct {
@@ -27,43 +31,49 @@ type ChatRequest struct {
 		Content string `json:"content"`
 	} `json:"messages"`
 }
+type LanguageScore struct {
+	Label string  `json:"label"`
+	Score float64 `json:"score"`
+}
 
 func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 	config := lib.GetConfig()
 	var result string
+	var chatRequest ChatRequest
 
+	if err := json.Unmarshal([]byte(userPrompt), &chatRequest); err != nil {
+		return "", fmt.Errorf("failed to unmarshal request: %v", err)
+	}
 	for input := range config.Rules.Input {
 		inputConfig := config.Rules.Input[input]
 		switch inputConfig.Type {
 		case inputTypes.LanguageDetection:
 			if inputConfig.Enabled {
-				languageMap := make(map[string]lingua.Language)
-
-				for i := lingua.Afrikaans; i < lingua.Unknown; i++ {
-					languageMap[i.String()] = i
-				}
-
-				var languages []lingua.Language
-				for _, lang := range inputConfig.Config.Languages {
-					if l, ok := languageMap[lang]; ok {
-						languages = append(languages, l)
-					} else {
-						log.Printf("WARNING: Unsupported language in config: %s\n", lang)
+				extractedPrompt := ""
+				for _, message := range chatRequest.Messages {
+					if message.Role == "user" {
+						extractedPrompt = message.Content
+						break
 					}
 				}
-				detector := lingua.NewLanguageDetectorBuilder().
-					FromLanguages(languages...).
-					Build()
 
-				englishConfidence := detector.ComputeLanguageConfidence(userPrompt, lingua.English)
-
-				result := "above 85%"
-				if englishConfidence <= 0.85 {
-					result = "below 85%"
-					return result, fmt.Errorf("English probability too low: %.2f", englishConfidence)
+				if extractedPrompt == "" {
+					return "", fmt.Errorf("no user message found in the request")
 				}
-				log.Printf("Language Detection: English probability %s (%.2f)\n", result, englishConfidence)
-				return userPrompt, nil
+				log.Printf("Extracted prompt: %s\n", extractedPrompt)
+				englishScore, err := detectEnglish(extractedPrompt)
+				if err != nil {
+					return "", fmt.Errorf("language detection failed: %v", err)
+				}
+
+				log.Printf("English language probability: %.4f\n", englishScore)
+
+				if englishScore <= 0.85 {
+					return "", fmt.Errorf("English probability too low: %.4f", englishScore)
+				}
+
+				log.Printf("Language Detection: English probability above threshold (%.4f)\n", englishScore)
+				return extractedPrompt, nil
 			}
 
 		case inputTypes.PromptInjection:
@@ -95,4 +105,55 @@ func Input(c *fiber.Ctx, userPrompt string) (string, error) {
 		}
 	}
 	return result, nil
+
+}
+func detectEnglish(text string) (float64, error) {
+	apiKey := os.Getenv("HUGGINGFACE_API_KEY")
+	if apiKey == "" {
+		return 0, fmt.Errorf("HUGGINGFACE_API_KEY environment variable not set")
+	}
+
+	url := "https://api-inference.huggingface.co/models/papluca/xlm-roberta-base-language-detection"
+	payload := map[string]string{"inputs": text}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return 0, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	var results [][]LanguageScore
+	if err := json.Unmarshal(body, &results); err != nil {
+		return 0, fmt.Errorf("failed to unmarshal response: %v", err)
+	}
+
+	if len(results) == 0 || len(results[0]) == 0 {
+		return 0, fmt.Errorf("unexpected response format")
+	}
+
+	for _, score := range results[0] {
+		if score.Label == "en" {
+			return score.Score, nil
+		}
+	}
+
+	return 0, nil // English not found in the response
 }
