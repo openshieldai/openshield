@@ -27,15 +27,15 @@ func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, k
 }
 
 func setupOpenAIRoutes(app *fiber.App) {
-	settings := lib.NewSettings()
-	routes := map[string]lib.Route{
-		"/openai/v1/models":           settings.Routes.OpenAI.Models,
-		"/openai/v1/models/:model":    settings.Routes.OpenAI.Model,
-		"/openai/v1/chat/completions": settings.Routes.OpenAI.ChatCompletions,
+	config := lib.GetRouteSettings()
+	routes := map[string]lib.RouteSettings{
+		"/openai/v1/models": config,
+		//"/openai/v1/models/:model":    settings.Routes.OpenAI.Model,
+		//"/openai/v1/chat/completions": settings.Routes.OpenAI.ChatCompletions,
 	}
 
-	for path := range routes {
-		setupRoute(app, path, lib.GetRouteSettings())
+	for path, routeSettings := range routes {
+		setupRoute(app, path, routeSettings)
 	}
 
 	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
@@ -43,18 +43,18 @@ func setupOpenAIRoutes(app *fiber.App) {
 	app.Post("/openai/v1/chat/completions", lib.AuthOpenShieldMiddleware(), openai.ChatCompletionHandler)
 }
 
-func setupOpenShieldRoutes(app *fiber.App) {
-	settings := lib.NewSettings()
-	routes := map[string]lib.Route{
-		"/tokenizer/:model": settings.Routes.Tokenizer,
-	}
-
-	for path := range routes {
-		setupRoute(app, path, lib.GetRouteSettings())
-	}
-
-	app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
-}
+//func setupOpenShieldRoutes(app *fiber.App) {
+//	config := lib.GetConfig()
+//	routes := map[string]lib.Route{
+//		"/tokenizer/:model": settings.Routes.Tokenizer,
+//	}
+//
+//	for path := range routes {
+//		setupRoute(app, path, lib.GetRouteSettings())
+//	}
+//
+//	app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
+//}
 
 func main() {
 	config := lib.GetConfig()
@@ -81,7 +81,7 @@ func main() {
 	})
 
 	setupOpenAIRoutes(app)
-	setupOpenShieldRoutes(app)
+	//setupOpenShieldRoutes(app)
 
 	err := app.Listen(":" + strconv.Itoa(config.Settings.Network.Port))
 	if err != nil {
