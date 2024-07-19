@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/openshieldai/openshield/lib"
-	"github.com/sashabaranov/go-openai"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/openshieldai/openshield/lib"
+	"github.com/sashabaranov/go-openai"
 )
 
 type InputTypes struct {
@@ -35,6 +36,10 @@ type RuleResult struct {
 	Match      bool           `json:"match"`
 	Inspection RuleInspection `json:"inspection"`
 }
+type LanguageScore struct {
+	Label string  `json:"label"`
+	Score float64 `json:"score"`
+}
 
 var inputTypes = InputTypes{
 	LanguageDetection: "language_detection",
@@ -42,59 +47,38 @@ var inputTypes = InputTypes{
 	PIIFilter:         "pii_filter",
 }
 
-type ChatRequest struct {
-	Model    string `json:"model"`
-	Messages []struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
-	} `json:"messages"`
-}
-type LanguageScore struct {
-	Label string  `json:"label"`
-	Score float64 `json:"score"`
-}
-
 func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
 	config := lib.GetConfig()
-	var chatRequest ChatRequest
 	var result bool
 	var errorMessage string
 
-	if err := json.Unmarshal([]byte(userPrompt), &chatRequest); err != nil {
-		return "", fmt.Errorf("failed to unmarshal request: %v", err)
-	}
 	for input := range config.Rules.Input {
 		inputConfig := config.Rules.Input[input]
 		switch inputConfig.Type {
 		case inputTypes.LanguageDetection:
 			if inputConfig.Enabled {
+				log.Println("Language Detection")
 				extractedPrompt := ""
-				for _, message := range chatRequest.Messages {
+				for _, message := range userPrompt.Messages {
 					if message.Role == "user" {
 						extractedPrompt = message.Content
 						break
 					}
 				}
-
 				if extractedPrompt == "" {
-					return "", fmt.Errorf("no user message found in the request")
+					return true, "No user message found in the request", fmt.Errorf("no user message found in the request")
 				}
 				log.Printf("Extracted prompt: %s\n", extractedPrompt)
 				englishScore, err := detectEnglish(extractedPrompt)
 				if err != nil {
-					return "", fmt.Errorf("language detection failed: %v", err)
+					return true, fmt.Sprintf("Language detection failed: %v", err), err
 				}
-
 				log.Printf("English language probability: %.4f\n", englishScore)
-
 				if englishScore <= 0.85 {
-					return "", fmt.Errorf("English probability too low: %.4f", englishScore)
+					return true, fmt.Sprintf("English probability too low: %.4f", englishScore), fmt.Errorf("English probability too low: %.4f", englishScore)
 				}
-
 				log.Printf("Language Detection: English probability above threshold (%.4f)\n", englishScore)
-				return extractedPrompt, nil
 			}
-
 		case inputTypes.PromptInjection:
 			if inputConfig.Enabled {
 				agent := fiber.Post(config.Settings.RuleServer.Url + "/rule/execute")
@@ -145,9 +129,10 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 			log.Printf("ERROR: Invalid input filter type %s\n", inputConfig.Type)
 		}
 	}
-	return result, nil
-
+	log.Printf("Final result: blocked=%v, errorMessage=%s", result, errorMessage)
+	return result, errorMessage, nil // Convert the JSON bytes to a string and return
 }
+
 func detectEnglish(text string) (float64, error) {
 	apiKey := os.Getenv("HUGGINGFACE_API_KEY")
 	if apiKey == "" {
@@ -197,5 +182,4 @@ func detectEnglish(text string) (float64, error) {
 	}
 
 	return 0, nil // English not found in the response
-	return result, errorMessage, nil // Convert the JSON bytes to a string and return
 }
