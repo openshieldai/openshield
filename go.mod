@@ -3,14 +3,17 @@ module github.com/openshieldai/openshield
 go 1.22
 
 require (
+	github.com/cespare/xxhash v1.1.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/storage/redis v1.3.4
+	github.com/gofiber/storage/redis/v3 v3.1.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/knights-analytics/hugot v0.1.3
 	github.com/sashabaranov/go-openai v1.26.3
+	github.com/segmentio/fasthash v1.0.3
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tiktoken-go/tokenizer v0.1.1
