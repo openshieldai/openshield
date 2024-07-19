@@ -1,16 +1,38 @@
-from fastapi import FastAPI
-from plugins.prompt_injection_llm import classify_text
+from fastapi import FastAPI, HTTPException
+import rule_engine
+import importlib
+from pydantic import BaseModel
+
+
+class Rule(BaseModel):
+    prompt: dict
+    plugin_name: str
+    injection_score: float
+
 
 app = FastAPI()
 
 
-@app.get("/plugins/{plugin_name}")
-async def read_plugin(plugin_name: str):
-    something = classify_text("something")
-    print(something)
-    return {"plugin_name": plugin_name, "something": something}
+@app.post("/rule/execute")
+async def read_plugin(rule: Rule):
+    try:
+        plugin_module = importlib.import_module(f"plugins.{rule.plugin_name}")
+    except ModuleNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Plugin '{rule.plugin_name}' not found")
+    handler = getattr(plugin_module, 'handler')
+    check_result = None
+    for attrs in rule.prompt['messages']:
+        if attrs['role'] == 'user':
+            check_result = handler(attrs['content'], rule.injection_score)
+            break
+        else:
+            continue
+    context = rule_engine.Context(type_resolver=rule_engine.type_resolver_from_dict({
+        'check_result': rule_engine.DataType.BOOLEAN,
+        'injection_score': rule_engine.DataType.FLOAT
+    }))
+    input_rule = f'injection_score > {rule.injection_score}'
 
-
-# @app.get("/items/{item_id}")
-# async def read_item(item_id: int, q: Union[str, None] = None):
-#     return {"item_id": item_id, "q": q}
+    rule = rule_engine.Rule(input_rule, context=context)
+    match = rule.matches(check_result)
+    return {"match": match, "inspection": check_result}

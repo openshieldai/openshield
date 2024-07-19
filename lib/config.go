@@ -44,6 +44,11 @@ type Setting struct {
 	UsageLogging *FeatureToggle  `mapstructure:"usage_logging,default=false"`
 	Network      *Network        `mapstructure:"network"`
 	RateLimit    *RateLimiting   `mapstructure:"rate_limiting"`
+	RuleServer   *RuleServer     `mapstructure:"rule_server"`
+}
+
+type RuleServer struct {
+	Url string `mapstructure:"url,default=http://localhost:8000"`
 }
 
 type RateLimiting struct {
@@ -95,11 +100,8 @@ type Rule struct {
 
 // Config holds the configuration specifics of a filter
 type Config struct {
-	ModelName string   `mapstructure:"model_name"`
-	ModelURL  string   `mapstructure:"model_url"`
-	ModelType string   `mapstructure:"model_type"`
-	Threshold int      `mapstructure:"threshold,omitempty,default=0.5"`
-	Languages []string `mapstructure:"languages"`
+	PluginName string `mapstructure:"plugin_name"`
+	Threshold  int    `mapstructure:"threshold,omitempty,default=0.5"`
 }
 
 type ActionType string

@@ -24,7 +24,7 @@ func setupApp() *fiber.App {
 	})
 
 	setupOpenAIRoutes(app)
-	setupOpenShieldRoutes(app)
+	//setupOpenShieldRoutes(app)
 
 	return app
 }
