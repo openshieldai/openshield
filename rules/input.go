@@ -107,7 +107,8 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 						log.Println("Blocking request due to rule match.")
 						result = true
 						errorMessage = "request blocked due to rule match"
-					} else if inputConfig.Action.Type == "monitoring" {
+					}
+					if inputConfig.Action.Type == "monitoring" {
 						log.Println("Monitoring request due to rule match.")
 						result = false
 						errorMessage = "request is being monitored due to rule match"
@@ -121,6 +122,63 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 		case inputTypes.PIIFilter:
 			if inputConfig.Enabled {
 				log.Println("PII Filter")
+				extractedPrompt := ""
+				for _, message := range userPrompt.Messages {
+					if message.Role == "user" {
+						extractedPrompt = message.Content
+						break
+					}
+				}
+				if extractedPrompt == "" {
+					return true, "No user message found in the request", fmt.Errorf("no user message found in the request")
+				}
+
+				piiRequest := struct {
+					Text      string     `json:"text"`
+					Threshold float64    `json:"threshold"`
+					Config    lib.Config `json:"config"`
+				}{
+					Text:      extractedPrompt,
+					Threshold: float64(inputConfig.Config.Threshold),
+					Config:    inputConfig.Config,
+				}
+
+				jsonData, err := json.Marshal(piiRequest)
+				if err != nil {
+					return true, fmt.Sprintf("Failed to marshal PII request: %v", err), err
+				}
+
+				agent := fiber.Post(config.Settings.RuleServer.Url)
+				agent.Body(jsonData)
+				agent.Set("Content-Type", "application/json")
+				_, body, _ := agent.Bytes()
+
+				var piiResult struct {
+					CheckResult       bool       `json:"check_result"`
+					AnonymizedContent string     `json:"anonymized_content"`
+					PIIFound          [][]string `json:"pii_found"`
+				}
+
+				if err := json.Unmarshal(body, &piiResult); err != nil {
+					return true, fmt.Sprintf("Failed to decode PII filter response: %v", err), err
+				}
+
+				if piiResult.CheckResult {
+					if inputConfig.Action.Type == "block" {
+						log.Println("Blocking request due to PII detection.")
+						result = true
+						errorMessage = "Request blocked due to PII detection"
+					}
+					if inputConfig.Action.Type == "monitoring" {
+						log.Println("Monitoring request due to PII detection.")
+						result = false
+						errorMessage = "Request is being monitored due to PII detection"
+					}
+				} else {
+					log.Println("No PII detected")
+					result = false
+					errorMessage = "No PII detected"
+				}
 			}
 		default:
 			log.Printf("ERROR: Invalid input filter type %s\n", inputConfig.Type)
