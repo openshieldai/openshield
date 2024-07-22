@@ -1,0 +1,31 @@
+debug: false
+port: 8080
+pii_method: LLM
+
+# Rule-based PII filtering configuration
+rule_based:
+  pii_entities:
+    - PERSON
+    - EMAIL_ADDRESS
+    - PHONE_NUMBER
+    - CREDIT_CARD
+    - US_SSN
+    - GENERIC_PII
+
+# NLP engine configuration for LLM method
+nlp_engine_name: transformers
+models:
+  - lang_code: en
+    model_name: 
+      spacy: en_core_web_sm
+      transformers: dslim/bert-base-NER
+ner_model_configuration:
+  model_to_presidio_entity_mapping:
+    PER: PERSON
+    PERSON: PERSON
+    LOC: LOCATION
+    LOCATION: LOCATION
+    ORG: ORGANIZATION
+    ORGANIZATION: ORGANIZATION
+    PHONE: PHONE_NUMBER
+    # Add more mappings as needed

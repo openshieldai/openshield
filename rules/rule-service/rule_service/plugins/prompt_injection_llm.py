@@ -5,7 +5,6 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipe
 tokenizer = AutoTokenizer.from_pretrained("protectai/deberta-v3-base-prompt-injection-v2")
 model = AutoModelForSequenceClassification.from_pretrained("protectai/deberta-v3-base-prompt-injection-v2")
 
-
 def handler(text: str, threshold: float) -> dict[str, bool] | bool:
     """
     Classifies the input text into a category using a pre-trained model.
