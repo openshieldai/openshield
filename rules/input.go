@@ -104,13 +104,10 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 
 				if rule.Match {
 					if inputConfig.Action.Type == "block" {
-						// Log the error or prepare an error message
 						log.Println("Blocking request due to rule match.")
 						result = true
 						errorMessage = "request blocked due to rule match"
-					}
-					if inputConfig.Action.Type == "monitoring" {
-						// Log the error or prepare an error message
+					} else if inputConfig.Action.Type == "monitoring" {
 						log.Println("Monitoring request due to rule match.")
 						result = false
 						errorMessage = "request is being monitored due to rule match"

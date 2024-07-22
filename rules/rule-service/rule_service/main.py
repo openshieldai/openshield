@@ -47,7 +47,8 @@ async def read_plugin(rule: Rule):
     input_rule = f'injection_score > {rule.injection_score}'
 
     rule_obj = rule_engine.Rule(input_rule, context=context)
-    match = rule_obj.matches(evaluation_dict)
+    match = plugin_result['check_result']
+
     return {"match": match, "inspection": plugin_result}
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
