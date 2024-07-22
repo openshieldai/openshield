@@ -1,7 +1,11 @@
+import logging
+
 import yaml
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_anonymizer import AnonymizerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
+
+logging.basicConfig(level=logging.DEBUG)
 
 def initialize_engines(config):
     pii_method = config.get('pii_method', 'RuleBased')
@@ -21,25 +25,42 @@ def initialize_engines(config):
     anonymizer = AnonymizerEngine()
     return analyzer, anonymizer, pii_method
 
+
 def anonymize_text(text, analyzer, anonymizer, pii_method, config):
+    logging.debug(f"Anonymizing text: {text}")
+    logging.debug(f"PII method: {pii_method}")
+    logging.debug(f"Config: {config}")
+
     if pii_method == 'LLM':
         results = analyzer.analyze(text=text, language='en')
     else:
-        results = analyzer.analyze(text=text, entities=config['rule_based']['pii_entities'], language='en')
+        entities = config.get('RuleBased', {}).get('PIIEntities', ["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "CREDIT_CARD", "US_SSN", "GENERIC_PII"])
+        logging.debug(f"Using entities: {entities}")
+        results = analyzer.analyze(text=text, entities=entities, language='en')
+
+    logging.debug(f"Analysis results: {results}")
 
     anonymized_result = anonymizer.anonymize(text=text, analyzer_results=results)
     anonymized_text = anonymized_result.text
 
     identified_pii = [(result.entity_type, text[result.start:result.end]) for result in results]
+    logging.debug(f"Identified PII: {identified_pii}")
+    logging.debug(f"Anonymized text: {anonymized_text}")
 
     return anonymized_text, identified_pii
 
 def handler(text: str, threshold: float, config: dict) -> dict:
+    logging.debug(f"Handler received text: {text}")
+    logging.debug(f"Handler received threshold: {threshold}")
+    logging.debug(f"Handler received config: {config}")
+
     analyzer, anonymizer, pii_method = initialize_engines(config)
     anonymized_text, identified_pii = anonymize_text(text, analyzer, anonymizer, pii_method, config)
 
-    return {
+    result = {
         "check_result": len(identified_pii) > 0,
         "anonymized_content": anonymized_text,
         "pii_found": identified_pii
     }
+    logging.debug(f"Handler result: {result}")
+    return result

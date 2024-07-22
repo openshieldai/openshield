@@ -76,3 +76,21 @@ func TestPromptInjection(t *testing.T) {
 	})
 
 }
+func TestPIIFilter(t *testing.T) {
+
+	t.Run("With PII", func(t *testing.T) {
+		userPrompt := openai.ChatCompletionRequest{
+			Messages: []openai.ChatCompletionMessage{
+				{Role: "user", Content: "Hello, my name is John Smith"},
+			},
+		}
+
+		blocked, errorMessage, err := Input(nil, userPrompt)
+
+		assert.NoError(t, err)
+		assert.True(t, blocked)
+		assert.Equal(t, "request blocked due to PII detection", errorMessage)
+		assert.Equal(t, "Hello, my name is <PERSON>", userPrompt.Messages[0].Content)
+	})
+
+}

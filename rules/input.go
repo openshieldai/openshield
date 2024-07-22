@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/openshieldai/openshield/lib"
+	"github.com/sashabaranov/go-openai"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/openshieldai/openshield/lib"
-	"github.com/sashabaranov/go-openai"
 )
 
 type InputTypes struct {
@@ -22,14 +21,15 @@ type InputTypes struct {
 
 type Rule struct {
 	PluginName     string                       `json:"plugin_name"`
-	Label          string                       `json:"label"`
 	InjectionScore float64                      `json:"injection_score"`
 	Prompt         openai.ChatCompletionRequest `json:"prompt"`
+	Config         lib.Config                   `json:"config"`
 }
 
 type RuleInspection struct {
-	CheckResult    bool    `json:"check_result"`
-	InjectionScore float64 `json:"injection_score"`
+	CheckResult       bool    `json:"check_result"`
+	InjectionScore    float64 `json:"injection_score"`
+	AnonymizedContent string  `json:"anonymized_content"`
 }
 
 type RuleResult struct {
@@ -79,6 +79,61 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 				}
 				log.Printf("Language Detection: English probability above threshold (%.4f)\n", englishScore)
 			}
+		case inputTypes.PIIFilter:
+			if inputConfig.Enabled {
+				log.Println("PII Filter")
+				extractedPrompt := ""
+				var userMessageIndex int
+				for i, message := range userPrompt.Messages {
+					if message.Role == "user" {
+						extractedPrompt = message.Content
+						userMessageIndex = i
+						break
+					}
+				}
+				if extractedPrompt == "" {
+					return true, "No user message found in the request", fmt.Errorf("no user message found in the request")
+				}
+
+				data := Rule{
+					PluginName:     inputConfig.Config.PluginName,
+					InjectionScore: float64(inputConfig.Config.Threshold),
+					Prompt:         userPrompt,
+					Config:         inputConfig.Config,
+				}
+
+				jsonData, err := json.Marshal(data)
+				log.Printf("Request being sent to Python endpoint:\n%s", string(jsonData))
+				if err != nil {
+					return true, fmt.Sprintf("Failed to marshal PII request: %v", err), err
+				}
+
+				agent := fiber.Post(config.Settings.RuleServer.Url + "/rule/execute")
+				agent.Body(jsonData)
+				agent.Set("Content-Type", "application/json")
+				_, body, _ := agent.Bytes()
+
+				var piiResult RuleResult
+				if err := json.Unmarshal(body, &piiResult); err != nil {
+					return true, fmt.Sprintf("Failed to decode PII filter response: %v", err), err
+				}
+
+				if piiResult.Inspection.CheckResult {
+					// Update the user message with the anonymized content
+					userPrompt.Messages[userMessageIndex].Content = piiResult.Inspection.AnonymizedContent
+
+					if inputConfig.Action.Type == "block" {
+						log.Println("Blocking request due to PII detection.")
+						return true, "request blocked due to PII detection", nil
+					} else if inputConfig.Action.Type == "monitoring" {
+						log.Println("Monitoring request due to PII detection.")
+						// Continue processing
+					}
+				} else {
+					log.Println("No PII detected")
+				}
+			}
+
 		case inputTypes.PromptInjection:
 			if inputConfig.Enabled {
 				agent := fiber.Post(config.Settings.RuleServer.Url + "/rule/execute")
@@ -86,6 +141,7 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 					PluginName:     inputConfig.Config.PluginName,
 					InjectionScore: float64(inputConfig.Config.Threshold),
 					Prompt:         userPrompt,
+					Config:         inputConfig.Config,
 				}
 				jsonify, err := json.Marshal(data)
 				if err != nil {
@@ -102,14 +158,15 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 					log.Println(err)
 				}
 
-				if rule.Match {
+				log.Printf("Rule match: %v, Injection score: %f", rule.Match, rule.Inspection.InjectionScore)
+
+				if rule.Inspection.InjectionScore > float64(inputConfig.Config.Threshold) {
 					if inputConfig.Action.Type == "block" {
-						log.Println("Blocking request due to rule match.")
+						log.Println("Blocking request due to high injection score.")
 						result = true
 						errorMessage = "request blocked due to rule match"
-					}
-					if inputConfig.Action.Type == "monitoring" {
-						log.Println("Monitoring request due to rule match.")
+					} else if inputConfig.Action.Type == "monitoring" {
+						log.Println("Monitoring request due to high injection score.")
 						result = false
 						errorMessage = "request is being monitored due to rule match"
 					}
@@ -117,67 +174,6 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 					log.Println("Rule Not Matched")
 					result = false
 					errorMessage = "request is not blocked"
-				}
-			}
-		case inputTypes.PIIFilter:
-			if inputConfig.Enabled {
-				log.Println("PII Filter")
-				extractedPrompt := ""
-				for _, message := range userPrompt.Messages {
-					if message.Role == "user" {
-						extractedPrompt = message.Content
-						break
-					}
-				}
-				if extractedPrompt == "" {
-					return true, "No user message found in the request", fmt.Errorf("no user message found in the request")
-				}
-
-				piiRequest := struct {
-					Text      string     `json:"text"`
-					Threshold float64    `json:"threshold"`
-					Config    lib.Config `json:"config"`
-				}{
-					Text:      extractedPrompt,
-					Threshold: float64(inputConfig.Config.Threshold),
-					Config:    inputConfig.Config,
-				}
-
-				jsonData, err := json.Marshal(piiRequest)
-				if err != nil {
-					return true, fmt.Sprintf("Failed to marshal PII request: %v", err), err
-				}
-
-				agent := fiber.Post(config.Settings.RuleServer.Url)
-				agent.Body(jsonData)
-				agent.Set("Content-Type", "application/json")
-				_, body, _ := agent.Bytes()
-
-				var piiResult struct {
-					CheckResult       bool       `json:"check_result"`
-					AnonymizedContent string     `json:"anonymized_content"`
-					PIIFound          [][]string `json:"pii_found"`
-				}
-
-				if err := json.Unmarshal(body, &piiResult); err != nil {
-					return true, fmt.Sprintf("Failed to decode PII filter response: %v", err), err
-				}
-
-				if piiResult.CheckResult {
-					if inputConfig.Action.Type == "block" {
-						log.Println("Blocking request due to PII detection.")
-						result = true
-						errorMessage = "Request blocked due to PII detection"
-					}
-					if inputConfig.Action.Type == "monitoring" {
-						log.Println("Monitoring request due to PII detection.")
-						result = false
-						errorMessage = "Request is being monitored due to PII detection"
-					}
-				} else {
-					log.Println("No PII detected")
-					result = false
-					errorMessage = "No PII detected"
 				}
 			}
 		default:

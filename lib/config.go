@@ -46,9 +46,28 @@ type Setting struct {
 	RateLimit    *RateLimiting   `mapstructure:"rate_limiting"`
 	RuleServer   *RuleServer     `mapstructure:"rule_server"`
 }
+type PIIService struct {
+	Debug          bool           `mapstructure:"debug"`
+	Port           int            `mapstructure:"port"`
+	PIIMethod      string         `mapstructure:"pii_method"`
+	RuleBased      RuleBased      `mapstructure:"rule_based"`
+	NLPEngineName  string         `mapstructure:"nlp_engine_name"`
+	Models         []Model        `mapstructure:"models"`
+	NERModelConfig NERModelConfig `mapstructure:"ner_model_configuration"`
+}
+type RuleBased struct {
+	PIIEntities []string `mapstructure:"pii_entities"`
+}
 
+type Model struct {
+	LangCode  string            `mapstructure:"lang_code"`
+	ModelName map[string]string `mapstructure:"model_name"`
+}
 type RuleServer struct {
 	Url string `mapstructure:"url,default=http://localhost:8000"`
+}
+type NERModelConfig struct {
+	ModelToPresidioEntityMapping map[string]string `mapstructure:"model_to_presidio_entity_mapping"`
 }
 
 type RateLimiting struct {
@@ -100,8 +119,9 @@ type Rule struct {
 
 // Config holds the configuration specifics of a filter
 type Config struct {
-	PluginName string `mapstructure:"plugin_name"`
-	Threshold  int    `mapstructure:"threshold,omitempty,default=0.5"`
+	PluginName string      `mapstructure:"plugin_name"`
+	Threshold  int         `mapstructure:"threshold,omitempty,default=0.5"`
+	PIIService *PIIService `mapstructure:"piiservice,omitempty"`
 }
 
 type ActionType string
