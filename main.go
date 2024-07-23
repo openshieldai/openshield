@@ -29,9 +29,9 @@ func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, k
 func setupOpenAIRoutes(app *fiber.App) {
 	config := lib.GetRouteSettings()
 	routes := map[string]lib.RouteSettings{
-		"/openai/v1/models": config,
-		//"/openai/v1/models/:model":    settings.Routes.OpenAI.Model,
-		//"/openai/v1/chat/completions": settings.Routes.OpenAI.ChatCompletions,
+		"/openai/v1/models":           config,
+		"/openai/v1/models/:model":    config,
+		"/openai/v1/chat/completions": config,
 	}
 
 	for path, routeSettings := range routes {
