@@ -20,10 +20,8 @@ type InputTypes struct {
 }
 
 type Rule struct {
-	PluginName     string                       `json:"plugin_name"`
-	InjectionScore float64                      `json:"injection_score"`
-	Prompt         openai.ChatCompletionRequest `json:"prompt"`
-	Config         lib.Config                   `json:"config"`
+	Prompt openai.ChatCompletionRequest `json:"prompt"`
+	Config lib.Config                   `json:"config"`
 }
 
 type RuleInspection struct {
@@ -96,10 +94,8 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 				}
 
 				data := Rule{
-					PluginName:     inputConfig.Config.PluginName,
-					InjectionScore: float64(inputConfig.Config.Threshold),
-					Prompt:         userPrompt,
-					Config:         inputConfig.Config,
+					Prompt: userPrompt,
+					Config: inputConfig.Config,
 				}
 
 				jsonData, err := json.Marshal(data)
@@ -138,10 +134,8 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 			if inputConfig.Enabled {
 				agent := fiber.Post(config.Settings.RuleServer.Url + "/rule/execute")
 				data := Rule{
-					PluginName:     inputConfig.Config.PluginName,
-					InjectionScore: float64(inputConfig.Config.Threshold),
-					Prompt:         userPrompt,
-					Config:         inputConfig.Config,
+					Prompt: userPrompt,
+					Config: inputConfig.Config,
 				}
 				jsonify, err := json.Marshal(data)
 				if err != nil {
