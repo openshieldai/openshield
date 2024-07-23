@@ -101,33 +101,17 @@ def anonymize_text(text, analyzer, anonymizer, pii_method, config):
 
 
 def handler(text: str, threshold: float, config: dict) -> dict:
-
-    logging.debug(f"Handler received text: {text}")
-
-    logging.debug(f"Handler received threshold: {threshold}")
-
-    logging.debug(f"Handler received config: {config}")
-
-
-
     pii_service_config = config.get('piiservice', {})
-
     analyzer, anonymizer, pii_method = initialize_engines(pii_service_config)
-
     anonymized_text, identified_pii = anonymize_text(text, analyzer, anonymizer, pii_method, pii_service_config)
 
+    pii_score = len(identified_pii) / len(text.split())  # Simple score based on PII density
 
-
-    result = {
-
-        "check_result": len(identified_pii) > 0,
-
+    return {
+        "check_result": pii_score > threshold,
+        "pii_score": pii_score,
         "anonymized_content": anonymized_text,
-
         "pii_found": identified_pii
-
     }
-
-    logging.debug(f"Handler result: {result}")
 
     return result

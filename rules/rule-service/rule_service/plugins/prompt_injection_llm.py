@@ -7,18 +7,6 @@ model = AutoModelForSequenceClassification.from_pretrained("protectai/deberta-v3
 
 
 def handler(text: str, threshold: float, config: dict) -> dict:
-    """
-    Classifies the input text into a category using a pre-trained model.
-
-    Args:
-    text (str): The text to classify.
-    threshold (float): The minimum score required to classify the text as a prompt injection.
-    config (dict): Additional configuration parameters.
-
-    Returns:
-    dict: Contains 'check_result' (bool) and 'injection_score' (float).
-    """
-
     classifier = pipeline(
         "text-classification",
         model=model,
@@ -31,8 +19,7 @@ def handler(text: str, threshold: float, config: dict) -> dict:
     results = classifier(text)
     injection_score = round(results[0]["score"] if results[0]["label"] == "INJECTION" else 1 - results[0]["score"], 2)
 
-    print(f"Injection score: {injection_score}, Threshold: {threshold}")
-
-    check_result = injection_score > threshold
-
-    return {"check_result": check_result, "injection_score": injection_score}
+    return {
+        "check_result": injection_score > threshold,
+        "injection_score": injection_score
+    }
