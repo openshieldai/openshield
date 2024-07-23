@@ -12,7 +12,7 @@ require (
 	github.com/gofiber/storage/redis/v3 v3.1.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/knights-analytics/hugot v0.1.3
+	github.com/knights-analytics/hugot v0.1.4
 	github.com/sashabaranov/go-openai v1.27.0
 	github.com/segmentio/fasthash v1.0.3
 	github.com/spf13/viper v1.19.0
@@ -25,7 +25,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/aws/aws-sdk-go v1.53.12 // indirect
+	github.com/aws/aws-sdk-go v1.54.19 // indirect
 	github.com/bodaay/HuggingFaceModelDownloader v0.0.0-20240307153905-2f38356a6d6c // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -45,7 +45,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/knights-analytics/tokenizers v0.12.1 // indirect
+	github.com/knights-analytics/tokenizers v0.13.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
