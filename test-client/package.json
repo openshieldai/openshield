@@ -10,7 +10,7 @@
   "description": "",
   "dependencies": {
     "https-proxy-agent": "^7.0.4",
-    "openai": "4.52.0"
+    "openai": "4.53.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
