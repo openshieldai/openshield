@@ -6,9 +6,11 @@ import (
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"math/rand"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -43,6 +45,7 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(createTablesCmd)
 	rootCmd.AddCommand(createMockDataCmd)
+	rootCmd.AddCommand(editConfigCmd)
 }
 
 var createTablesCmd = &cobra.Command{
@@ -142,4 +145,87 @@ func createMockRecords(db *gorm.DB, model interface{}, count int) {
 		//	}
 	}
 
+}
+
+var editConfigCmd = &cobra.Command{
+	Use:   "edit-config",
+	Short: "Edit the config.yaml file",
+	Run: func(cmd *cobra.Command, args []string) {
+		editConfig()
+	},
+}
+
+func editConfig() {
+	v := viper.New()
+	v.SetConfigFile("config.yaml")
+	err := v.ReadInConfig()
+	if err != nil {
+		fmt.Printf("Error reading config file: %v\n", err)
+		return
+	}
+
+	for {
+		fmt.Println("\nCurrent configuration:")
+		printConfig(v.AllSettings())
+
+		fmt.Println("\nEnter the path of the setting you want to change, or 'q' to quit:")
+		var path string
+		fmt.Scanln(&path)
+
+		if path == "q" {
+			break
+		}
+
+		fmt.Println("Enter the new value:")
+		var value string
+		fmt.Scanln(&value)
+
+		if err := updateConfig(v, path, value); err != nil {
+			fmt.Printf("Error updating config: %v\n", err)
+		} else {
+			fmt.Println("Configuration updated successfully.")
+			if err := v.WriteConfig(); err != nil {
+				fmt.Printf("Error writing config file: %v\n", err)
+			}
+		}
+	}
+}
+
+func printConfig(settings map[string]interface{}, prefix ...string) {
+	for key, value := range settings {
+		fullKey := strings.Join(append(prefix, key), ".")
+		if subMap, ok := value.(map[string]interface{}); ok {
+			printConfig(subMap, append(prefix, key)...)
+		} else {
+			fmt.Printf("%s: %v\n", fullKey, value)
+		}
+	}
+}
+
+func updateConfig(v *viper.Viper, path string, value string) error {
+	currentValue := v.Get(path)
+	if currentValue == nil {
+		return fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	var newValue interface{}
+	var err error
+
+	switch reflect.TypeOf(currentValue).Kind() {
+	case reflect.Int:
+		newValue, err = strconv.Atoi(value)
+	case reflect.Bool:
+		newValue, err = strconv.ParseBool(value)
+	case reflect.Float64:
+		newValue, err = strconv.ParseFloat(value, 64)
+	default:
+		newValue = value
+	}
+
+	if err != nil {
+		return fmt.Errorf("invalid value for %s: %v", path, err)
+	}
+
+	v.Set(path, newValue)
+	return nil
 }
