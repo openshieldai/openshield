@@ -3,68 +3,110 @@ package openai
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/rules"
 	"github.com/sashabaranov/go-openai"
 )
 
 var client *openai.Client
 
 func ListModelsHandler(c *fiber.Ctx) error {
-	settings := lib.NewSettings()
-	openAIAPIKey := settings.OpenAI.APIKey
+	config := lib.GetConfig()
+	openAIAPIKey := config.Secrets.OpenAIApiKey
 	client = openai.NewClient(openAIAPIKey)
 
-	res, err := client.ListModels(c.Context())
+	getCache, cacheStatus, err := lib.GetCache(c.Path())
 	if err != nil {
-		return lib.ErrorResponse(c, err)
+		log.Printf("Error getting cache: %v", err)
 	}
+	if cacheStatus {
+		c.Set("OS-Cache-Status", "HIT")
+		return c.Send(getCache)
+	} else {
+		log.Printf("Cache miss for %v", cacheStatus)
+		res, err := client.ListModels(c.Context())
+		if err != nil {
+			return lib.ErrorResponse(c, err)
+		}
 
-	return c.JSON(res)
+		if config.Settings.Cache.Enabled {
+			c.Set("OS-Cache-Status", "MISS")
+			resJson, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("Error marshalling response to JSON: %v", err)
+				return c.Status(500).JSON(fiber.Map{
+					"error": fiber.Map{
+						"message": "Internal server error",
+						"type":    "server_error",
+					},
+				})
+			}
+
+			_, err = lib.SetCache(c.Path(), resJson)
+			if err != nil {
+				log.Printf("Error setting cache: %v", err)
+			}
+		} else {
+			c.Set("OS-Cache-Status", "BYPASS")
+		}
+
+		return c.JSON(res)
+	}
 }
 
 func GetModelHandler(c *fiber.Ctx) error {
-	settings := lib.NewSettings()
-	openAIAPIKey := settings.OpenAI.APIKey
+	config := lib.GetConfig()
+	openAIAPIKey := config.Secrets.OpenAIApiKey
 
 	client = openai.NewClient(openAIAPIKey)
-	res, err := client.GetModel(c.Context(), c.Params("model"))
+	getCache, cacheStatus, err := lib.GetCache(c.Path())
 	if err != nil {
-		return lib.ErrorResponse(c, err)
+		log.Printf("Error getting cache: %v", err)
 	}
-	return c.JSON(res)
+	if cacheStatus {
+		c.Set("OS-Cache-Status", "HIT")
+		return c.Send(getCache)
+	} else {
+		log.Printf("Cache miss for %v", cacheStatus)
+		res, err := client.GetModel(c.Context(), c.Params("model"))
+		if err != nil {
+			return lib.ErrorResponse(c, err)
+		}
+
+		if config.Settings.Cache.Enabled {
+			c.Set("OS-Cache-Status", "MISS")
+			resJson, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("Error marshalling response to JSON: %v", err)
+				return c.Status(500).JSON(fiber.Map{
+					"error": fiber.Map{
+						"message": "Internal server error",
+						"type":    "server_error",
+					},
+				})
+			}
+
+			_, err = lib.SetCache(c.Path(), resJson)
+			if err != nil {
+				log.Printf("Error setting cache: %v", err)
+			}
+		} else {
+			c.Set("OS-Cache-Status", "BYPASS")
+		}
+
+		return c.JSON(res)
+	}
 }
 
 func ChatCompletionHandler(c *fiber.Ctx) error {
-	settings := lib.NewSettings()
-	openAIAPIKey := settings.OpenAI.APIKey
-	token, err := lib.AuthHeaderParser(c)
-	if err != nil {
-		return c.Status(401).JSON(fiber.Map{
-			"error": interface{}(fiber.Map{
-				"message": "Unauthorized",
-				"type":    "authentication_error",
-			}),
-		})
-	}
-
-	apiKey, err := lib.GetApiKey(token)
-	if err != nil {
-		return c.Status(401).JSON(fiber.Map{
-			"error": interface{}(fiber.Map{
-				"message": "Unauthorized",
-				"type":    "authentication_error",
-			}),
-		})
-
-	}
-
+	config := lib.GetConfig()
+	openAIAPIKey := config.Secrets.OpenAIApiKey
 	var inputJson bytes.Buffer
-	err = json.Compact(&inputJson, c.BodyRaw())
+	err := json.Compact(&inputJson, c.BodyRaw())
 	if err != nil {
 		log.Printf("Error compacting JSON: %v", err)
 		return c.Status(400).JSON(fiber.Map{
@@ -75,33 +117,14 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	lib.AuditLogs(inputJson.String(), "openai_chat_completion", apiKey.Id, "input", c)
+	lib.AuditLogs(inputJson.String(), "openai_chat_completion", c.Locals("apiKeyId").(uuid.UUID), "input", c)
 
 	var openAIData []byte
-
-	if settings.OpenShield.PIIService.Status {
-		bodyReader := bytes.NewReader(c.BodyRaw())
-		// TODO: Use Fiber Client here
-		resp, err := http.Post(settings.OpenShield.PIIService.URL, "application/json", bodyReader)
-		if err != nil {
-			log.Printf("Error uploading data to PIIService: %v", err)
-		}
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				log.Printf("Error closing response body: %v", err)
-			}
-		}(resp.Body)
-
-		body, err := io.ReadAll(resp.Body)
-		openAIData = body
-	} else {
-		openAIData = c.BodyRaw()
-	}
+	openAIData = c.BodyRaw()
 
 	client = openai.NewClient(openAIAPIKey)
-	req := new(openai.ChatCompletionRequest)
-	err = json.Unmarshal(openAIData, req)
+	var req openai.ChatCompletionRequest
+	err = json.Unmarshal(openAIData, &req)
 	if err != nil {
 		log.Printf("Error unmarshalling openAIData: %v", err)
 		return c.Status(400).JSON(fiber.Map{
@@ -112,19 +135,75 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	res, err := client.CreateChatCompletion(c.Context(), *req)
-	if err != nil {
-		log.Printf("Error creating chat completion: %v", err)
-		return c.Status(500).JSON(fiber.Map{
+	filteredResp, errorMessage, err := rules.Input(c, req)
+	//if err != nil {
+	//	log.Printf("Error filtering input: %v", err)
+	//	return c.Status(500).JSON(fiber.Map{
+	//		"error": interface{}(fiber.Map{
+	//			"message": "Internal server error",
+	//			"type":    "server_error",
+	//		}),
+	//	})
+	//}
+
+	if filteredResp {
+		return c.Status(400).JSON(fiber.Map{
 			"error": interface{}(fiber.Map{
-				"message": "Internal server error",
-				"type":    "server_error",
+				"message": errorMessage,
+				"type":    "rule_block",
 			}),
 		})
 	}
-	outputJsonData, err := json.Marshal(res)
-	lib.AuditLogs(string(outputJsonData), "openai_chat_completion", apiKey.Id, "output", c)
-	// Fix me: predictedTokens is hard coded to 0, finish reason is hard coded to the first choice finish reason
-	lib.Usage(res.Model, 0, res.Usage.TotalTokens, res.Usage.CompletionTokens, res.Usage.TotalTokens, string(res.Choices[0].FinishReason), "chat_completion")
-	return c.JSON(res)
+
+	getCache, cacheStatus, err := lib.GetCache(string(openAIData))
+	if err != nil {
+		log.Printf("Error getting cache: %v", err)
+	}
+	if cacheStatus {
+		c.Set("OS-Cache-Status", "HIT")
+		return c.Send(getCache)
+	} else {
+		log.Printf("Cache miss for %v", cacheStatus)
+		res, err := client.CreateChatCompletion(c.Context(), req)
+		if err != nil {
+			log.Printf("Error creating chat completion: %v", err)
+			return c.Status(500).JSON(fiber.Map{
+				"error": interface{}(fiber.Map{
+					"message": "Internal server error",
+					"type":    "server_error",
+				}),
+			})
+		}
+
+		if err != nil {
+			return lib.ErrorResponse(c, err)
+		}
+
+		if config.Settings.Cache.Enabled {
+			c.Set("OS-Cache-Status", "MISS")
+			resJson, err := json.Marshal(res)
+			if err != nil {
+				log.Printf("Error marshalling response to JSON: %v", err)
+				return c.Status(500).JSON(fiber.Map{
+					"error": fiber.Map{
+						"message": "Internal server error",
+						"type":    "server_error",
+					},
+				})
+			}
+
+			_, err = lib.SetCache(string(openAIData), resJson)
+			if err != nil {
+				log.Printf("Error setting cache: %v", err)
+			}
+		} else {
+			c.Set("OS-Cache-Status", "BYPASS")
+		}
+
+		outputJsonData, err := json.Marshal(res)
+		lib.AuditLogs(string(outputJsonData), "openai_chat_completion", c.Locals("apiKeyId").(uuid.UUID), "output", c)
+		// Fix me: predictedTokens is hard coded to 0, finish reason is hard coded to the first choice finish reason
+		lib.Usage(res.Model, 0, res.Usage.TotalTokens, res.Usage.CompletionTokens, res.Usage.TotalTokens, string(res.Choices[0].FinishReason), "chat_completion")
+		return c.JSON(res)
+	}
 }

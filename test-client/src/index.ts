@@ -3,8 +3,8 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const client = new OpenAI({
     // apiKey: '12345',
-    baseURL: 'http://127.0.0.1:8080/openai/v1',
-    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: 'http://127.0.0.1:3005/openai/v1',
+    apiKey: process.env.TEST_API_KEY,
 });
 
 async function main() {

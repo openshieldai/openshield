@@ -12,10 +12,10 @@ import (
 	"github.com/openshieldai/openshield/lib/openai"
 )
 
-func setupRoute(app *fiber.App, path string, routeSettings lib.Route, routesSettings lib.Routes, keyGenerator ...func(c *fiber.Ctx) string) {
+func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, keyGenerator ...func(c *fiber.Ctx) string) {
 	config := limiter.Config{
-		Max:        routeSettings.RateLimitMax,
-		Expiration: time.Duration(routeSettings.RateLimitExpiration) * routeSettings.RateLimitTime,
+		Max:        routesSettings.RateLimit.Max,
+		Expiration: time.Duration(routesSettings.RateLimit.Expiration) * time.Second * time.Duration(routesSettings.RateLimit.Window),
 		Storage:    routesSettings.Storage,
 	}
 
@@ -27,15 +27,15 @@ func setupRoute(app *fiber.App, path string, routeSettings lib.Route, routesSett
 }
 
 func setupOpenAIRoutes(app *fiber.App) {
-	settings := lib.NewSettings()
-	routes := map[string]lib.Route{
-		"/openai/v1/models":           settings.Routes.OpenAI.Models,
-		"/openai/v1/models/:model":    settings.Routes.OpenAI.Model,
-		"/openai/v1/chat/completions": settings.Routes.OpenAI.ChatCompletions,
+	config := lib.GetRouteSettings()
+	routes := map[string]lib.RouteSettings{
+		"/openai/v1/models":           config,
+		"/openai/v1/models/:model":    config,
+		"/openai/v1/chat/completions": config,
 	}
 
 	for path, routeSettings := range routes {
-		setupRoute(app, path, routeSettings, settings.Routes)
+		setupRoute(app, path, routeSettings)
 	}
 
 	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
@@ -43,35 +43,35 @@ func setupOpenAIRoutes(app *fiber.App) {
 	app.Post("/openai/v1/chat/completions", lib.AuthOpenShieldMiddleware(), openai.ChatCompletionHandler)
 }
 
-func setupOpenShieldRoutes(app *fiber.App) {
-	settings := lib.NewSettings()
-	routes := map[string]lib.Route{
-		"/tokenizer/:model": settings.Routes.Tokenizer,
-	}
-
-	for path, routeSettings := range routes {
-		setupRoute(app, path, routeSettings, settings.Routes)
-	}
-
-	app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
-}
+//func setupOpenShieldRoutes(app *fiber.App) {
+//	config := lib.GetConfig()
+//	routes := map[string]lib.Route{
+//		"/tokenizer/:model": settings.Routes.Tokenizer,
+//	}
+//
+//	for path := range routes {
+//		setupRoute(app, path, lib.GetRouteSettings())
+//	}
+//
+//	app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
+//}
 
 func main() {
-	settings := lib.NewSettings()
+	config := lib.GetConfig()
 
 	app := fiber.New(fiber.Config{
-		Prefork:       true,
-		CaseSensitive: false,
-		StrictRouting: true,
-		ServerHeader:  "openshield",
-		AppName:       "OpenShield",
+		Prefork:           false,
+		CaseSensitive:     false,
+		StrictRouting:     true,
+		StreamRequestBody: true,
+		ServerHeader:      "openshield",
+		AppName:           "OpenShield",
 	})
 	app.Use(requestid.New())
 	app.Use(logger.New())
 
 	app.Use(logger.New(logger.Config{
-		DisableColors: settings.Log.DisableColor,
-		Format:        "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
+		Format: "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
 	}))
 
 	app.Use(func(c *fiber.Ctx) error {
@@ -81,9 +81,9 @@ func main() {
 	})
 
 	setupOpenAIRoutes(app)
-	setupOpenShieldRoutes(app)
+	//setupOpenShieldRoutes(app)
 
-	err := app.Listen(":" + strconv.Itoa(settings.OpenShield.Port))
+	err := app.Listen(":" + strconv.Itoa(config.Settings.Network.Port))
 	if err != nil {
 		panic(err.Error())
 	}

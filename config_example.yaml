@@ -1,0 +1,92 @@
+settings:
+  network:
+      port: 3005
+  database:
+      uri: "postgres://"
+  cache:
+      redis_uri: "redis://"
+      ssl: false
+      enabled: true
+      ttl: 3600
+  audit_logging:
+      enabled: true
+  usage_logging:
+      enabled: true
+
+providers:
+  openai:
+    enabled: false
+  huggingface:
+    enabled: true
+
+rules:
+  input:
+    - name: "language_detection"
+      type: "language_detection"
+      config:
+        languages: [ "English", "French", "German", "Spanish", "Hungarian"]
+      enabled: true
+      action:
+        type: "block" # blocking and logging
+    - name: "pii_example"
+      type: "pii_filter"
+      enabled: true
+      config:
+        model_name: "value1"
+        model_url: "value2"
+        model_type: ""
+        plugin_name: "pii"
+        piiservice:
+          debug: false
+          port: 8080
+          pii_method: LLM
+          rule_based:
+            pii_entities:
+              - PERSON
+              - EMAIL_ADDRESS
+              - PHONE_NUMBER
+              - CREDIT_CARD
+              - US_SSN
+              - GENERIC_PII
+          nlp_engine_name: transformers
+          models:
+            - lang_code: en
+              model_name:
+                spacy: en_core_web_sm
+                transformers: dslim/bert-base-NER
+          ner_model_configuration:
+            model_to_presidio_entity_mapping:
+              PER: PERSON
+              PERSON: PERSON
+              LOC: LOCATION
+              LOCATION: LOCATION
+              ORG: ORGANIZATION
+              ORGANIZATION: ORGANIZATION
+              PHONE: PHONE_NUMBER
+        threshold: 0.5
+      action:
+        type: "block" # blocking and logging
+    #      - type: "mask" # masking and logging
+    #      - type: "monitoring" # logging
+
+    - name: "prompt_injection_example"
+      type: "prompt_injection"
+      enabled: true
+      config:
+        model_name: "protectai/deberta-v3-base-prompt-injection-v2"
+        model_url: "https://api-inference.huggingface.co/models/"
+        provider_type: "huggingface"
+        plugin_name: "prompt_injection_llm"
+        threshold: 0.8
+      action:
+        type: "block"
+  #      - type: "monitoring" # logging
+  output:
+    - name: "pii_example"
+      type: "pii_filter"
+      config:
+        model_name: "value1"
+        model_url: "value2"
+        model_type: ""
+      action:
+        type: "block"

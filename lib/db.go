@@ -10,16 +10,14 @@ import (
 )
 
 func DB() *gorm.DB {
-	settings := NewSettings()
-	connection, err := gorm.Open(postgres.Open(settings.Database.URL), &gorm.Config{})
+	config := GetConfig()
+	connection, err := gorm.Open(postgres.Open(config.Settings.Database.URI), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
 
-	if settings.Database.AutoMigration {
+	if config.Settings.Database.AutoMigration {
 		err := connection.AutoMigrate(&models.ApiKeys{},
-			&models.Products{},
-			&models.Workspaces{},
 			&models.Tags{},
 			&models.AuditLogs{},
 			&models.Usage{},

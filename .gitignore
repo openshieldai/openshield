@@ -25,3 +25,4 @@ go.work.sum
 test-client/node_modules
 test-client/src/index.js
 .DS_Store
+config.yaml
