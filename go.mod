@@ -7,7 +7,7 @@ require (
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/gofiber/storage/redis v1.3.4
+	github.com/gofiber/storage/redis v3.1.2
 	github.com/gofiber/storage/redis/v3 v3.1.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
