@@ -6,7 +6,7 @@ import (
 	"time"
 
 	hash "github.com/cespare/xxhash/v2"
-	"github.com/gofiber/storage/redis"
+	"github.com/gofiber/storage/redis/v3"
 )
 
 func GetCache(key string) ([]byte, bool, error) {

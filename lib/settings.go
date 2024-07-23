@@ -5,7 +5,7 @@ import (
 	"runtime"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/storage/redis"
+	"github.com/gofiber/storage/redis/v3"
 )
 
 type Settings struct {
