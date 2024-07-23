@@ -1,16 +1,18 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/bxcodec/faker/v3"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 	"math/rand"
+	"os"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -166,7 +168,7 @@ func editConfig() {
 
 	for {
 		fmt.Println("\nCurrent configuration:")
-		printConfig(v.AllSettings())
+		printConfig(v.AllSettings(), 0)
 
 		fmt.Println("\nEnter the path of the setting you want to change, or 'q' to quit:")
 		var path string
@@ -176,9 +178,12 @@ func editConfig() {
 			break
 		}
 
-		fmt.Println("Enter the new value:")
+		fmt.Println("Enter the new value (YAML format):")
 		var value string
-		fmt.Scanln(&value)
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			value = scanner.Text()
+		}
 
 		if err := updateConfig(v, path, value); err != nil {
 			fmt.Printf("Error updating config: %v\n", err)
@@ -191,41 +196,76 @@ func editConfig() {
 	}
 }
 
-func printConfig(settings map[string]interface{}, prefix ...string) {
-	for key, value := range settings {
-		fullKey := strings.Join(append(prefix, key), ".")
-		if subMap, ok := value.(map[string]interface{}); ok {
-			printConfig(subMap, append(prefix, key)...)
-		} else {
-			fmt.Printf("%s: %v\n", fullKey, value)
+func printConfig(value interface{}, indent int) {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		for key, val := range v {
+			fmt.Printf("%s%s:\n", strings.Repeat("  ", indent), key)
+			printConfig(val, indent+1)
 		}
+	case []interface{}:
+		for i, val := range v {
+			fmt.Printf("%s- [%d]\n", strings.Repeat("  ", indent), i)
+			printConfig(val, indent+1)
+		}
+	default:
+		fmt.Printf("%s%v\n", strings.Repeat("  ", indent), v)
 	}
 }
 
 func updateConfig(v *viper.Viper, path string, value string) error {
+	var parsedValue interface{}
+	err := yaml.Unmarshal([]byte(value), &parsedValue)
+	if err != nil {
+		return fmt.Errorf("invalid YAML: %v", err)
+	}
+
 	currentValue := v.Get(path)
 	if currentValue == nil {
 		return fmt.Errorf("invalid configuration path: %s", path)
 	}
 
-	var newValue interface{}
-	var err error
-
+	// Type checking and conversion
 	switch reflect.TypeOf(currentValue).Kind() {
 	case reflect.Int:
-		newValue, err = strconv.Atoi(value)
+		if i, ok := parsedValue.(int); ok {
+			v.Set(path, i)
+		} else {
+			return fmt.Errorf("invalid type for %s: expected int", path)
+		}
 	case reflect.Bool:
-		newValue, err = strconv.ParseBool(value)
+		if b, ok := parsedValue.(bool); ok {
+			v.Set(path, b)
+		} else {
+			return fmt.Errorf("invalid type for %s: expected bool", path)
+		}
 	case reflect.Float64:
-		newValue, err = strconv.ParseFloat(value, 64)
+		if f, ok := parsedValue.(float64); ok {
+			v.Set(path, f)
+		} else {
+			return fmt.Errorf("invalid type for %s: expected float64", path)
+		}
+	case reflect.String:
+		if s, ok := parsedValue.(string); ok {
+			v.Set(path, s)
+		} else {
+			return fmt.Errorf("invalid type for %s: expected string", path)
+		}
+	case reflect.Slice:
+		if slice, ok := parsedValue.([]interface{}); ok {
+			v.Set(path, slice)
+		} else {
+			return fmt.Errorf("invalid type for %s: expected slice", path)
+		}
+	case reflect.Map:
+		if m, ok := parsedValue.(map[string]interface{}); ok {
+			v.Set(path, m)
+		} else {
+			return fmt.Errorf("invalid type for %s: expected map", path)
+		}
 	default:
-		newValue = value
+		v.Set(path, parsedValue)
 	}
 
-	if err != nil {
-		return fmt.Errorf("invalid value for %s: %v", path, err)
-	}
-
-	v.Set(path, newValue)
 	return nil
 }
