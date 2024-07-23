@@ -3,7 +3,7 @@ module github.com/openshieldai/openshield
 go 1.22
 
 require (
-	github.com/cespare/xxhash v1.1.0
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gofiber/fiber/v2 v2.52.5
@@ -17,6 +17,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tiktoken-go/tokenizer v0.1.1
+	github.com/valyala/fasthttp v1.55.0
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.11
 )
@@ -25,7 +26,6 @@ require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/aws/aws-sdk-go v1.53.12 // indirect
 	github.com/bodaay/HuggingFaceModelDownloader v0.0.0-20240307153905-2f38356a6d6c // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.2 // indirect
@@ -68,7 +68,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tinylib/msgp v1.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/viant/afs v1.25.1 // indirect
 	github.com/viant/afsc v1.9.2 // indirect
