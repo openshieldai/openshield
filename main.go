@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/openshieldai/openshield/cmd"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/openai"
 )
@@ -44,19 +47,30 @@ func setupOpenAIRoutes(app *fiber.App) {
 }
 
 //func setupOpenShieldRoutes(app *fiber.App) {
-//	config := lib.GetConfig()
-//	routes := map[string]lib.Route{
-//		"/tokenizer/:model": settings.Routes.Tokenizer,
-//	}
+//  config := lib.GetConfig()
+//  routes := map[string]lib.Route{
+//     "/tokenizer/:model": settings.Routes.Tokenizer,
+//  }
 //
-//	for path := range routes {
-//		setupRoute(app, path, lib.GetRouteSettings())
-//	}
+//  for path := range routes {
+//     setupRoute(app, path, lib.GetRouteSettings())
+//  }
 //
-//	app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
+//  app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
 //}
 
 func main() {
+	if len(os.Args) > 1 {
+		if err := cmd.Execute(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else {
+		startServer()
+	}
+}
+
+func startServer() {
 	config := lib.GetConfig()
 
 	app := fiber.New(fiber.Config{
