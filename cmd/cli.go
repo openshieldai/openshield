@@ -113,10 +113,10 @@ func createMockTags(db *gorm.DB, count int) {
 		fmt.Printf("Generated data for Tag:\n")
 		fmt.Printf("%+v\n\n", tag)
 
-		// result := db.Create(tag)
-		// if result.Error != nil {
-		//     fmt.Printf("error inserting fake data for Tag: %v\n", result.Error)
-		// }
+		result := db.Create(tag)
+		if result.Error != nil {
+			fmt.Printf("error inserting fake data for Tag: %v\n", result.Error)
+		}
 	}
 }
 
@@ -143,10 +143,10 @@ func createMockRecords(db *gorm.DB, model interface{}, count int) {
 		}
 		fmt.Printf("Generated data for %T:\n", model)
 		fmt.Printf("%+v\n\n", model)
-		//	result := db.Create(model)
-		//	if result.Error != nil {
-		//		fmt.Errorf("error inserting fake data for %T: %v", model, result.Error)
-		//	}
+		result := db.Create(model)
+		if result.Error != nil {
+			fmt.Errorf("error inserting fake data for %T: %v", model, result.Error)
+		}
 	}
 
 }
