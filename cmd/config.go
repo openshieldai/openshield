@@ -214,9 +214,20 @@ func addRule() {
 
 	newRule := createRuleWizard()
 
-	rules := v.Get(fmt.Sprintf("rules.%s", ruleType)).([]interface{})
-	rules = append(rules, newRule)
-	v.Set(fmt.Sprintf("rules.%s", ruleType), rules)
+	rules := v.Get(fmt.Sprintf("filters.%s", ruleType))
+	var ruleSlice []interface{}
+
+	if rules != nil {
+		var ok bool
+		ruleSlice, ok = rules.([]interface{})
+		if !ok {
+			fmt.Printf("Error: unexpected format for %s rules.\n", ruleType)
+			return
+		}
+	}
+
+	ruleSlice = append(ruleSlice, newRule)
+	v.Set(fmt.Sprintf("filters.%s", ruleType), ruleSlice)
 
 	if err := v.WriteConfig(); err != nil {
 		fmt.Printf("Error writing config file: %v\n", err)
@@ -226,26 +237,33 @@ func addRule() {
 	fmt.Println("Rule added successfully.")
 }
 
-func createRuleWizard() lib.Rule {
-	var rule lib.Rule
-	rule.Enabled = true
+func createRuleWizard() map[string]interface{} {
+	rule := make(map[string]interface{})
+	rule["enabled"] = true
 
 	fmt.Print("Enter rule name: ")
-	fmt.Scanln(&rule.Name)
+	rule["name"] = getInput()
 
 	fmt.Print("Enter rule type (e.g., pii_filter): ")
-	fmt.Scanln(&rule.Type)
+	rule["type"] = getInput()
 
+	action := make(map[string]interface{})
 	fmt.Print("Enter action type: ")
-	fmt.Scanln(&rule.Action.Type)
+	action["type"] = getInput()
+	rule["action"] = action
 
+	config := make(map[string]interface{})
 	fmt.Print("Enter plugin name: ")
-	fmt.Scanln(&rule.Config.PluginName)
+	config["plugin_name"] = getInput()
 
 	fmt.Print("Enter threshold (0-100): ")
-	var threshold int
-	fmt.Scanln(&threshold)
-	rule.Config.Threshold = threshold
+	threshold, err := strconv.Atoi(getInput())
+	if err != nil || threshold < 0 || threshold > 100 {
+		fmt.Println("Invalid threshold. Using default value of 50.")
+		threshold = 50
+	}
+	config["threshold"] = threshold
+	rule["config"] = config
 
 	return rule
 }
