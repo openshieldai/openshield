@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/openshieldai/openshield/server"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var rootCmd = &cobra.Command{
@@ -90,12 +92,22 @@ var startServerCmd = &cobra.Command{
 	Short: "Start the server",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Starting the server...")
+		if err := server.StartServer(); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
 	},
 }
+
 var stopServerCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop the server",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Stopping the server...")
+		if err := server.StopServer(); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Server stopped successfully")
 	},
 }
