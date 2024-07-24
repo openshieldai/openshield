@@ -3,14 +3,26 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/openshieldai/openshield/lib"
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/openshieldai/openshield/lib"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
+
+var (
+	configOptions []configOption
+	optionCounter int
+)
+
+type configOption struct {
+	number int
+	path   string
+	value  interface{}
+}
 
 func editConfig() {
 	v := viper.New()
@@ -22,49 +34,88 @@ func editConfig() {
 	}
 
 	for {
+		configOptions = []configOption{}
+		optionCounter = 1
+		generateConfigOptions(v.AllSettings(), "")
+
 		fmt.Println("\nCurrent configuration:")
-		printConfig(v.AllSettings(), 0)
+		for _, option := range configOptions {
+			fmt.Printf("%d. %s: %v\n", option.number, option.path, option.value)
+		}
 
-		fmt.Println("\nEnter the path of the setting you want to change, or 'q' to quit:")
-		var path string
-		fmt.Scanln(&path)
+		fmt.Println("\nEnter the number of the setting you want to change, or 'q' to quit:")
+		var input string
+		fmt.Scanln(&input)
 
-		if path == "q" {
+		if input == "q" {
 			break
 		}
 
-		fmt.Println("Enter the new value (YAML format):")
-		var value string
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			value = scanner.Text()
+		number, err := strconv.Atoi(input)
+		if err != nil || number < 1 || number > len(configOptions) {
+			fmt.Println("Invalid input. Please enter a valid number.")
+			continue
 		}
 
-		if err := updateConfig(v, path, value); err != nil {
-			fmt.Printf("Error updating config: %v\n", err)
-		} else {
-			fmt.Println("Configuration updated successfully.")
-			if err := v.WriteConfig(); err != nil {
-				fmt.Printf("Error writing config file: %v\n", err)
+		option := configOptions[number-1]
+		fmt.Printf("Enter new value for %s: ", option.path)
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			newValue := scanner.Text()
+			if err := updateConfig(v, option.path, newValue); err != nil {
+				fmt.Printf("Error updating config: %v\n", err)
+			} else {
+				fmt.Println("Configuration updated successfully.")
+				if err := v.WriteConfig(); err != nil {
+					fmt.Printf("Error writing config file: %v\n", err)
+				} else {
+					fmt.Println("Configuration file updated.")
+				}
 			}
+		}
+
+		// Reload the configuration
+		err = v.ReadInConfig()
+		if err != nil {
+			fmt.Printf("Error reading updated config file: %v\n", err)
+			return
 		}
 	}
 }
 
-func printConfig(value interface{}, indent int) {
-	switch v := value.(type) {
-	case map[string]interface{}:
-		for key, val := range v {
-			fmt.Printf("%s%s:\n", strings.Repeat("  ", indent), key)
-			printConfig(val, indent+1)
+func generateConfigOptions(value interface{}, prefix string) {
+	v := reflect.ValueOf(value)
+
+	switch {
+	case value == nil:
+		configOptions = append(configOptions, configOption{
+			number: optionCounter,
+			path:   prefix,
+			value:  nil,
+		})
+		optionCounter++
+	case v.Kind() == reflect.Map:
+		for _, key := range v.MapKeys() {
+			keyStr := key.String()
+			newPrefix := prefix
+			if newPrefix != "" {
+				newPrefix += "."
+			}
+			newPrefix += keyStr
+			generateConfigOptions(v.MapIndex(key).Interface(), newPrefix)
 		}
-	case []interface{}:
-		for i, val := range v {
-			fmt.Printf("%s- [%d]\n", strings.Repeat("  ", indent), i)
-			printConfig(val, indent+1)
+	case v.Kind() == reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			newPrefix := fmt.Sprintf("%s[%d]", prefix, i)
+			generateConfigOptions(v.Index(i).Interface(), newPrefix)
 		}
 	default:
-		fmt.Printf("%s%v\n", strings.Repeat("  ", indent), v)
+		configOptions = append(configOptions, configOption{
+			number: optionCounter,
+			path:   prefix,
+			value:  v.Interface(),
+		})
+		optionCounter++
 	}
 }
 
@@ -75,54 +126,152 @@ func updateConfig(v *viper.Viper, path string, value string) error {
 		return fmt.Errorf("invalid YAML: %v", err)
 	}
 
-	currentValue := v.Get(path)
-	if currentValue == nil {
-		return fmt.Errorf("invalid configuration path: %s", path)
+	parts := strings.Split(path, ".")
+	current := v.AllSettings()
+
+	for i, part := range parts[:len(parts)-1] {
+		if strings.HasSuffix(part, "]") {
+			arrayName := strings.Split(part, "[")[0]
+			indexStr := strings.TrimSuffix(strings.Split(part, "[")[1], "]")
+			index, err := strconv.Atoi(indexStr)
+			if err != nil {
+				return fmt.Errorf("invalid array index: %v", err)
+			}
+
+			if array, ok := current[arrayName].([]interface{}); ok {
+				if index >= 0 && index < len(array) {
+					if i == len(parts)-2 {
+						field := parts[len(parts)-1]
+						if m, ok := array[index].(map[string]interface{}); ok {
+							m[field] = parsedValue
+							v.Set(strings.Join(parts[:i+1], "."), array)
+						} else {
+							return fmt.Errorf("invalid structure at %s", strings.Join(parts[:i+1], "."))
+						}
+						return nil
+					}
+					current = array[index].(map[string]interface{})
+				} else {
+					return fmt.Errorf("array index out of bounds: %d", index)
+				}
+			} else {
+				return fmt.Errorf("invalid array at %s", strings.Join(parts[:i+1], "."))
+			}
+		} else {
+			if next, ok := current[part].(map[string]interface{}); ok {
+				current = next
+			} else {
+				return fmt.Errorf("invalid path at %s", strings.Join(parts[:i+1], "."))
+			}
+		}
 	}
 
-	// Type checking and conversion
-	switch reflect.TypeOf(currentValue).Kind() {
-	case reflect.Int:
-		if i, ok := parsedValue.(int); ok {
-			v.Set(path, i)
-		} else {
-			return fmt.Errorf("invalid type for %s: expected int", path)
-		}
-	case reflect.Bool:
-		if b, ok := parsedValue.(bool); ok {
-			v.Set(path, b)
-		} else {
-			return fmt.Errorf("invalid type for %s: expected bool", path)
-		}
-	case reflect.Float64:
-		if f, ok := parsedValue.(float64); ok {
-			v.Set(path, f)
-		} else {
-			return fmt.Errorf("invalid type for %s: expected float64", path)
-		}
-	case reflect.String:
-		if s, ok := parsedValue.(string); ok {
-			v.Set(path, s)
-		} else {
-			return fmt.Errorf("invalid type for %s: expected string", path)
-		}
-	case reflect.Slice:
-		if slice, ok := parsedValue.([]interface{}); ok {
-			v.Set(path, slice)
-		} else {
-			return fmt.Errorf("invalid type for %s: expected slice", path)
-		}
-	case reflect.Map:
-		if m, ok := parsedValue.(map[string]interface{}); ok {
-			v.Set(path, m)
-		} else {
-			return fmt.Errorf("invalid type for %s: expected map", path)
-		}
-	default:
-		v.Set(path, parsedValue)
-	}
+	lastPart := parts[len(parts)-1]
+	current[lastPart] = parsedValue
+	v.Set(strings.Join(parts[:len(parts)-1], "."), current)
 
 	return nil
+}
+
+func addRule() {
+	v := viper.New()
+	v.SetConfigFile("config.yaml")
+	err := v.ReadInConfig()
+	if err != nil {
+		fmt.Printf("Error reading config file: %v\n", err)
+		return
+	}
+
+	var ruleType string
+	fmt.Print("Enter rule type (input/output): ")
+	fmt.Scanln(&ruleType)
+
+	if ruleType != "input" && ruleType != "output" {
+		fmt.Println("Invalid rule type. Please enter 'input' or 'output'.")
+		return
+	}
+
+	newRule := createRuleWizard()
+
+	rules := v.Get(fmt.Sprintf("rules.%s", ruleType)).([]interface{})
+	rules = append(rules, newRule)
+	v.Set(fmt.Sprintf("rules.%s", ruleType), rules)
+
+	if err := v.WriteConfig(); err != nil {
+		fmt.Printf("Error writing config file: %v\n", err)
+		return
+	}
+
+	fmt.Println("Rule added successfully.")
+}
+
+func createRuleWizard() lib.Rule {
+	var rule lib.Rule
+	rule.Enabled = true
+
+	fmt.Print("Enter rule name: ")
+	fmt.Scanln(&rule.Name)
+
+	fmt.Print("Enter rule type (e.g., pii_filter): ")
+	fmt.Scanln(&rule.Type)
+
+	fmt.Print("Enter action type: ")
+	fmt.Scanln(&rule.Action.Type)
+
+	fmt.Print("Enter plugin name: ")
+	fmt.Scanln(&rule.Config.PluginName)
+
+	fmt.Print("Enter threshold (0-100): ")
+	var threshold int
+	fmt.Scanln(&threshold)
+	rule.Config.Threshold = threshold
+
+	return rule
+}
+
+func removeRule() {
+	v := viper.New()
+	v.SetConfigFile("config.yaml")
+	err := v.ReadInConfig()
+	if err != nil {
+		fmt.Printf("Error reading config file: %v\n", err)
+		return
+	}
+
+	var ruleType string
+	fmt.Print("Enter rule type (input/output): ")
+	fmt.Scanln(&ruleType)
+
+	if ruleType != "input" && ruleType != "output" {
+		fmt.Println("Invalid rule type. Please enter 'input' or 'output'.")
+		return
+	}
+
+	rules := v.Get(fmt.Sprintf("rules.%s", ruleType)).([]interface{})
+	fmt.Println("Current rules:")
+	for i, rule := range rules {
+		r := rule.(map[string]interface{})
+		fmt.Printf("%d. %s\n", i+1, r["name"])
+	}
+
+	var ruleIndex int
+	fmt.Print("Enter the number of the rule to remove: ")
+	fmt.Scanln(&ruleIndex)
+
+	if ruleIndex < 1 || ruleIndex > len(rules) {
+		fmt.Println("Invalid rule number.")
+		return
+	}
+
+	rules = append(rules[:ruleIndex-1], rules[ruleIndex:]...)
+	v.Set(fmt.Sprintf("rules.%s", ruleType), rules)
+
+	if err := v.WriteConfig(); err != nil {
+		fmt.Printf("Error writing config file: %v\n", err)
+		return
+	}
+
+	fmt.Println("Rule removed successfully.")
 }
 
 func runConfigWizard() {
@@ -247,6 +396,7 @@ func getDefaultValue(tag string) string {
 	}
 	return ""
 }
+
 func setValue(field reflect.Value, value string) bool {
 	switch field.Kind() {
 	case reflect.String:

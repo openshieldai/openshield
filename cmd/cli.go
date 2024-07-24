@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -16,9 +17,13 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(dbCmd)
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(startServerCmd)
+	rootCmd.AddCommand(stopServerCmd)
 	dbCmd.AddCommand(createTablesCmd)
 	dbCmd.AddCommand(createMockDataCmd)
 	configCmd.AddCommand(editConfigCmd)
+	configCmd.AddCommand(addRuleCmd)
+	configCmd.AddCommand(removeRuleCmd)
 	configCmd.AddCommand(configWizardCmd)
 }
 
@@ -56,10 +61,41 @@ var editConfigCmd = &cobra.Command{
 	},
 }
 
+var addRuleCmd = &cobra.Command{
+	Use:   "add-rule",
+	Short: "Add a new rule to the configuration",
+	Run: func(cmd *cobra.Command, args []string) {
+		addRule()
+	},
+}
+
+var removeRuleCmd = &cobra.Command{
+	Use:   "remove-rule",
+	Short: "Remove a rule from the configuration",
+	Run: func(cmd *cobra.Command, args []string) {
+		removeRule()
+	},
+}
+
 var configWizardCmd = &cobra.Command{
 	Use:   "wizard",
 	Short: "Interactive wizard to create or update config.yaml",
 	Run: func(cmd *cobra.Command, args []string) {
 		runConfigWizard()
+	},
+}
+
+var startServerCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start the server",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Starting the server...")
+	},
+}
+var stopServerCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Stop the server",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Stopping the server...")
 	},
 }
