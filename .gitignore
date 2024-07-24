@@ -27,3 +27,4 @@ test-client/src/index.js
 .DS_Store
 config.yaml
 **/__pycache__/
+dist
