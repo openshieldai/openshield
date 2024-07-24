@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -48,6 +49,7 @@ func init() {
 	rootCmd.AddCommand(createTablesCmd)
 	rootCmd.AddCommand(createMockDataCmd)
 	rootCmd.AddCommand(editConfigCmd)
+	rootCmd.AddCommand(configWizardCmd)
 }
 
 var createTablesCmd = &cobra.Command{
@@ -268,4 +270,113 @@ func updateConfig(v *viper.Viper, path string, value string) error {
 	}
 
 	return nil
+}
+
+var configWizardCmd = &cobra.Command{
+	Use:   "config-wizard",
+	Short: "Interactive wizard to create or update config.yaml",
+	Run: func(cmd *cobra.Command, args []string) {
+		runConfigWizard()
+	},
+}
+
+func runConfigWizard() {
+	config := lib.Configuration{}
+	v := reflect.ValueOf(&config).Elem()
+
+	fmt.Println("Please provide values for the following settings:")
+
+	fillStructure(v, "")
+
+	yamlData, err := yaml.Marshal(config)
+	if err != nil {
+		fmt.Printf("Error marshaling config to YAML: %v\n", err)
+		return
+	}
+
+	err = os.WriteFile("config.yaml", yamlData, 0644)
+	if err != nil {
+		fmt.Printf("Error writing config file: %v\n", err)
+		return
+	}
+
+	fmt.Println("Configuration file 'config.yaml' has been created successfully!")
+}
+
+func fillStructure(v reflect.Value, prefix string) {
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		if !field.CanSet() {
+			continue
+		}
+
+		fieldName := fieldType.Name
+		fullName := prefix + fieldName
+
+		switch field.Kind() {
+		case reflect.Struct:
+			fillStructure(field, fullName+".")
+		case reflect.Ptr:
+			if field.IsNil() {
+				field.Set(reflect.New(field.Type().Elem()))
+			}
+			fillStructure(field.Elem(), fullName+".")
+		default:
+			tag := fieldType.Tag.Get("mapstructure")
+			if strings.Contains(tag, "omitempty") {
+				fmt.Printf("%s is optional. Do you want to set it? (y/n): ", fullName)
+				if !confirmInput() {
+					continue
+				}
+			}
+
+			var value string
+			for {
+				fmt.Printf("Enter value for %s (%v): ", fullName, fieldType.Type)
+				value = getInput()
+
+				if setValue(field, value) {
+					break
+				}
+				fmt.Println("Invalid input. Please try again.")
+			}
+		}
+	}
+}
+
+func setValue(field reflect.Value, value string) bool {
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+	case reflect.Int:
+		if intValue, err := strconv.Atoi(value); err == nil {
+			field.SetInt(int64(intValue))
+		} else {
+			return false
+		}
+	case reflect.Bool:
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			field.SetBool(boolValue)
+		} else {
+			return false
+		}
+	default:
+		return false
+	}
+	return true
+}
+
+func getInput() string {
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	return strings.TrimSpace(input)
+}
+
+func confirmInput() bool {
+	input := getInput()
+	return strings.ToLower(input) == "y" || strings.ToLower(input) == "yes"
 }
