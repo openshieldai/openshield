@@ -34,7 +34,7 @@ func editConfig() {
 	}
 
 	for {
-		configOptions = []configOption{}
+		configOptions = []configOption{} // Clear the configOptions slice
 		optionCounter = 1
 		generateConfigOptions(v.AllSettings(), "")
 
@@ -127,52 +127,73 @@ func updateConfig(v *viper.Viper, path string, value string) error {
 	}
 
 	parts := strings.Split(path, ".")
-	current := v.AllSettings()
 
-	for i, part := range parts[:len(parts)-1] {
-		if strings.HasSuffix(part, "]") {
-			arrayName := strings.Split(part, "[")[0]
-			indexStr := strings.TrimSuffix(strings.Split(part, "[")[1], "]")
+	// Create a function to recursively update nested maps
+	var updateNestedMap func(m map[string]interface{}, parts []string, value interface{}) error
+	updateNestedMap = func(m map[string]interface{}, parts []string, value interface{}) error {
+		if len(parts) == 1 {
+			m[parts[0]] = value
+			return nil
+		}
+
+		key := parts[0]
+		if strings.HasSuffix(key, "]") {
+			arrayName := strings.Split(key, "[")[0]
+			indexStr := strings.TrimSuffix(strings.Split(key, "[")[1], "]")
 			index, err := strconv.Atoi(indexStr)
 			if err != nil {
 				return fmt.Errorf("invalid array index: %v", err)
 			}
 
-			if array, ok := current[arrayName].([]interface{}); ok {
-				if index >= 0 && index < len(array) {
-					if i == len(parts)-2 {
-						field := parts[len(parts)-1]
-						if m, ok := array[index].(map[string]interface{}); ok {
-							m[field] = parsedValue
-							v.Set(strings.Join(parts[:i+1], "."), array)
-						} else {
-							return fmt.Errorf("invalid structure at %s", strings.Join(parts[:i+1], "."))
-						}
-						return nil
-					}
-					current = array[index].(map[string]interface{})
-				} else {
-					return fmt.Errorf("array index out of bounds: %d", index)
-				}
-			} else {
-				return fmt.Errorf("invalid array at %s", strings.Join(parts[:i+1], "."))
+			array, ok := m[arrayName].([]interface{})
+			if !ok {
+				return fmt.Errorf("invalid array at %s", arrayName)
 			}
+
+			if index < 0 || index >= len(array) {
+				return fmt.Errorf("array index out of bounds: %d", index)
+			}
+
+			element, ok := array[index].(map[string]interface{})
+			if !ok {
+				element = make(map[string]interface{})
+			}
+
+			err = updateNestedMap(element, parts[1:], value)
+			if err != nil {
+				return err
+			}
+
+			array[index] = element
+			m[arrayName] = array
 		} else {
-			if next, ok := current[part].(map[string]interface{}); ok {
-				current = next
-			} else {
-				return fmt.Errorf("invalid path at %s", strings.Join(parts[:i+1], "."))
+			nextMap, ok := m[key].(map[string]interface{})
+			if !ok {
+				nextMap = make(map[string]interface{})
+				m[key] = nextMap
 			}
+			return updateNestedMap(nextMap, parts[1:], value)
 		}
+
+		return nil
 	}
 
-	lastPart := parts[len(parts)-1]
-	current[lastPart] = parsedValue
-	v.Set(strings.Join(parts[:len(parts)-1], "."), current)
+	// Get the current configuration
+	config := v.AllSettings()
+
+	// Update the nested structure
+	err = updateNestedMap(config, parts, parsedValue)
+	if err != nil {
+		return err
+	}
+
+	// Update the Viper instance with the modified configuration
+	for key, val := range config {
+		v.Set(key, val)
+	}
 
 	return nil
 }
-
 func addRule() {
 	v := viper.New()
 	v.SetConfigFile("config.yaml")
