@@ -14,10 +14,17 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(createTablesCmd)
-	rootCmd.AddCommand(createMockDataCmd)
-	rootCmd.AddCommand(editConfigCmd)
-	rootCmd.AddCommand(configWizardCmd)
+	rootCmd.AddCommand(dbCmd)
+	rootCmd.AddCommand(configCmd)
+	dbCmd.AddCommand(createTablesCmd)
+	dbCmd.AddCommand(createMockDataCmd)
+	configCmd.AddCommand(editConfigCmd)
+	configCmd.AddCommand(configWizardCmd)
+}
+
+var dbCmd = &cobra.Command{
+	Use:   "db",
+	Short: "Database related commands",
 }
 
 var createTablesCmd = &cobra.Command{
@@ -36,8 +43,13 @@ var createMockDataCmd = &cobra.Command{
 	},
 }
 
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Configuration related commands",
+}
+
 var editConfigCmd = &cobra.Command{
-	Use:   "edit-config",
+	Use:   "edit",
 	Short: "Edit the config.yaml file",
 	Run: func(cmd *cobra.Command, args []string) {
 		editConfig()
@@ -45,7 +57,7 @@ var editConfigCmd = &cobra.Command{
 }
 
 var configWizardCmd = &cobra.Command{
-	Use:   "config-wizard",
+	Use:   "wizard",
 	Short: "Interactive wizard to create or update config.yaml",
 	Run: func(cmd *cobra.Command, args []string) {
 		runConfigWizard()
