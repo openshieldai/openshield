@@ -284,9 +284,12 @@ func runConfigWizard() {
 	config := lib.Configuration{}
 	v := reflect.ValueOf(&config).Elem()
 
+	fmt.Println("Do you want to change default values? (y/n):")
+	changeDefaults := confirmInput()
+
 	fmt.Println("Please provide values for the following settings:")
 
-	fillStructure(v, "")
+	fillStructure(v, "", changeDefaults)
 
 	yamlData, err := yaml.Marshal(config)
 	if err != nil {
@@ -303,7 +306,7 @@ func runConfigWizard() {
 	fmt.Println("Configuration file 'config.yaml' has been created successfully!")
 }
 
-func fillStructure(v reflect.Value, prefix string) {
+func fillStructure(v reflect.Value, prefix string, changeDefaults bool) {
 	t := v.Type()
 
 	for i := 0; i < v.NumField(); i++ {
@@ -319,33 +322,85 @@ func fillStructure(v reflect.Value, prefix string) {
 
 		switch field.Kind() {
 		case reflect.Struct:
-			fillStructure(field, fullName+".")
+			fillStructure(field, fullName+".", changeDefaults)
 		case reflect.Ptr:
 			if field.IsNil() {
 				field.Set(reflect.New(field.Type().Elem()))
 			}
-			fillStructure(field.Elem(), fullName+".")
+			fillStructure(field.Elem(), fullName+".", changeDefaults)
+		case reflect.Slice:
+			handleSlice(field, fullName, changeDefaults)
 		default:
-			tag := fieldType.Tag.Get("mapstructure")
-			if strings.Contains(tag, "omitempty") {
-				fmt.Printf("%s is optional. Do you want to set it? (y/n): ", fullName)
-				if !confirmInput() {
-					continue
-				}
-			}
-
-			var value string
-			for {
-				fmt.Printf("Enter value for %s (%v): ", fullName, fieldType.Type)
-				value = getInput()
-
-				if setValue(field, value) {
-					break
-				}
-				fmt.Println("Invalid input. Please try again.")
-			}
+			handleField(field, fieldType, fullName, changeDefaults)
 		}
 	}
+}
+
+func handleSlice(field reflect.Value, fullName string, changeDefaults bool) {
+	fmt.Printf("Enter the number of elements for %s: ", fullName)
+	countStr := getInput()
+	count, err := strconv.Atoi(countStr)
+	if err != nil || count < 0 {
+		fmt.Println("Invalid input. Using 0 elements.")
+		return
+	}
+
+	sliceType := field.Type().Elem()
+	newSlice := reflect.MakeSlice(field.Type(), count, count)
+
+	for i := 0; i < count; i++ {
+		fmt.Printf("Element %d of %s:\n", i+1, fullName)
+		elem := reflect.New(sliceType).Elem()
+		fillStructure(elem, fmt.Sprintf("%s[%d].", fullName, i), changeDefaults)
+		newSlice.Index(i).Set(elem)
+	}
+
+	field.Set(newSlice)
+}
+
+func handleField(field reflect.Value, fieldType reflect.StructField, fullName string, changeDefaults bool) {
+	tag := fieldType.Tag.Get("mapstructure")
+	defaultValue := getDefaultValue(tag)
+
+	if !changeDefaults && defaultValue != "" {
+		setValue(field, defaultValue)
+		return
+	}
+
+	if strings.Contains(tag, "omitempty") && !changeDefaults {
+		return
+	}
+
+	prompt := fmt.Sprintf("Enter value for %s (%v)", fullName, fieldType.Type)
+	if defaultValue != "" {
+		prompt += fmt.Sprintf(" [default: %s]", defaultValue)
+	}
+	prompt += ": "
+
+	var value string
+	for {
+		fmt.Print(prompt)
+		value = getInput()
+
+		if value == "" && defaultValue != "" {
+			value = defaultValue
+		}
+
+		if setValue(field, value) {
+			break
+		}
+		fmt.Println("Invalid input. Please try again.")
+	}
+}
+
+func getDefaultValue(tag string) string {
+	parts := strings.Split(tag, ",")
+	for _, part := range parts {
+		if strings.HasPrefix(part, "default=") {
+			return strings.TrimPrefix(part, "default=")
+		}
+	}
+	return ""
 }
 
 func setValue(field reflect.Value, value string) bool {
