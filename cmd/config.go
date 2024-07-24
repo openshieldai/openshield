@@ -268,33 +268,52 @@ func removeRule() {
 		return
 	}
 
-	rules := v.Get(fmt.Sprintf("rules.%s", ruleType)).([]interface{})
-	fmt.Println("Current rules:")
-	for i, rule := range rules {
-		r := rule.(map[string]interface{})
-		fmt.Printf("%d. %s\n", i+1, r["name"])
+	rules := v.Get(fmt.Sprintf("filters.%s", ruleType))
+	if rules == nil {
+		fmt.Printf("No %s rules found.\n", ruleType)
+		return
+	}
+
+	ruleSlice, ok := rules.([]interface{})
+	if !ok {
+		fmt.Printf("Error: unexpected format for %s rules.\n", ruleType)
+		return
+	}
+
+	if len(ruleSlice) == 0 {
+		fmt.Printf("No %s rules found.\n", ruleType)
+		return
+	}
+
+	fmt.Printf("Current %s rules:\n", ruleType)
+	for i, rule := range ruleSlice {
+		r, ok := rule.(map[string]interface{})
+		if !ok {
+			fmt.Printf("%d. Unknown rule format\n", i+1)
+			continue
+		}
+		fmt.Printf("%d. %s (%s)\n", i+1, r["name"], r["type"])
 	}
 
 	var ruleIndex int
 	fmt.Print("Enter the number of the rule to remove: ")
-	fmt.Scanln(&ruleIndex)
-
-	if ruleIndex < 1 || ruleIndex > len(rules) {
+	_, err = fmt.Scanf("%d", &ruleIndex)
+	if err != nil || ruleIndex < 1 || ruleIndex > len(ruleSlice) {
 		fmt.Println("Invalid rule number.")
 		return
 	}
 
-	rules = append(rules[:ruleIndex-1], rules[ruleIndex:]...)
-	v.Set(fmt.Sprintf("rules.%s", ruleType), rules)
+	removedRule := ruleSlice[ruleIndex-1]
+	ruleSlice = append(ruleSlice[:ruleIndex-1], ruleSlice[ruleIndex:]...)
+	v.Set(fmt.Sprintf("filters.%s", ruleType), ruleSlice)
 
 	if err := v.WriteConfig(); err != nil {
 		fmt.Printf("Error writing config file: %v\n", err)
 		return
 	}
 
-	fmt.Println("Rule removed successfully.")
+	fmt.Printf("Rule '%v' removed successfully.\n", removedRule.(map[string]interface{})["name"])
 }
-
 func runConfigWizard() {
 	config := lib.Configuration{}
 	v := reflect.ValueOf(&config).Elem()
