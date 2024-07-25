@@ -1,10 +1,16 @@
 package cmd
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"io"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -48,7 +54,6 @@ func TestCreateMockData(t *testing.T) {
 		}
 	}
 
-	// Set up expectations for all tables
 	createExpectations("tags", 10, 6)
 	createExpectations("ai_models", 2, 10)
 	createExpectations("api_keys", 2, 7)
@@ -66,7 +71,7 @@ func TestCreateMockData(t *testing.T) {
 }
 
 func TestCreateTables(t *testing.T) {
-	// Create a new mock database connection
+
 	sqlDB, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	defer func(sqlDB *sql.DB) {
@@ -99,4 +104,216 @@ func TestCreateTables(t *testing.T) {
 
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
+}
+func TestAddAndRemoveRuleConfig(t *testing.T) {
+
+	tmpfile, err := ioutil.TempFile("", "config.*.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func(name string) {
+		err := os.Remove(name)
+		if err != nil {
+			return
+		}
+	}(tmpfile.Name())
+	{
+		err := os.Setenv("OPENSHIELD_CONFIG_FILE", tmpfile.Name())
+		if err != nil {
+			return
+		}
+		defer func() {
+			err := os.Unsetenv("OPENSHIELD_CONFIG_FILE")
+			if err != nil {
+				return
+			}
+		}()
+	}
+	initialConfig := `
+filters:
+  input:
+    - name: existing_rule
+      type: pii_filter
+      enabled: true
+      action:
+        type: redact
+      config:
+        plugin_name: pii_plugin
+        threshold: 80
+`
+	if _, err := tmpfile.Write([]byte(initialConfig)); err != nil {
+		t.Fatal(err)
+	}
+	{
+		err := tmpfile.Close()
+		if err != nil {
+			return
+		}
+	}
+	viper.Reset()
+	viper.SetConfigFile(tmpfile.Name())
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("Error reading config file: %v", err)
+	}
+
+	t.Run("AddRule", func(t *testing.T) {
+		input := "input\nnew_rule\nsentiment_filter\nblock\nsentiment_plugin\n90\n"
+		t.Logf("AddRule Input:\n%s", input)
+		inputBuffer := bytes.NewBufferString(input)
+		output, err := executeCommandWithInput(rootCmd, inputBuffer, "config", "add-rule")
+		if err != nil {
+			t.Fatalf("Error executing add-rule command: %v", err)
+		}
+
+		t.Logf("Add Rule Command Output:\n%s", output)
+
+		// Verify the output
+		assert.Contains(t, output, "Rule added successfully")
+
+		// Verify the config was modified
+		v := viper.New()
+		v.SetConfigFile(tmpfile.Name())
+		err = v.ReadInConfig()
+		if err != nil {
+			t.Fatalf("Error reading updated config: %v", err)
+		}
+
+		rules := v.Get("filters.input")
+		rulesSlice, ok := rules.([]interface{})
+		if !ok {
+			t.Fatalf("Expected rules to be a slice, got %T", rules)
+		}
+
+		assert.Len(t, rulesSlice, 2, "Expected 2 rules after addition")
+		if len(rulesSlice) > 1 {
+			newRule := rulesSlice[1].(map[string]interface{})
+			assert.Equal(t, "new_rule", newRule["name"])
+			assert.Equal(t, "sentiment_filter", newRule["type"])
+			assert.Equal(t, true, newRule["enabled"])
+			assert.Equal(t, "block", newRule["action"].(map[string]interface{})["type"])
+			assert.Equal(t, "sentiment_plugin", newRule["config"].(map[string]interface{})["plugin_name"])
+			assert.Equal(t, float64(90), newRule["config"].(map[string]interface{})["threshold"])
+		}
+	})
+
+	// Test removeRule
+	t.Run("RemoveRule", func(t *testing.T) {
+		input := "input\n2\n"
+		t.Logf("RemoveRule Input:\n%s", input)
+		inputBuffer := bytes.NewBufferString(input)
+		output, err := executeCommandWithInput(rootCmd, inputBuffer, "config", "remove-rule")
+		if err != nil {
+			t.Fatalf("Error executing remove-rule command: %v", err)
+		}
+
+		t.Logf("Remove Rule Command Output:\n%s", output)
+
+		// Verify the output
+		assert.Contains(t, output, "Rule 'new_rule' removed successfully")
+
+		// Verify the config was modified
+		v := viper.New()
+		v.SetConfigFile(tmpfile.Name())
+		err = v.ReadInConfig()
+		if err != nil {
+			t.Fatalf("Error reading updated config: %v", err)
+		}
+
+		rules := v.Get("filters.input")
+		rulesSlice, ok := rules.([]interface{})
+		if !ok {
+			t.Fatalf("Expected rules to be a slice, got %T", rules)
+		}
+
+		assert.Len(t, rulesSlice, 1, "Expected 1 rule after removal")
+		if len(rulesSlice) > 0 {
+			remainingRule := rulesSlice[0].(map[string]interface{})
+			assert.Equal(t, "existing_rule", remainingRule["name"], "Expected 'existing_rule' to remain")
+		}
+	})
+}
+
+func executeCommandWithInput(cmd *cobra.Command, input *bytes.Buffer, args ...string) (string, error) {
+	cmd.SetArgs(args)
+
+	// Save the original stdin, stdout, and stderr
+	oldStdin := os.Stdin
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	defer func() {
+		os.Stdin = oldStdin
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+	}()
+
+	// Create pipes for stdin, stdout, and stderr
+	inr, inw, _ := os.Pipe()
+	outr, outw, _ := os.Pipe()
+	errr, errw, _ := os.Pipe()
+
+	os.Stdin = inr
+	os.Stdout = outw
+	os.Stderr = errw
+
+	// Write the input to the pipe in a separate goroutine
+	go func() {
+		defer func(inw *os.File) {
+			err := inw.Close()
+			if err != nil {
+				return
+			}
+		}(inw)
+		_, err := input.WriteTo(inw)
+		if err != nil {
+			return
+		}
+	}()
+
+	// Capture the output and error in separate goroutines
+	output := &bytes.Buffer{}
+	outputDone := make(chan bool)
+	go func() {
+		_, err := io.Copy(output, outr)
+		if err != nil {
+			return
+		}
+		outputDone <- true
+	}()
+
+	errorOutput := &bytes.Buffer{}
+	errorDone := make(chan bool)
+	go func() {
+		_, err := io.Copy(errorOutput, errr)
+		if err != nil {
+			return
+		}
+		errorDone <- true
+	}()
+
+	// Execute the command
+	err := cmd.Execute()
+
+	// Close the write end of the pipes
+	{
+		err := outw.Close()
+		if err != nil {
+			return "", err
+		}
+	}
+	{
+		err := errw.Close()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Wait for the output and error to be fully read
+	<-outputDone
+	<-errorDone
+
+	// Combine stdout and stderr
+	combinedOutput := output.String() + errorOutput.String()
+
+	return combinedOutput, err
 }
