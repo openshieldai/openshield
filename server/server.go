@@ -3,13 +3,14 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/openshieldai/openshield/lib/openai"
-	"golang.org/x/sync/errgroup"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/openshieldai/openshield/lib/openai"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
