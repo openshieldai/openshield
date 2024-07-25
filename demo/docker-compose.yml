@@ -1,0 +1,37 @@
+services:
+  openshield:
+    build:
+        context: ../
+        dockerfile: Dockerfile
+    environment:
+      - ENV=production
+      - PORT="3005"
+      - DEMO_MODE="true"
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+    ports:
+      - "8080:3005"
+    links:
+      - redis
+      - postgres
+    volumes:
+      - ./config.yaml:/app/config.yaml
+
+  ruleserver:
+    build:
+      context: ../rules/rule-service
+      dockerfile: Dockerfile
+
+  redis:
+    image: "redis:alpine"
+    restart: always
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: openshield
+    ports:
+      - "5433:5432"

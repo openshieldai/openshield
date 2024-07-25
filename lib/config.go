@@ -77,10 +77,8 @@ type DatabaseConfig struct {
 
 // CacheConfig holds configuration for cache settings
 type CacheConfig struct {
-	RedisURI string `mapstructure:"redis_uri"`
-	SSL      bool   `mapstructure:"ssl,default=false"`
-	Enabled  bool   `mapstructure:"enabled,default=false"`
-	TTL      int    `mapstructure:"ttl,default=60"`
+	Enabled bool `mapstructure:"enabled,default=false"`
+	TTL     int  `mapstructure:"ttl,default=60"`
 }
 
 // Rules section contains input and output rule configurations

@@ -29,3 +29,5 @@ config.yaml
 **/__pycache__/
 dist
 package-lock.json
+!docker/config.yaml
+openshield

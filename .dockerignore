@@ -3,4 +3,8 @@ LICENSE
 renovate.json
 .env*
 test-client
-docker
+demo
+rules/rule-service
+docs
+.idea
+.github

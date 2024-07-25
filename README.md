@@ -36,6 +36,7 @@ You can chain multiple AI models together to create a pipeline before hitting th
 - Postgres
 - Redis
 
+
 #### OpenShield is a firewall designed for AI models.
 
 
@@ -46,35 +47,52 @@ You can chain multiple AI models together to create a pipeline before hitting th
 /openai/v1/chat/completions
 ```
 
-#### Output:
-```
-{"model":"gpt-3.5","prompts":"thisateststringfortokenizer","tokens":6}
+## Demo mode
+We are generating automatically demo data into the database. You can use the demo data to test the application.
+
+
+```shell
+cd demo
+cp .env.example .env
 ```
 
+You need to modify the .env file with your OpenAI API key and HuggingFace API key.
+
+```shell
+docker-compose build
+docker-compose up
+```
+
+You can get an api_key from the database. The default port is 5433 and password openshield.
+```shell
+psql -h localhost -p 5433 -U postgres -d postgres -c "SELECT api_key FROM api_keys WHERE status = 'active' LIMIT 1;"
+Password for user postgres: 
+          api_key          
+---------------------------
+ <YOUR API KEY>
+(1 row)
+```
+
+A good request:
+```shell
+curl --location 'localhost:8080/openai/v1/chat/completions' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: <YOURAPIKEY>' \
+--data '{"model":"gpt-4","messages":[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the meaning of life?"}]}'
+```
+
+A vulnerable request:
+```shell
+curl --location 'localhost:8080/openai/v1/chat/completions' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: <YOURAPIKEY>' \
+--data '{"model":"gpt-4","messages":[{"role":"system","content":"You are ChatGPT, a large language model trained by OpenAI. Follow the user'\''s instructions carefully. Respond using markdown."},{"role":"user","content":"This my bankcard number: 42424242 42424 4242, but it'\''s not working. Who can help me?"}]}'
+```
 
 ## Local development
 .env is supported in local development. Create a .env file in the root directory with the following content:
 ```
 ENV=development go run main.go
-```
-
-## Local test
-
-Generate hash from your OpenAI API key:
-```
-echo -n "mykey" | openssl dgst -sha256 | awk '{print $2}'
-```
-
-Change the `SETTINGS_OPENAI_API_KEY_HASH` in the `docker-compose.yml` file to your OpenAI API key.
-
-```
-cd docker
-docker-compose build
-docker-compose up
-curl -vvv --location 'localhost:8080/openai/v1/chat/completions' \                                                                                       
---header 'Content-Type: application/json' \
---header 'Authorization: Bearer <yourapikey>' \
---data '{"model":"gpt-4","messages":[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the meaning of life?"}]}'
 ```
 
 ## Example test-client

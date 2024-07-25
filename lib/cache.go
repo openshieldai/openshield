@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"crypto/tls"
 	"log"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -9,9 +11,32 @@ import (
 	"github.com/gofiber/storage/redis/v3"
 )
 
+func getRedisConfig(config *Configuration) redis.Config {
+	var redisTlsCfg *tls.Config
+	if config.Settings.Redis.SSL {
+		redisTlsCfg = &tls.Config{
+			MinVersion:       tls.VersionTLS12,
+			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+		}
+	}
+
+	return redis.Config{
+		URL:       config.Settings.Redis.URI,
+		PoolSize:  10 * runtime.GOMAXPROCS(0),
+		Reset:     false,
+		TLSConfig: redisTlsCfg,
+	}
+}
+
 func GetCache(key string) ([]byte, bool, error) {
-	storage := redis.New()
 	config := GetConfig()
+	storage := redis.New(getRedisConfig(&config))
 
 	if config.Settings.Cache.Enabled {
 		hashed := hash.Sum64([]byte(key))
@@ -33,8 +58,8 @@ func GetCache(key string) ([]byte, bool, error) {
 }
 
 func SetCache(key string, value []byte) ([]byte, error) {
-	storage := redis.New()
 	config := GetConfig()
+	storage := redis.New(getRedisConfig(&config))
 
 	if config.Settings.Cache.Enabled {
 		hashedKey := strconv.FormatUint(hash.Sum64([]byte(key)), 10)
