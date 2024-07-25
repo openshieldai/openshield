@@ -10,9 +10,11 @@ AI models a new attack vector for hackers. They can use AI models to generate ma
 ## Solution
 OpenShield a transparent proxy that sits between your AI model and the client. It provides rate limiting, content filtering, and keyword filtering for AI models.
 
-![Input flow](https://github.com/openshieldai/openshield/docs/assets/input.svg)
+### Example - Input flow
+![Input flow](https://raw.githubusercontent.com/openshieldai/openshield/main/docs/assets/input.svg)
 
-![Output flow](https://github.com/openshieldai/openshield/docs/assets/output.svg)
+### Example - Output flow
+![Output flow](https://raw.githubusercontent.com/openshieldai/openshield/main/docs/assets/output.svg)
 
 You can chain multiple AI models together to create a pipeline before hitting the foundation model.
 
