@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/models"
 	"github.com/openshieldai/openshield/server"
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,7 +44,7 @@ var createTablesCmd = &cobra.Command{
 	Use:   "create-tables",
 	Short: "Create database tables from models",
 	Run: func(cmd *cobra.Command, args []string) {
-		lib.DB() // Call the function from lib package
+		createTables()
 	},
 }
 
@@ -143,4 +145,22 @@ func stopServer() error {
 	}
 
 	return nil
+}
+func createTables(db ...*gorm.DB) {
+	database := lib.DB()
+	if len(db) > 0 && db[0] != nil {
+		database = db[0]
+		err := database.AutoMigrate(
+			&models.Tags{},
+			&models.AiModels{},
+			&models.ApiKeys{},
+			&models.AuditLogs{},
+			&models.Products{},
+			&models.Usage{},
+			&models.Workspaces{},
+		)
+		if err != nil {
+			_ = fmt.Errorf("failed to migrate models: %v", err)
+		}
+	}
 }

@@ -58,7 +58,6 @@ func createMockData(db ...*gorm.DB) {
 	if len(db) > 0 && db[0] != nil {
 		database = db[0]
 	}
-	database = database.Debug()
 	createMockTags(database, 10)
 	createMockRecords(database, &models.AiModels{}, 2)
 	createMockRecords(database, &models.ApiKeys{}, 2)
