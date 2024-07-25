@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
-    "noEmit": true,
-    "target": "es2021",
+    "target": "esnext",
+    "module": "esnext",
     "strict": true,
+    "outDir": "dist",
     "moduleResolution": "Bundler"
   },
   "include": [ "src" ],
-  "exclude": [ "src/_shims" ]
+  "exclude": [ "node_modules" ]
 }

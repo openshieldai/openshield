@@ -28,3 +28,4 @@ test-client/src/index.js
 config.yaml
 **/__pycache__/
 dist
+package-lock.json
