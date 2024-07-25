@@ -34,15 +34,19 @@ func init() {
 	})
 }
 
-func createMockData() {
-	db := lib.DB()
-	createMockTags(db, 10)
-	createMockRecords(db, &models.AiModels{}, 0)
-	createMockRecords(db, &models.ApiKeys{}, 1)
-	createMockRecords(db, &models.AuditLogs{}, 1)
-	createMockRecords(db, &models.Products{}, 1)
-	createMockRecords(db, &models.Usage{}, 1)
-	createMockRecords(db, &models.Workspaces{}, 1)
+func createMockData(db ...*gorm.DB) {
+	database := lib.DB()
+	if len(db) > 0 && db[0] != nil {
+		database = db[0]
+	}
+	database = database.Debug()
+	createMockTags(database, 10)
+	createMockRecords(database, &models.AiModels{}, 2)
+	createMockRecords(database, &models.ApiKeys{}, 2)
+	createMockRecords(database, &models.AuditLogs{}, 2)
+	createMockRecords(database, &models.Products{}, 2)
+	createMockRecords(database, &models.Usage{}, 2)
+	createMockRecords(database, &models.Workspaces{}, 2)
 }
 
 func createMockTags(db *gorm.DB, count int) {
