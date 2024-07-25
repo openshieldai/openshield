@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/bxcodec/faker/v4"
+	"github.com/go-faker/faker/v4"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"gorm.io/gorm"
@@ -34,15 +34,19 @@ func init() {
 	})
 }
 
-func createMockData() {
-	db := lib.DB()
-	createMockTags(db, 10)
-	createMockRecords(db, &models.AiModels{}, 2)
-	createMockRecords(db, &models.ApiKeys{}, 2)
-	createMockRecords(db, &models.AuditLogs{}, 2)
-	createMockRecords(db, &models.Products{}, 2)
-	createMockRecords(db, &models.Usage{}, 2)
-	createMockRecords(db, &models.Workspaces{}, 2)
+func createMockData(db ...*gorm.DB) {
+	database := lib.DB()
+	if len(db) > 0 && db[0] != nil {
+		database = db[0]
+	}
+	database = database.Debug()
+	createMockTags(database, 10)
+	createMockRecords(database, &models.AiModels{}, 2)
+	createMockRecords(database, &models.ApiKeys{}, 2)
+	createMockRecords(database, &models.AuditLogs{}, 2)
+	createMockRecords(database, &models.Products{}, 2)
+	createMockRecords(database, &models.Usage{}, 2)
+	createMockRecords(database, &models.Workspaces{}, 2)
 }
 
 func createMockTags(db *gorm.DB, count int) {
