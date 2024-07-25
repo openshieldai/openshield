@@ -15,23 +15,42 @@ var generatedTags []string
 
 func init() {
 	// Faker providers setup
-	faker.AddProvider("aifamily", func(v reflect.Value) (interface{}, error) {
-		return string(models.OpenAI), nil
-	})
-
-	faker.AddProvider("status", func(v reflect.Value) (interface{}, error) {
-		statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
-		return statuses[rand.Intn(len(statuses))], nil
-	})
-
-	faker.AddProvider("finishreason", func(v reflect.Value) (interface{}, error) {
-		statuses := []string{string(models.Stop), string(models.Length), string(models.Null), string(models.FunctionCall), string(models.ContentFilter)}
-		return statuses[rand.Intn(len(statuses))], nil
-	})
-
-	faker.AddProvider("tags", func(v reflect.Value) (interface{}, error) {
-		return getRandomTags(), nil
-	})
+	{
+		err := faker.AddProvider("aifamily", func(v reflect.Value) (interface{}, error) {
+			return string(models.OpenAI), nil
+		})
+		if err != nil {
+			return
+		}
+	}
+	{
+		err := faker.AddProvider("status", func(v reflect.Value) (interface{}, error) {
+			statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
+			return statuses[rand.Intn(len(statuses))], nil
+		})
+		{
+			if err != nil {
+				return
+			}
+		}
+	}
+	{
+		err := faker.AddProvider("finishreason", func(v reflect.Value) (interface{}, error) {
+			statuses := []string{string(models.Stop), string(models.Length), string(models.Null), string(models.FunctionCall), string(models.ContentFilter)}
+			return statuses[rand.Intn(len(statuses))], nil
+		})
+		if err != nil {
+			return
+		}
+	}
+	{
+		err := faker.AddProvider("tags", func(v reflect.Value) (interface{}, error) {
+			return getRandomTags(), nil
+		})
+		if err != nil {
+			return
+		}
+	}
 }
 
 func createMockData(db ...*gorm.DB) {
@@ -93,7 +112,7 @@ func createMockRecords(db *gorm.DB, model interface{}, count int) {
 		fmt.Printf("%+v\n\n", model)
 		result := db.Create(model)
 		if result.Error != nil {
-			fmt.Errorf("error inserting fake data for %T: %v", model, result.Error)
+			_ = fmt.Errorf("error inserting fake data for %T: %v", model, result.Error)
 		}
 	}
 }
