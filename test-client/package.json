@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "author": "David Papp <david@opensiheld.ai>",
+  "license": "Apache-2.0",
+  "description": "Demo client for OpenShield",
   "dependencies": {
-    "https-proxy-agent": "^7.0.4",
     "openai": "4.53.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.12",
-    "typescript": "^5.4.5"
+    "@types/node": "20.12.12",
+    "typescript": "5.4.5"
   }
 }
