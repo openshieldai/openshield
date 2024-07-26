@@ -10,5 +10,5 @@ type ApiKeys struct {
 	ApiKey    string    `faker:"uuid_hyphenated" gorm:"api_key;not null;uniqueIndex;index:idx_api_keys_status,unique"`
 	Status    Status    `faker:"status" sql:"status;not null;index:idx_api_keys_status,unique;type:enum('active', 'inactive', 'archived')"`
 	Tags      string    `faker:"tags" gorm:"tags;<-:false"`
-	CreatedBy string    `faker:"uuid_hyphenated" gorm:"created_by;not null"`
+	CreatedBy string    `faker:"name" gorm:"created_by;not null"`
 }

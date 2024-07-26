@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -158,10 +159,49 @@ filters:
 	}
 
 	t.Run("AddRule", func(t *testing.T) {
-		input := "input\nnew_rule\nsentiment_filter\nblock\nsentiment_plugin\n90\n"
-		t.Logf("AddRule Input:\n%s", input)
-		inputBuffer := bytes.NewBufferString(input)
-		output, err := executeCommandWithInput(rootCmd, inputBuffer, "config", "add-rule")
+		// Create a pipe
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatalf("Failed to create pipe: %v", err)
+		}
+
+		// Save original stdin
+		oldStdin := os.Stdin
+		defer func() {
+			os.Stdin = oldStdin
+			r.Close()
+			w.Close()
+		}()
+
+		// Set stdin to our reader
+		os.Stdin = r
+
+		// Prepare input
+		inputs := []string{
+			"input\n",
+			"new_rule\n",
+			"sentiment_filter\n",
+			"block\n",
+			"sentiment_plugin\n",
+			"90\n",
+		}
+
+		// Start a goroutine to feed input
+		go func() {
+			defer w.Close()
+			for _, input := range inputs {
+				t.Logf("Providing input: %q", strings.TrimSpace(input))
+				_, err := w.Write([]byte(input))
+				if err != nil {
+					t.Logf("Error writing input: %v", err)
+					return
+				}
+				time.Sleep(100 * time.Millisecond) // Small delay to ensure input is processed
+			}
+		}()
+
+		// Execute the command
+		output, err := executeCommand(rootCmd, "config", "add-rule")
 		if err != nil {
 			t.Fatalf("Error executing add-rule command: %v", err)
 		}
@@ -234,6 +274,32 @@ filters:
 	})
 }
 
+type stepReader struct {
+	inputs []string
+	index  int
+	t      *testing.T
+}
+
+func (r *stepReader) Read(p []byte) (n int, err error) {
+	if r.index >= len(r.inputs) {
+		return 0, io.EOF
+	}
+	input := r.inputs[r.index]
+	r.t.Logf("Providing input: %q", strings.TrimSpace(input))
+	n = copy(p, input)
+	r.index++
+	return n, nil
+}
+
+func executeCommand(root *cobra.Command, args ...string) (string, error) {
+	buf := new(bytes.Buffer)
+	root.SetOut(buf)
+	root.SetErr(buf)
+	root.SetArgs(args)
+
+	err := root.Execute()
+	return buf.String(), err
+}
 func executeCommandWithInput(cmd *cobra.Command, input *bytes.Buffer, args ...string) (string, error) {
 	cmd.SetArgs(args)
 
