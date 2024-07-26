@@ -26,7 +26,7 @@ type Rule struct {
 
 type RuleInspection struct {
 	CheckResult       bool    `json:"check_result"`
-	InjectionScore    float64 `json:"injection_score"`
+	InjectionScore    float64 `json:"score"`
 	AnonymizedContent string  `json:"anonymized_content"`
 }
 
