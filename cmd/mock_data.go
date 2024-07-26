@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"math/rand"
+	"reflect"
+	"strings"
+
 	"github.com/go-faker/faker/v4"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"gorm.io/gorm"
-	"math/rand"
-	"reflect"
-	"strings"
 )
 
 var generatedTags []string
@@ -37,12 +38,12 @@ func init() {
 func createMockData() {
 	db := lib.DB()
 	createMockTags(db, 10)
-	createMockRecords(db, &models.AiModels{}, 2)
-	createMockRecords(db, &models.ApiKeys{}, 2)
-	createMockRecords(db, &models.AuditLogs{}, 2)
-	createMockRecords(db, &models.Products{}, 2)
-	createMockRecords(db, &models.Usage{}, 2)
-	createMockRecords(db, &models.Workspaces{}, 2)
+	createMockRecords(db, &models.AiModels{}, 0)
+	createMockRecords(db, &models.ApiKeys{}, 1)
+	createMockRecords(db, &models.AuditLogs{}, 1)
+	createMockRecords(db, &models.Products{}, 1)
+	createMockRecords(db, &models.Usage{}, 1)
+	createMockRecords(db, &models.Workspaces{}, 1)
 }
 
 func createMockTags(db *gorm.DB, count int) {
