@@ -6,9 +6,9 @@ import (
 
 type Products struct {
 	Base        Base      `gorm:"embedded"`
-	Status      Status    `sql:"status;not null;type:enum('active', 'inactive', 'archived');default:'active';default:'active'"`
+	Status      Status    `faker:"status" sql:"status;not null;type:enum('active', 'inactive', 'archived');default:'active';default:'active'"`
 	Name        string    `gorm:"name;not null"`
 	WorkspaceID uuid.UUID `gorm:"workspace_id;type:uuid;not null"`
-	Tags        string    `gorm:"tags;<-:false"`
-	CreatedBy   string    `gorm:"created_by;not null"`
+	Tags        string    `faker:"tags" gorm:"tags;<-:false"`
+	CreatedBy   string    `faker:"uuid_hyphenated" gorm:"created_by;not null"`
 }

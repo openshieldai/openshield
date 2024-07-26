@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const client = new OpenAI({
-    baseURL: 'http://127.0.0.1:3005/openai/v1',
+    baseURL: 'http://127.0.0.1:8080/openai/v1',
     apiKey: process.env.OPENSHIELD_API_KEY,
 });
 

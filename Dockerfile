@@ -4,23 +4,29 @@ WORKDIR /build
 
 COPY go.mod /build
 COPY go.sum /build
+COPY ./docker/docker-entrypoint.sh /build/docker-entrypoint.sh
 RUN go mod download \
     && apt-get update  \
-    && apt-get install -y dumb-init
+    && apt-get install -y dumb-init  \
+    && chmod +x /build/docker-entrypoint.sh
+
 
 COPY . .
 
 RUN go build -o openshield .
 
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM gcr.io/distroless/base-debian12:debug
 
 COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 COPY --from=build /bin/sh /bin/sh
 COPY --from=build /build/openshield /app/openshield
+COPY --from=build /build/docker-entrypoint.sh /app/docker-entrypoint.sh
+
 USER nonroot:nonroot
 # https://github.com/gofiber/fiber/issues/1021
 # https://github.com/gofiber/fiber/issues/1036
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+#ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 WORKDIR /app
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
-CMD ./openshield
+CMD ["/app/openshield","start"]
