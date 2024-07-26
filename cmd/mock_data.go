@@ -2,42 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"math/rand"
-	"reflect"
-	"strings"
-
 	"github.com/go-faker/faker/v4"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"gorm.io/gorm"
+	"math/rand"
+	"reflect"
+	"strings"
 )
 
 var generatedTags []string
-
-type StatusProvider struct {
-	mu              sync.Mutex
-	activeGenerated map[reflect.Type]bool
-}
-
-func NewStatusProvider() *StatusProvider {
-	return &StatusProvider{
-		activeGenerated: make(map[reflect.Type]bool),
-	}
-}
-
-func (sp *StatusProvider) Status(v reflect.Value) (interface{}, error) {
-	sp.mu.Lock()
-	defer sp.mu.Unlock()
-
-	modelType := v.Type()
-	if !sp.activeGenerated[modelType] {
-		sp.activeGenerated[modelType] = true
-		return string(models.Active), nil
-	}
-
-	statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
-	return statuses[rand.Intn(len(statuses))], nil
-}
 
 func init() {
 
