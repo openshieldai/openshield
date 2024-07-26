@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/bxcodec/faker/v4"
+	"github.com/go-faker/faker/v4"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"gorm.io/gorm"
