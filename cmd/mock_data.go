@@ -9,24 +9,50 @@ import (
 	"math/rand"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 var generatedTags []string
 
+type StatusProvider struct {
+	mu              sync.Mutex
+	activeGenerated map[reflect.Type]bool
+}
+
+func NewStatusProvider() *StatusProvider {
+	return &StatusProvider{
+		activeGenerated: make(map[reflect.Type]bool),
+	}
+}
+
+func (sp *StatusProvider) Status(v reflect.Value) (interface{}, error) {
+	sp.mu.Lock()
+	defer sp.mu.Unlock()
+
+	modelType := v.Type()
+	if !sp.activeGenerated[modelType] {
+		sp.activeGenerated[modelType] = true
+		return string(models.Active), nil
+	}
+
+	statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
+	return statuses[rand.Intn(len(statuses))], nil
+}
+
 func init() {
-	// Faker providers setup
-	faker.AddProvider("aifamily", func(v reflect.Value) (interface{}, error) {
-		return string(models.OpenAI), nil
-	})
 
 	faker.AddProvider("status", func(v reflect.Value) (interface{}, error) {
 		statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
 		return statuses[rand.Intn(len(statuses))], nil
 	})
 
+	faker.AddProvider("aifamily", func(v reflect.Value) (interface{}, error) {
+		return models.OpenAI, nil
+	})
+
 	faker.AddProvider("finishreason", func(v reflect.Value) (interface{}, error) {
-		statuses := []string{string(models.Stop), string(models.Length), string(models.Null), string(models.FunctionCall), string(models.ContentFilter)}
-		return statuses[rand.Intn(len(statuses))], nil
+		reasons := []models.FinishReason{models.Stop, models.Length, models.Null, models.FunctionCall, models.ContentFilter}
+		return reasons[rand.Intn(len(reasons))], nil
 	})
 
 	faker.AddProvider("tags", func(v reflect.Value) (interface{}, error) {
@@ -81,15 +107,30 @@ func getRandomTags() string {
 
 func createMockRecords(db *gorm.DB, model interface{}, count int) {
 	for i := 0; i < count; i++ {
-		if err := faker.FakeData(model); err != nil {
-			fmt.Printf("error generating fake data for %T: %v\n", model, err)
+		newModel := reflect.New(reflect.TypeOf(model).Elem()).Interface()
+		if err := faker.FakeData(newModel); err != nil {
+			fmt.Printf("error generating fake data for %T: %v\n", newModel, err)
 			continue
 		}
-		fmt.Printf("Generated data for %T:\n", model)
-		fmt.Printf("%+v\n\n", model)
-		result := db.Create(model)
-		if result.Error != nil {
-			fmt.Errorf("error inserting fake data for %T: %v", model, result.Error)
+
+		// Ensure the first record is always active
+		if i == 0 {
+			setValueOfObject(newModel, "Status", models.Active)
 		}
+
+		fmt.Printf("Generated data for %T:\n", newModel)
+		fmt.Printf("%+v\n\n", newModel)
+		result := db.Create(newModel)
+		if result.Error != nil {
+			fmt.Printf("error inserting fake data for %T: %v\n", newModel, result.Error)
+		}
+	}
+}
+func setValueOfObject(obj interface{}, fieldName string, value interface{}) {
+	field := reflect.ValueOf(obj).Elem().FieldByName(fieldName)
+	if field.IsValid() && field.CanSet() {
+		field.Set(reflect.ValueOf(value))
+	} else {
+		fmt.Printf("Warning: Unable to set field %s\n", fieldName)
 	}
 }
