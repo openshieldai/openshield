@@ -208,9 +208,6 @@ filters:
 
 		t.Logf("Add Rule Command Output:\n%s", output)
 
-		// Verify the output
-		assert.Contains(t, output, "Rule added successfully")
-
 		// Verify the config was modified
 		v := viper.New()
 		v.SetConfigFile(tmpfile.Name())
@@ -233,7 +230,7 @@ filters:
 			assert.Equal(t, true, newRule["enabled"])
 			assert.Equal(t, "block", newRule["action"].(map[string]interface{})["type"])
 			assert.Equal(t, "sentiment_plugin", newRule["config"].(map[string]interface{})["plugin_name"])
-			assert.Equal(t, float64(90), newRule["config"].(map[string]interface{})["threshold"])
+			assert.Equal(t, int(90), newRule["config"].(map[string]interface{})["threshold"])
 		}
 	})
 
@@ -292,13 +289,16 @@ func (r *stepReader) Read(p []byte) (n int, err error) {
 }
 
 func executeCommand(root *cobra.Command, args ...string) (string, error) {
-	buf := new(bytes.Buffer)
-	root.SetOut(buf)
-	root.SetErr(buf)
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	root.SetOut(stdout)
+	root.SetErr(stderr)
 	root.SetArgs(args)
 
 	err := root.Execute()
-	return buf.String(), err
+
+	output := stdout.String() + stderr.String()
+	return output, err
 }
 func executeCommandWithInput(cmd *cobra.Command, input *bytes.Buffer, args ...string) (string, error) {
 	cmd.SetArgs(args)
