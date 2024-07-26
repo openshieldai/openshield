@@ -19,6 +19,6 @@ type Usage struct {
 	PromptTokensCount    int          `gorm:"prompt_tokens_count;<-:create;not null"`
 	CompletionTokens     int          `gorm:"completion_tokens;<-:create;not null"`
 	TotalTokens          int          `gorm:"total_tokens;<-:create;not null"`
-	FinishReason         FinishReason `gorm:"finish_reason;<-:create;not null"`
+	FinishReason         FinishReason `faker:"finishreason" gorm:"finish_reason;<-:create;not null"`
 	RequestType          string       `gorm:"request_type;<-:create;not null"`
 }

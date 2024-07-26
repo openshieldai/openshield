@@ -10,11 +10,11 @@ const (
 
 type AiModels struct {
 	Base      `gorm:"embedded"`
-	Family    AiFamily `sql:"family;not null;type:enum('openai')"`
-	ModelType string   `gorm:"model_type;not null"`
-	Model     string   `gorm:"model;not null"`
-	Encoding  string   `gorm:"encoding;not null"`
-	Size      string   `gorm:"size;"`
-	Quality   string   `gorm:"quality;"`
-	Status    Status   `sql:"status;not null;type:enum('active', 'inactive', 'archived');default:'active'"`
+	Family    AiFamily `faker:"aifamily" sql:"family;not null;type:enum('openai')"`
+	ModelType string   `faker:"oneof: LLM,imagegen" gorm:"model_type;not null"`
+	Model     string   `faker:"oneof: gpt3.5,gpt4" gorm:"model;not null"`
+	Encoding  string   `faker:"oneof: SHA,MD5" gorm:"encoding;not null"`
+	Size      string   `faker:"oneof: small,medium,large" gorm:"size;"`
+	Quality   string   `faker:"oneof: low,medium,high" gorm:"quality;"`
+	Status    Status   `faker:"status" sql:"status;not null;type:enum('active', 'inactive', 'archived');default:'active'"`
 }

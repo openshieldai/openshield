@@ -14,7 +14,7 @@ type AuditLogs struct {
 	UpdatedAt   time.Time       `gorm:"updated_at;<-:create;default:now();not null"`
 	DeletedAt   *gorm.DeletedAt `gorm:"deleted_at;index"`
 	ApiKeyID    uuid.UUID       `gorm:"api_key_id;type:uuid;<-:create;not null"`
-	IPAddress   string          `gorm:"ip_address;<-:create;not null"`
+	IPAddress   string          `faker:"ipv4" gorm:"ip_address;<-:create;not null"`
 	Message     string          `gorm:"message;<-:create;not null"`
 	MessageType string          `gorm:"message_type;<-:create;not null"`
 	Type        string          `gorm:"log_type;<-:create;not null"`
