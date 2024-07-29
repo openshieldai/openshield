@@ -14,57 +14,35 @@ import (
 var generatedTags []string
 
 func init() {
-	// Faker providers setup
-	{
-		err := faker.AddProvider("aifamily", func(v reflect.Value) (interface{}, error) {
-			return string(models.OpenAI), nil
-		})
-		if err != nil {
-			return
-		}
-	}
-	{
-		err := faker.AddProvider("status", func(v reflect.Value) (interface{}, error) {
-			statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
-			return statuses[rand.Intn(len(statuses))], nil
-		})
-		{
-			if err != nil {
-				return
-			}
-		}
-	}
-	{
-		err := faker.AddProvider("finishreason", func(v reflect.Value) (interface{}, error) {
-			statuses := []string{string(models.Stop), string(models.Length), string(models.Null), string(models.FunctionCall), string(models.ContentFilter)}
-			return statuses[rand.Intn(len(statuses))], nil
-		})
-		if err != nil {
-			return
-		}
-	}
-	{
-		err := faker.AddProvider("tags", func(v reflect.Value) (interface{}, error) {
-			return getRandomTags(), nil
-		})
-		if err != nil {
-			return
-		}
-	}
+
+	faker.AddProvider("status", func(v reflect.Value) (interface{}, error) {
+		statuses := []string{string(models.Active), string(models.Inactive), string(models.Archived)}
+		return statuses[rand.Intn(len(statuses))], nil
+	})
+
+	faker.AddProvider("aifamily", func(v reflect.Value) (interface{}, error) {
+		return models.OpenAI, nil
+	})
+
+	faker.AddProvider("finishreason", func(v reflect.Value) (interface{}, error) {
+		reasons := []models.FinishReason{models.Stop, models.Length, models.Null, models.FunctionCall, models.ContentFilter}
+		return reasons[rand.Intn(len(reasons))], nil
+	})
+
+	faker.AddProvider("tags", func(v reflect.Value) (interface{}, error) {
+		return getRandomTags(), nil
+	})
 }
 
-func createMockData(db ...*gorm.DB) {
-	database := lib.DB()
-	if len(db) > 0 && db[0] != nil {
-		database = db[0]
-	}
-	createMockTags(database, 10)
-	createMockRecords(database, &models.AiModels{}, 2)
-	createMockRecords(database, &models.ApiKeys{}, 2)
-	createMockRecords(database, &models.AuditLogs{}, 2)
-	createMockRecords(database, &models.Products{}, 2)
-	createMockRecords(database, &models.Usage{}, 2)
-	createMockRecords(database, &models.Workspaces{}, 2)
+func createMockData() {
+	db := lib.DB()
+	createMockTags(db, 10)
+	createMockRecords(db, &models.AiModels{}, 1)
+	createMockRecords(db, &models.ApiKeys{}, 1)
+	createMockRecords(db, &models.AuditLogs{}, 1)
+	createMockRecords(db, &models.Products{}, 1)
+	createMockRecords(db, &models.Usage{}, 1)
+	createMockRecords(db, &models.Workspaces{}, 1)
 }
 
 func createMockTags(db *gorm.DB, count int) {
@@ -118,7 +96,7 @@ func createMockRecords(db *gorm.DB, model interface{}, count int) {
 		fmt.Printf("%+v\n\n", newModel)
 		result := db.Create(newModel)
 		if result.Error != nil {
-			_ = fmt.Errorf("error inserting fake data for %T: %v", model, result.Error)
+			fmt.Printf("error inserting fake data for %T: %v\n", newModel, result.Error)
 		}
 	}
 }

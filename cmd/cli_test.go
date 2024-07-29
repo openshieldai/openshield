@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/openshieldai/openshield/lib"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -54,21 +55,20 @@ func TestCreateMockData(t *testing.T) {
 	}
 
 	createExpectations("tags", 10, 6)
-	createExpectations("ai_models", 2, 10)
-	createExpectations("api_keys", 2, 7)
-	createExpectations("audit_logs", 2, 11)
-	createExpectations("products", 2, 7)
-	createExpectations("usages", 2, 10)
-	createExpectations("workspaces", 2, 6)
-
-	createMockData(db)
+	createExpectations("ai_models", 1, 10)
+	createExpectations("api_keys", 1, 7)
+	createExpectations("audit_logs", 1, 11)
+	createExpectations("products", 1, 7)
+	createExpectations("usages", 1, 10)
+	createExpectations("workspaces", 1, 6)
+	lib.SetDB(db)
+	createMockData()
 
 	err = mock.ExpectationsWereMet()
 	if err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
-
 func TestCreateTables(t *testing.T) {
 
 	sqlDB, mock, err := sqlmock.New()
@@ -86,7 +86,7 @@ func TestCreateTables(t *testing.T) {
 	})
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	assert.NoError(t, err)
-
+	lib.SetDB(db)
 	tables := []string{"tags", "ai_models", "api_keys", "audit_logs", "products", "usage", "workspaces"}
 	for _, table := range tables {
 		mock.ExpectQuery(`SELECT EXISTS \(SELECT FROM information_schema.tables WHERE table_name = \$1\)`).
