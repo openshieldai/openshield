@@ -117,7 +117,7 @@ func init() {
 
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
-	viperCfg.AddConfigPath(".")
+	viperCfg.AddConfigPath("./config.yaml")
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	err := viperCfg.ReadInConfig()
