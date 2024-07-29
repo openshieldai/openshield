@@ -21,7 +21,7 @@ func DB() *gorm.DB {
 		config := GetConfig()
 		connection, err := gorm.Open(postgres.Open(config.Settings.Database.URI), &gorm.Config{})
 		if err != nil {
-			panic("failed to connect database")
+			panic(err)
 		}
 
 		if config.Settings.Database.AutoMigration {
