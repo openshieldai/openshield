@@ -1,0 +1,686 @@
+<!doctype html>
+<html>
+  <head>
+    <title>OpenShield API</title>
+    <style type="text/css">
+      body {
+	font-family: Trebuchet MS, sans-serif;
+	font-size: 15px;
+	color: #444;
+	margin-right: 24px;
+}
+
+h1	{
+	font-size: 25px;
+}
+h2	{
+	font-size: 20px;
+}
+h3	{
+	font-size: 16px;
+	font-weight: bold;
+}
+hr	{
+	height: 1px;
+	border: 0;
+	color: #ddd;
+	background-color: #ddd;
+}
+
+.app-desc {
+  clear: both;
+  margin-left: 20px;
+}
+.param-name {
+  width: 100%;
+}
+.license-info {
+  margin-left: 20px;
+}
+
+.license-url {
+  margin-left: 20px;
+}
+
+.model {
+  margin: 0 0 0px 20px;
+}
+
+.method {
+  margin-left: 20px;
+}
+
+.method-notes	{
+	margin: 10px 0 20px 0;
+	font-size: 90%;
+	color: #555;
+}
+
+pre {
+  padding: 10px;
+  margin-bottom: 2px;
+}
+
+.http-method {
+ text-transform: uppercase;
+}
+
+pre.get {
+  background-color: #0f6ab4;
+}
+
+pre.post {
+  background-color: #10a54a;
+}
+
+pre.put {
+  background-color: #c5862b;
+}
+
+pre.delete {
+  background-color: #a41e22;
+}
+
+.huge	{
+	color: #fff;
+}
+
+pre.example {
+  background-color: #f3f3f3;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+code {
+  white-space: pre;
+}
+
+.nickname {
+  font-weight: bold;
+}
+
+.method-path {
+  font-size: 1.5em;
+  background-color: #0f6ab4;
+}
+
+.up {
+  float:right;
+}
+
+.parameter {
+  width: 500px;
+}
+
+.param {
+  width: 500px;
+  padding: 10px 0 0 20px;
+  font-weight: bold;
+}
+
+.param-desc {
+  width: 700px;
+  padding: 0 0 0 20px;
+  color: #777;
+}
+
+.param-type {
+  font-style: italic;
+}
+
+.param-enum-header {
+width: 700px;
+padding: 0 0 0 60px;
+color: #777;
+font-weight: bold;
+}
+
+.param-enum {
+width: 700px;
+padding: 0 0 0 80px;
+color: #777;
+font-style: italic;
+}
+
+.field-label {
+  padding: 0;
+  margin: 0;
+  clear: both;
+}
+
+.field-items	{
+	padding: 0 0 15px 0;
+	margin-bottom: 15px;
+}
+
+.return-type {
+  clear: both;
+  padding-bottom: 10px;
+}
+
+.param-header {
+  font-weight: bold;
+}
+
+.method-tags {
+  text-align: right;
+}
+
+.method-tag {
+  background: none repeat scroll 0% 0% #24A600;
+  border-radius: 3px;
+  padding: 2px 10px;
+  margin: 2px;
+  color: #FFF;
+  display: inline-block;
+  text-decoration: none;
+}
+
+    </style>
+  </head>
+  <body>
+  <h1>OpenShield API</h1>
+    <div class="app-desc">This is the API server for OpenShield.</div>
+    <div class="app-desc">More information: <a href="https://helloreverb.com">https://helloreverb.com</a></div>
+    <div class="app-desc">Contact Info: <a href="hello@helloreverb.com">hello@helloreverb.com</a></div>
+    <div class="app-desc">Version: 1.0</div>
+    <div class="app-desc">BasePath:</div>
+    <div class="license-info">All rights reserved</div>
+    <div class="license-url">http://apache.org/licenses/LICENSE-2.0.html</div>
+  <h2>Access</h2>
+
+  <h2><a name="__Methods">Methods</a></h2>
+  [ Jump to <a href="#__Models">Models</a> ]
+
+  <h3>Table of Contents </h3>
+  <div class="method-summary"></div>
+  <h4><a href="#Openai">Openai</a></h4>
+  <ul>
+  <li><a href="#openaiV1ChatCompletionsPost"><code><span class="http-method">post</span> /openai/v1/chat/completions</code></a></li>
+  <li><a href="#openaiV1ModelsGet"><code><span class="http-method">get</span> /openai/v1/models</code></a></li>
+  <li><a href="#openaiV1ModelsModelGet"><code><span class="http-method">get</span> /openai/v1/models/{model}</code></a></li>
+  </ul>
+
+  <h1><a name="Openai">Openai</a></h1>
+  <div class="method"><a name="openaiV1ChatCompletionsPost"/>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="post"><code class="huge"><span class="http-method">post</span> /openai/v1/chat/completions</code></pre></div>
+    <div class="method-summary">Create chat completion (<span class="nickname">openaiV1ChatCompletionsPost</span>)</div>
+    <div class="method-notes">Create a chat completion</div>
+
+
+    <h3 class="field-label">Consumes</h3>
+    This API call consumes the following media types via the <span class="header">Content-Type</span> request header:
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Request body</h3>
+    <div class="field-items">
+      <div class="param">request <a href="#openai.ChatCompletionRequest">openai.ChatCompletionRequest</a> (required)</div>
+
+      <div class="param-desc"><span class="param-type">Body Parameter</span> &mdash; Chat completion request </div>
+
+    </div>  <!-- field-items -->
+
+
+
+
+    <h3 class="field-label">Return type</h3>
+    <div class="return-type">
+      <a href="#openai.ChatCompletionResponse">openai.ChatCompletionResponse</a>
+      
+    </div>
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+    <h3 class="field-label">Example data</h3>
+    <div class="example-data-content-type">Content-Type: application/json</div>
+    <pre class="example"><code>{"empty": false}</code></pre>
+
+    <h3 class="field-label">Produces</h3>
+    This API call produces the following media types according to the <span class="header">Accept</span> request header;
+    the media type will be conveyed by the <span class="header">Content-Type</span> response header.
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    OK
+        <a href="#openai.ChatCompletionResponse">openai.ChatCompletionResponse</a>
+    <h4 class="field-label">400</h4>
+    Bad Request
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+    <h4 class="field-label">401</h4>
+    Unauthorized
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+    <h4 class="field-label">500</h4>
+    Internal Server Error
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="openaiV1ModelsGet"/>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /openai/v1/models</code></pre></div>
+    <div class="method-summary">List models (<span class="nickname">openaiV1ModelsGet</span>)</div>
+    <div class="method-notes">Get a list of available models</div>
+
+
+
+
+
+
+
+    <h3 class="field-label">Return type</h3>
+    <div class="return-type">
+      <a href="#openai.ModelsList">openai.ModelsList</a>
+      
+    </div>
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+    <h3 class="field-label">Example data</h3>
+    <div class="example-data-content-type">Content-Type: application/json</div>
+    <pre class="example"><code>{"empty": false}</code></pre>
+
+    <h3 class="field-label">Produces</h3>
+    This API call produces the following media types according to the <span class="header">Accept</span> request header;
+    the media type will be conveyed by the <span class="header">Content-Type</span> response header.
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    OK
+        <a href="#openai.ModelsList">openai.ModelsList</a>
+    <h4 class="field-label">401</h4>
+    Unauthorized
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+    <h4 class="field-label">500</h4>
+    Internal Server Error
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="openaiV1ModelsModelGet"/>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /openai/v1/models/{model}</code></pre></div>
+    <div class="method-summary">Get model details (<span class="nickname">openaiV1ModelsModelGet</span>)</div>
+    <div class="method-notes">Get details of a specific model</div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">model (required)</div>
+
+      <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Model ID </div>
+    </div>  <!-- field-items -->
+
+
+
+
+
+
+    <h3 class="field-label">Return type</h3>
+    <div class="return-type">
+      <a href="#openai.Model">openai.Model</a>
+      
+    </div>
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+    <h3 class="field-label">Example data</h3>
+    <div class="example-data-content-type">Content-Type: application/json</div>
+    <pre class="example"><code>{"empty": false}</code></pre>
+
+    <h3 class="field-label">Produces</h3>
+    This API call produces the following media types according to the <span class="header">Accept</span> request header;
+    the media type will be conveyed by the <span class="header">Content-Type</span> response header.
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    OK
+        <a href="#openai.Model">openai.Model</a>
+    <h4 class="field-label">401</h4>
+    Unauthorized
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+    <h4 class="field-label">404</h4>
+    Not Found
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+    <h4 class="field-label">500</h4>
+    Internal Server Error
+        <a href="#server.ErrorResponse">server.ErrorResponse</a>
+  </div> <!-- method -->
+  <hr/>
+
+  <h2><a name="__Models">Models</a></h2>
+  [ Jump to <a href="#__Methods">Methods</a> ]
+
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#openai.ChatCompletionChoice"><code>openai.ChatCompletionChoice</code> - </a></li>
+    <li><a href="#openai.ChatCompletionChoice_finish_reason"><code>openai.ChatCompletionChoice_finish_reason</code> - </a></li>
+    <li><a href="#openai.ChatCompletionMessage"><code>openai.ChatCompletionMessage</code> - </a></li>
+    <li><a href="#openai.ChatCompletionRequest"><code>openai.ChatCompletionRequest</code> - </a></li>
+    <li><a href="#openai.ChatCompletionRequest_stream_options"><code>openai.ChatCompletionRequest_stream_options</code> - </a></li>
+    <li><a href="#openai.ChatCompletionResponse"><code>openai.ChatCompletionResponse</code> - </a></li>
+    <li><a href="#openai.ChatCompletionResponseFormat"><code>openai.ChatCompletionResponseFormat</code> - </a></li>
+    <li><a href="#openai.ChatCompletionResponseFormatType"><code>openai.ChatCompletionResponseFormatType</code> - </a></li>
+    <li><a href="#openai.ChatMessageImageURL"><code>openai.ChatMessageImageURL</code> - </a></li>
+    <li><a href="#openai.ChatMessagePart"><code>openai.ChatMessagePart</code> - </a></li>
+    <li><a href="#openai.ChatMessagePartType"><code>openai.ChatMessagePartType</code> - </a></li>
+    <li><a href="#openai.FinishReason"><code>openai.FinishReason</code> - </a></li>
+    <li><a href="#openai.FunctionCall"><code>openai.FunctionCall</code> - </a></li>
+    <li><a href="#openai.FunctionDefinition"><code>openai.FunctionDefinition</code> - </a></li>
+    <li><a href="#openai.ImageURLDetail"><code>openai.ImageURLDetail</code> - </a></li>
+    <li><a href="#openai.LogProb"><code>openai.LogProb</code> - </a></li>
+    <li><a href="#openai.LogProbs"><code>openai.LogProbs</code> - </a></li>
+    <li><a href="#openai.Model"><code>openai.Model</code> - </a></li>
+    <li><a href="#openai.ModelsList"><code>openai.ModelsList</code> - </a></li>
+    <li><a href="#openai.Permission"><code>openai.Permission</code> - </a></li>
+    <li><a href="#openai.StreamOptions"><code>openai.StreamOptions</code> - </a></li>
+    <li><a href="#openai.Tool"><code>openai.Tool</code> - </a></li>
+    <li><a href="#openai.ToolCall"><code>openai.ToolCall</code> - </a></li>
+    <li><a href="#openai.ToolType"><code>openai.ToolType</code> - </a></li>
+    <li><a href="#openai.TopLogProbs"><code>openai.TopLogProbs</code> - </a></li>
+    <li><a href="#openai.Usage"><code>openai.Usage</code> - </a></li>
+    <li><a href="#server.ErrorResponse"><code>server.ErrorResponse</code> - </a></li>
+    <li><a href="#server.ErrorResponse_error"><code>server.ErrorResponse_error</code> - </a></li>
+  </ol>
+
+  <div class="model">
+    <h3><a name="openai.ChatCompletionChoice"><code>openai.ChatCompletionChoice</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">finish_reason (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionChoice_finish_reason">openai.ChatCompletionChoice_finish_reason</a></span>  </div>
+<div class="param">index (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">logprobs (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.LogProbs">openai.LogProbs</a></span>  </div>
+<div class="param">message (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionMessage">openai.ChatCompletionMessage</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionChoice_finish_reason"><code>openai.ChatCompletionChoice_finish_reason</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'>FinishReason
+stop: API returned complete message,
+or a message terminated by one of the stop sequences provided via the stop parameter
+length: Incomplete model output due to max_tokens parameter or token limit
+function_call: The model decided to call a function
+content_filter: Omitted content due to a flag from our content filters
+null: API response still in progress or incomplete</div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionMessage"><code>openai.ChatCompletionMessage</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">content (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">function_call (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.FunctionCall">openai.FunctionCall</a></span>  </div>
+<div class="param">multiContent (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatMessagePart">array[openai.ChatMessagePart]</a></span>  </div>
+<div class="param">name (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span> <p>This property isn't in the official documentation, but it's in
+the documentation for the official library for python:</p>
+<ul>
+<li>https://github.com/openai/openai-python/blob/main/chatml.md</li>
+<li>https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb</li>
+</ul>
+ </div>
+<div class="param">role (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">tool_call_id (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span> For Role=tool prompts this should be set to the ID given in the assistant's prior request to call a tool. </div>
+<div class="param">tool_calls (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ToolCall">array[openai.ToolCall]</a></span> For Role=assistant prompts this may be set to the tool calls generated by the model, such as function calls. </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionRequest"><code>openai.ChatCompletionRequest</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">frequency_penalty (optional)</div><div class="param-desc"><span class="param-type"><a href="#number">BigDecimal</a></span>  </div>
+<div class="param">function_call (optional)</div><div class="param-desc"><span class="param-type"><a href="#object">Object</a></span> Deprecated: use ToolChoice instead. </div>
+<div class="param">functions (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.FunctionDefinition">array[openai.FunctionDefinition]</a></span> Deprecated: use Tools instead. </div>
+<div class="param">logit_bias (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">map[String, Integer]</a></span> LogitBias is must be a token id string (specified by their token ID in the tokenizer), not a word string.
+incorrect: <code>&quot;logit_bias&quot;:{&quot;You&quot;: 6}</code>, correct: <code>&quot;logit_bias&quot;:{&quot;1639&quot;: 6}</code>
+refs: https://platform.openai.com/docs/api-reference/chat/create#chat/create-logit_bias </div>
+<div class="param">logprobs (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span> LogProbs indicates whether to return log probabilities of the output tokens or not.
+If true, returns the log probabilities of each output token returned in the content of message.
+This option is currently not available on the gpt-4-vision-preview model. </div>
+<div class="param">max_tokens (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">messages (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionMessage">array[openai.ChatCompletionMessage]</a></span>  </div>
+<div class="param">model (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">n (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">parallel_tool_calls (optional)</div><div class="param-desc"><span class="param-type"><a href="#object">Object</a></span> Disable the default behavior of parallel tool calls by setting it: false. </div>
+<div class="param">presence_penalty (optional)</div><div class="param-desc"><span class="param-type"><a href="#number">BigDecimal</a></span>  </div>
+<div class="param">response_format (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionResponseFormat">openai.ChatCompletionResponseFormat</a></span>  </div>
+<div class="param">seed (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">stop (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">array[String]</a></span>  </div>
+<div class="param">stream (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">stream_options (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionRequest_stream_options">openai.ChatCompletionRequest_stream_options</a></span>  </div>
+<div class="param">temperature (optional)</div><div class="param-desc"><span class="param-type"><a href="#number">BigDecimal</a></span>  </div>
+<div class="param">tool_choice (optional)</div><div class="param-desc"><span class="param-type"><a href="#object">Object</a></span> This can be either a string or an ToolChoice object. </div>
+<div class="param">tools (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.Tool">array[openai.Tool]</a></span>  </div>
+<div class="param">top_logprobs (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span> TopLogProbs is an integer between 0 and 5 specifying the number of most likely tokens to return at each
+token position, each with an associated log probability.
+logprobs must be set to true if this parameter is used. </div>
+<div class="param">top_p (optional)</div><div class="param-desc"><span class="param-type"><a href="#number">BigDecimal</a></span>  </div>
+<div class="param">user (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionRequest_stream_options"><code>openai.ChatCompletionRequest_stream_options</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'>Options for streaming response. Only set this when you set stream: true.</div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionResponse"><code>openai.ChatCompletionResponse</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">choices (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionChoice">array[openai.ChatCompletionChoice]</a></span>  </div>
+<div class="param">created (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">id (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">model (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">object (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">system_fingerprint (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">usage (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.Usage">openai.Usage</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionResponseFormat"><code>openai.ChatCompletionResponseFormat</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">type (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatCompletionResponseFormatType">openai.ChatCompletionResponseFormatType</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatCompletionResponseFormatType"><code>openai.ChatCompletionResponseFormatType</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatMessageImageURL"><code>openai.ChatMessageImageURL</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">detail (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ImageURLDetail">openai.ImageURLDetail</a></span>  </div>
+<div class="param">url (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatMessagePart"><code>openai.ChatMessagePart</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">image_url (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatMessageImageURL">openai.ChatMessageImageURL</a></span>  </div>
+<div class="param">text (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">type (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ChatMessagePartType">openai.ChatMessagePartType</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ChatMessagePartType"><code>openai.ChatMessagePartType</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.FinishReason"><code>openai.FinishReason</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.FunctionCall"><code>openai.FunctionCall</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">arguments (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span> call function with arguments in JSON format </div>
+<div class="param">name (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.FunctionDefinition"><code>openai.FunctionDefinition</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">description (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">name (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">parameters (optional)</div><div class="param-desc"><span class="param-type"><a href="#object">Object</a></span> Parameters is an object describing the function.
+You can pass json.RawMessage to describe the schema,
+or you can pass in a struct which serializes to the proper JSON schema.
+The jsonschema package is provided for convenience, but you should
+consider another specialized library if you require more complex schemas. </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ImageURLDetail"><code>openai.ImageURLDetail</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.LogProb"><code>openai.LogProb</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">bytes (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">array[Integer]</a></span> Omitting the field if it is null </div>
+<div class="param">logprob (optional)</div><div class="param-desc"><span class="param-type"><a href="#number">BigDecimal</a></span>  </div>
+<div class="param">token (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">top_logprobs (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.TopLogProbs">array[openai.TopLogProbs]</a></span> TopLogProbs is a list of the most likely tokens and their log probability, at this token position.
+In rare cases, there may be fewer than the number of requested top_logprobs returned. </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.LogProbs"><code>openai.LogProbs</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">content (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.LogProb">array[openai.LogProb]</a></span> Content is a list of message content tokens with log probability information. </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.Model"><code>openai.Model</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">created (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">id (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">object (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">owned_by (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">parent (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">permission (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.Permission">array[openai.Permission]</a></span>  </div>
+<div class="param">root (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ModelsList"><code>openai.ModelsList</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">data (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.Model">array[openai.Model]</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.Permission"><code>openai.Permission</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">allow_create_engine (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">allow_fine_tuning (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">allow_logprobs (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">allow_sampling (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">allow_search_indices (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">allow_view (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">created (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">group (optional)</div><div class="param-desc"><span class="param-type"><a href="#object">Object</a></span>  </div>
+<div class="param">id (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">is_blocking (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span>  </div>
+<div class="param">object (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">organization (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.StreamOptions"><code>openai.StreamOptions</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">include_usage (optional)</div><div class="param-desc"><span class="param-type"><a href="#boolean">Boolean</a></span> If set, an additional chunk will be streamed before the data: [DONE] message.
+The usage field on this chunk shows the token usage statistics for the entire request,
+and the choices field will always be an empty array.
+All other chunks will also include a usage field, but with a null value. </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.Tool"><code>openai.Tool</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">function (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.FunctionDefinition">openai.FunctionDefinition</a></span>  </div>
+<div class="param">type (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ToolType">openai.ToolType</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ToolCall"><code>openai.ToolCall</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">function (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.FunctionCall">openai.FunctionCall</a></span>  </div>
+<div class="param">id (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">index (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span> Index is not nil only in chat completion chunk object </div>
+<div class="param">type (optional)</div><div class="param-desc"><span class="param-type"><a href="#openai.ToolType">openai.ToolType</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.ToolType"><code>openai.ToolType</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+          </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.TopLogProbs"><code>openai.TopLogProbs</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">bytes (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">array[Integer]</a></span>  </div>
+<div class="param">logprob (optional)</div><div class="param-desc"><span class="param-type"><a href="#number">BigDecimal</a></span>  </div>
+<div class="param">token (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="openai.Usage"><code>openai.Usage</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">completion_tokens (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">prompt_tokens (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+<div class="param">total_tokens (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="server.ErrorResponse"><code>server.ErrorResponse</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">error (optional)</div><div class="param-desc"><span class="param-type"><a href="#server.ErrorResponse_error">server.ErrorResponse_error</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="server.ErrorResponse_error"><code>server.ErrorResponse_error</code> - </a> <a class="up" href="#__Models">Up</a></h3>
+    <div class='model-description'></div>
+    <div class="field-items">
+      <div class="param">code (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">message (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">param (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">type (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  </body>
+</html>
