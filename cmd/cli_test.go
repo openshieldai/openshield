@@ -63,7 +63,7 @@ func TestCreateMockData(t *testing.T) {
 	createExpectations("workspaces", 1, 6)
 	lib.SetDB(db)
 	createMockData()
-
+	lib.DB()
 	err = mock.ExpectationsWereMet()
 	if err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
@@ -87,6 +87,7 @@ func TestCreateTables(t *testing.T) {
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	assert.NoError(t, err)
 	lib.SetDB(db)
+
 	tables := []string{"tags", "ai_models", "api_keys", "audit_logs", "products", "usage", "workspaces"}
 	for _, table := range tables {
 		mock.ExpectQuery(`SELECT EXISTS \(SELECT FROM information_schema.tables WHERE table_name = \$1\)`).
