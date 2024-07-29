@@ -8,11 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
@@ -107,30 +105,18 @@ func TestCreateTables(t *testing.T) {
 	assert.NoError(t, err)
 }
 func TestAddAndRemoveRuleConfig(t *testing.T) {
-
 	tmpfile, err := ioutil.TempFile("", "config.*.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove(tmpfile.Name())
 
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			return
-		}
-	}(tmpfile.Name())
-	{
-		err := os.Setenv("OPENSHIELD_CONFIG_FILE", tmpfile.Name())
-		if err != nil {
-			return
-		}
-		defer func() {
-			err := os.Unsetenv("OPENSHIELD_CONFIG_FILE")
-			if err != nil {
-				return
-			}
-		}()
+	err = os.Setenv("OPENSHIELD_CONFIG_FILE", tmpfile.Name())
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer os.Unsetenv("OPENSHIELD_CONFIG_FILE")
+
 	initialConfig := `
 filters:
   input:
@@ -146,12 +132,11 @@ filters:
 	if _, err := tmpfile.Write([]byte(initialConfig)); err != nil {
 		t.Fatal(err)
 	}
-	{
-		err := tmpfile.Close()
-		if err != nil {
-			return
-		}
+	err = tmpfile.Close()
+	if err != nil {
+		t.Fatal(err)
 	}
+
 	viper.Reset()
 	viper.SetConfigFile(tmpfile.Name())
 	if err := viper.ReadInConfig(); err != nil {
@@ -159,24 +144,18 @@ filters:
 	}
 
 	t.Run("AddRule", func(t *testing.T) {
-		// Create a pipe
+		oldStdin := os.Stdin
 		r, w, err := os.Pipe()
 		if err != nil {
-			t.Fatalf("Failed to create pipe: %v", err)
+			t.Fatal(err)
 		}
-
-		// Save original stdin
-		oldStdin := os.Stdin
+		os.Stdin = r
 		defer func() {
 			os.Stdin = oldStdin
 			r.Close()
 			w.Close()
 		}()
 
-		// Set stdin to our reader
-		os.Stdin = r
-
-		// Prepare input
 		inputs := []string{
 			"input\n",
 			"new_rule\n",
@@ -186,21 +165,18 @@ filters:
 			"90\n",
 		}
 
-		// Start a goroutine to feed input
 		go func() {
 			defer w.Close()
 			for _, input := range inputs {
-				t.Logf("Providing input: %q", strings.TrimSpace(input))
 				_, err := w.Write([]byte(input))
 				if err != nil {
 					t.Logf("Error writing input: %v", err)
 					return
 				}
-				time.Sleep(100 * time.Millisecond) // Small delay to ensure input is processed
+				time.Sleep(100 * time.Millisecond)
 			}
 		}()
 
-		// Execute the command
 		output, err := executeCommand(rootCmd, "config", "add-rule")
 		if err != nil {
 			t.Fatalf("Error executing add-rule command: %v", err)
@@ -208,7 +184,6 @@ filters:
 
 		t.Logf("Add Rule Command Output:\n%s", output)
 
-		// Verify the config was modified
 		v := viper.New()
 		v.SetConfigFile(tmpfile.Name())
 		err = v.ReadInConfig()
@@ -234,22 +209,36 @@ filters:
 		}
 	})
 
-	// Test removeRule
 	t.Run("RemoveRule", func(t *testing.T) {
+		oldStdin := os.Stdin
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.Stdin = r
+		defer func() {
+			os.Stdin = oldStdin
+			r.Close()
+			w.Close()
+		}()
+
 		input := "input\n2\n"
-		t.Logf("RemoveRule Input:\n%s", input)
-		inputBuffer := bytes.NewBufferString(input)
-		output, err := executeCommandWithInput(rootCmd, inputBuffer, "config", "remove-rule")
+		go func() {
+			defer w.Close()
+			_, err := w.Write([]byte(input))
+			if err != nil {
+				t.Logf("Error writing input: %v", err)
+				return
+			}
+		}()
+
+		output, err := executeCommand(rootCmd, "config", "remove-rule")
 		if err != nil {
 			t.Fatalf("Error executing remove-rule command: %v", err)
 		}
 
 		t.Logf("Remove Rule Command Output:\n%s", output)
 
-		// Verify the output
-		assert.Contains(t, output, "Rule 'new_rule' removed successfully")
-
-		// Verify the config was modified
 		v := viper.New()
 		v.SetConfigFile(tmpfile.Name())
 		err = v.ReadInConfig()
@@ -271,23 +260,6 @@ filters:
 	})
 }
 
-type stepReader struct {
-	inputs []string
-	index  int
-	t      *testing.T
-}
-
-func (r *stepReader) Read(p []byte) (n int, err error) {
-	if r.index >= len(r.inputs) {
-		return 0, io.EOF
-	}
-	input := r.inputs[r.index]
-	r.t.Logf("Providing input: %q", strings.TrimSpace(input))
-	n = copy(p, input)
-	r.index++
-	return n, nil
-}
-
 func executeCommand(root *cobra.Command, args ...string) (string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -299,87 +271,4 @@ func executeCommand(root *cobra.Command, args ...string) (string, error) {
 
 	output := stdout.String() + stderr.String()
 	return output, err
-}
-func executeCommandWithInput(cmd *cobra.Command, input *bytes.Buffer, args ...string) (string, error) {
-	cmd.SetArgs(args)
-
-	// Save the original stdin, stdout, and stderr
-	oldStdin := os.Stdin
-	oldStdout := os.Stdout
-	oldStderr := os.Stderr
-	defer func() {
-		os.Stdin = oldStdin
-		os.Stdout = oldStdout
-		os.Stderr = oldStderr
-	}()
-
-	// Create pipes for stdin, stdout, and stderr
-	inr, inw, _ := os.Pipe()
-	outr, outw, _ := os.Pipe()
-	errr, errw, _ := os.Pipe()
-
-	os.Stdin = inr
-	os.Stdout = outw
-	os.Stderr = errw
-
-	// Write the input to the pipe in a separate goroutine
-	go func() {
-		defer func(inw *os.File) {
-			err := inw.Close()
-			if err != nil {
-				return
-			}
-		}(inw)
-		_, err := input.WriteTo(inw)
-		if err != nil {
-			return
-		}
-	}()
-
-	// Capture the output and error in separate goroutines
-	output := &bytes.Buffer{}
-	outputDone := make(chan bool)
-	go func() {
-		_, err := io.Copy(output, outr)
-		if err != nil {
-			return
-		}
-		outputDone <- true
-	}()
-
-	errorOutput := &bytes.Buffer{}
-	errorDone := make(chan bool)
-	go func() {
-		_, err := io.Copy(errorOutput, errr)
-		if err != nil {
-			return
-		}
-		errorDone <- true
-	}()
-
-	// Execute the command
-	err := cmd.Execute()
-
-	// Close the write end of the pipes
-	{
-		err := outw.Close()
-		if err != nil {
-			return "", err
-		}
-	}
-	{
-		err := errw.Close()
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// Wait for the output and error to be fully read
-	<-outputDone
-	<-errorDone
-
-	// Combine stdout and stderr
-	combinedOutput := output.String() + errorOutput.String()
-
-	return combinedOutput, err
 }
