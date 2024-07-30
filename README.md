@@ -1,5 +1,7 @@
 # OpenShield - Firewall for AI models
 
+>📰 The OpenShield team has launched the https://probllama.com project. We are dedicated to gathering the latest news on AI security!
+
 >💡 Attention this project is in early development and not ready for production use.
 
 ## Why do you need this?
