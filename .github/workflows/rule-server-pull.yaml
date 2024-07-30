@@ -1,0 +1,41 @@
+name: Rule-server-unit-test
+
+on:
+  pull_request:
+     branches:
+        - main
+     paths:
+        - rules/rule-service/**
+        - .github/workflows/rule-server-pull.yaml
+
+jobs:
+  rule-server-unit-test:
+      name: Rule server unit tests
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          python-version: ["3.12"]
+          poetry-version: ["1.8.3"]
+
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            repository: openshieldai/openshield
+            ref: refs/pull/${{ github.event.pull_request.number }}/merge
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Run poetry action
+          uses: abatilo/actions-poetry@v3
+          with:
+            poetry-version: ${{ matrix.poetry-version }}
+        - name: Install dependencies
+          run: |
+            cd rules/rule-service
+            poetry install
+        - name: Run unit tests
+          run: |
+            cd rules/rule-service/tests
+            python -m unittest test_api.py
+
