@@ -6,7 +6,7 @@ services:
     environment:
       - ENV=production
       - PORT="3005"
-      - DEMO_MODE="true"
+      - DEMO_MODE=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
     ports:
@@ -15,7 +15,10 @@ services:
       - redis
       - postgres
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./demo_config.yaml:/app/config.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   ruleserver:
     build:
@@ -35,3 +38,8 @@ services:
       POSTGRES_PASSWORD: openshield
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 5

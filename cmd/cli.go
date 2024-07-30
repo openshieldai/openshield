@@ -61,6 +61,10 @@ var queryApiKeysCmd = &cobra.Command{
 	Use:   "query-api-keys",
 	Short: "Query and display data from the api_keys table",
 	Run: func(cmd *cobra.Command, args []string) {
+		if os.Getenv("DEMO_MODE") != "true" {
+			fmt.Println("This command is only available in DEMO_MODE")
+			return
+		}
 		queryApiKeys()
 	},
 }

@@ -60,7 +60,6 @@ We are generating automatically demo data into the database. You can use the dem
 ```shell
 cd demo
 cp .env.example .env
-cp ./example_config ./config.yaml/config
 ```
 
 You need to modify the .env file with your OpenAI API key and HuggingFace API key. Here's how to obtain these keys:
