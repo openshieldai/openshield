@@ -21,5 +21,5 @@ def handler(text: str, threshold: float, config: dict) -> dict:
 
     return {
         "check_result": injection_score > threshold,
-        "injection_score": injection_score
+        "score": injection_score
     }
