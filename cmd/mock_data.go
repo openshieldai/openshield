@@ -37,7 +37,7 @@ func init() {
 func createMockData() {
 	db := lib.DB()
 	createMockTags(db, 10)
-	createMockRecords(db, &models.AiModels{}, 0)
+	createMockRecords(db, &models.AiModels{}, 1)
 	createMockRecords(db, &models.ApiKeys{}, 1)
 	createMockRecords(db, &models.AuditLogs{}, 1)
 	createMockRecords(db, &models.Products{}, 1)

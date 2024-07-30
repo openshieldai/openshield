@@ -42,7 +42,7 @@ var createTablesCmd = &cobra.Command{
 	Use:   "create-tables",
 	Short: "Create database tables from models",
 	Run: func(cmd *cobra.Command, args []string) {
-		lib.DB() // Call the function from lib package
+		lib.DB()
 	},
 }
 
