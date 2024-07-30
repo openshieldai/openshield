@@ -1,24 +1,35 @@
 import logging
 
+
+
+
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 
 from presidio_anonymizer import AnonymizerEngine
 
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
+
+
 logging.basicConfig(level=logging.DEBUG)
 
 
+
 def initialize_engines(config):
+
     pii_method = config.get('pii_method', 'RuleBased')
+
+
 
     if pii_method == 'LLM':
 
         def create_nlp_engine_with_transformers():
 
-            provider = NlpEngineProvider()
+            provider = NlpEngineProvider(conf=config)
 
             return provider.create_engine()
+
+
 
         nlp_engine = create_nlp_engine_with_transformers()
 
@@ -32,17 +43,25 @@ def initialize_engines(config):
 
         analyzer = AnalyzerEngine()
 
+
+
     anonymizer = AnonymizerEngine()
 
     return analyzer, anonymizer, pii_method
 
 
+
+
+
 def anonymize_text(text, analyzer, anonymizer, pii_method, config):
+
     logging.debug(f"Anonymizing text: {text}")
 
     logging.debug(f"PII method: {pii_method}")
 
     logging.debug(f"Config: {config}")
+
+
 
     if pii_method == 'LLM':
 
@@ -50,19 +69,23 @@ def anonymize_text(text, analyzer, anonymizer, pii_method, config):
 
     else:
 
-        entities = config.get('RuleBased', {}).get('PIIEntities',
-                                                   ["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "CREDIT_CARD", "US_SSN",
-                                                    "GENERIC_PII"])
+        entities = config.get('RuleBased', {}).get('PIIEntities', ["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "CREDIT_CARD", "US_SSN", "GENERIC_PII"])
 
         logging.debug(f"Using entities: {entities}")
 
         results = analyzer.analyze(text=text, entities=entities, language='en')
 
+
+
     logging.debug(f"Analysis results: {results}")
+
+
 
     anonymized_result = anonymizer.anonymize(text=text, analyzer_results=results)
 
     anonymized_text = anonymized_result.text
+
+
 
     identified_pii = [(result.entity_type, text[result.start:result.end]) for result in results]
 
@@ -70,7 +93,10 @@ def anonymize_text(text, analyzer, anonymizer, pii_method, config):
 
     logging.debug(f"Anonymized text: {anonymized_text}")
 
+
+
     return anonymized_text, identified_pii
+
 
 
 def handler(text: str, threshold: float, config: dict) -> dict:
@@ -82,7 +108,7 @@ def handler(text: str, threshold: float, config: dict) -> dict:
 
     return {
         "check_result": pii_score > threshold,
-        "pii_score": pii_score,
+        "score": pii_score,
         "anonymized_content": anonymized_text,
         "pii_found": identified_pii
     }
