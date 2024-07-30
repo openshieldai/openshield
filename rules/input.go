@@ -26,7 +26,7 @@ type Rule struct {
 
 type RuleInspection struct {
 	CheckResult       bool    `json:"check_result"`
-	InjectionScore    float64 `json:"score"`
+	Score             float64 `json:"score"`
 	AnonymizedContent string  `json:"anonymized_content"`
 }
 
@@ -152,9 +152,9 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 					log.Println(err)
 				}
 
-				log.Printf("Rule match: %v, Injection score: %f", rule.Match, rule.Inspection.InjectionScore)
+				log.Printf("Rule match: %v, Injection score: %f", rule.Match, rule.Inspection.Score)
 
-				if rule.Inspection.InjectionScore > float64(inputConfig.Config.Threshold) {
+				if rule.Inspection.Score > float64(inputConfig.Config.Threshold) {
 					if inputConfig.Action.Type == "block" {
 						log.Println("Blocking request due to high injection score.")
 						result = true
