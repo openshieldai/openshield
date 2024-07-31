@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/openshieldai/openshield/lib"
-	"github.com/openshieldai/openshield/server"
-	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/server"
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
