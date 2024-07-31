@@ -1,8 +1,11 @@
 # OpenShield - Firewall for AI models
 
->📰 The OpenShield team has launched the https://probllama.com project. We are dedicated to gathering the latest news on AI security!
+>📰 The OpenShield team has launched the [news project](https://probllama.com). We are dedicated to gathering the latest news on AI security!
 
 >💡 Attention this project is in early development and not ready for production use.
+
+>🫂 Join to our community on [Discord](https://discord.gg/sppsj7K6FT) 
+
 
 ## Why do you need this?
 AI models a new attack vector for hackers. They can use AI models to generate malicious content, spam, or phishing attacks. OpenShield is a firewall for AI models. It provides rate limiting, content filtering, and keyword filtering for AI models. It also provides a tokenizer calculation for OpenAI models.
@@ -71,6 +74,7 @@ You can chain multiple AI models together to create a pipeline before hitting th
 ## Demo mode
 We are generating automatically demo data into the database. You can use the demo data to test the application.
 
+Adminer is available on port 8085. You can use it to see the database content.
 
 ```shell
 cd demo
