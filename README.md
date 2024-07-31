@@ -102,13 +102,20 @@ docker compose build
 docker compose up
 ```
 
-Now find suitable API key directly in the Docker Compose output. Look for a section labeled "DEMO API KEYS" in the console output, which will look similar to this:
+Now find suitable API key directly in the Docker Compose output. Look for a section labeled "CREATED API KEY" in the console output, which will look similar to this:
 
 ```shell
-🔑 ======== DEMO API KEYS ============ 🔑
-🚀 Behold! The magnificent api_keys: 🚀
-ID: <ID1>, Status: active, ApiKey: <YOUR_API_KEY>
-🔑 ======== END DEMO API KEYS ======== 🔑
+==================================================
+🔑 CREATED API KEY 🔑
+==================================================
+------------------------------
+| API Key Details            |
+------------------------------
+| ProductID  : 1             |
+| Status     : active        |
+| ApiKey     : <YOUR_API_KEY>|
+------------------------------
+==================================================
 ```
 
 Choose any of the displayed API keys for your demo.

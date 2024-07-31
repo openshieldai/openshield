@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/openshieldai/openshield/lib"
-	"github.com/openshieldai/openshield/models"
 	"github.com/openshieldai/openshield/server"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +28,6 @@ func init() {
 	rootCmd.AddCommand(stopServerCmd)
 	dbCmd.AddCommand(createTablesCmd)
 	dbCmd.AddCommand(createMockDataCmd)
-	dbCmd.AddCommand(queryApiKeysCmd)
 	configCmd.AddCommand(editConfigCmd)
 	configCmd.AddCommand(addRuleCmd)
 	configCmd.AddCommand(removeRuleCmd)
@@ -55,33 +53,6 @@ var createMockDataCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		createMockData()
 	},
-}
-
-var queryApiKeysCmd = &cobra.Command{
-	Use:   "query-api-keys",
-	Short: "Query and display data from the api_keys table",
-	Run: func(cmd *cobra.Command, args []string) {
-		if os.Getenv("DEMO_MODE") != "true" {
-			fmt.Println("This command is only available in DEMO_MODE")
-			return
-		}
-		queryApiKeys()
-	},
-}
-
-func queryApiKeys() {
-	db := lib.DB()
-	var apiKeys []models.ApiKeys
-	result := db.Limit(5).Find(&apiKeys)
-	if result.Error != nil {
-		fmt.Printf("Error querying api_keys: %v\n", result.Error)
-		return
-	}
-
-	fmt.Println("Sample data from api_keys table:")
-	for _, key := range apiKeys {
-		fmt.Printf("ID: %s, Status: %s, ApiKey: %s\n", key.Id, key.Status, key.ApiKey)
-	}
 }
 
 var configCmd = &cobra.Command{

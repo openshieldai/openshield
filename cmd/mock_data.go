@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"math/rand"
+	"reflect"
+	"strings"
+
 	"github.com/go-faker/faker/v4"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/models"
 	"gorm.io/gorm"
-	"math/rand"
-	"reflect"
-	"strings"
 )
 
 var generatedTags []string
@@ -38,11 +39,33 @@ func createMockData() {
 	db := lib.DB()
 	createMockTags(db, 10)
 	createMockRecords(db, &models.AiModels{}, 1)
-	createMockRecords(db, &models.ApiKeys{}, 1)
+	apiKey := createMockRecords(db, &models.ApiKeys{}, 1)
 	createMockRecords(db, &models.AuditLogs{}, 1)
 	createMockRecords(db, &models.Products{}, 1)
 	createMockRecords(db, &models.Usage{}, 1)
 	createMockRecords(db, &models.Workspaces{}, 1)
+
+	// Print the created ApiKey with more visibility
+	if apiKey != nil {
+		fmt.Println("\n" + strings.Repeat("=", 50))
+		fmt.Println("🔑 CREATED API KEY 🔑")
+		fmt.Println(strings.Repeat("=", 50))
+		fmt.Printf("%s\n", strings.Repeat("-", 30))
+		fmt.Printf("| %-26s |\n", "API Key Details")
+		fmt.Printf("%s\n", strings.Repeat("-", 30))
+		v := reflect.ValueOf(apiKey).Elem()
+		fieldsToShow := []string{"ProductID", "Status", "ApiKey"}
+		for _, fieldName := range fieldsToShow {
+			field := v.FieldByName(fieldName)
+			if field.IsValid() {
+				fmt.Printf("| %-12s: %-11v |\n", fieldName, field.Interface())
+			}
+		}
+		fmt.Printf("%s\n", strings.Repeat("-", 30))
+		fmt.Println(strings.Repeat("=", 50) + "\n")
+	} else {
+		fmt.Println("\n❌ No ApiKey was created. ❌")
+	}
 }
 
 func createMockTags(db *gorm.DB, count int) {
@@ -79,7 +102,8 @@ func getRandomTags() string {
 	return strings.Join(selectedTags, ",")
 }
 
-func createMockRecords(db *gorm.DB, model interface{}, count int) {
+func createMockRecords(db *gorm.DB, model interface{}, count int) interface{} {
+	var createdModel interface{}
 	for i := 0; i < count; i++ {
 		newModel := reflect.New(reflect.TypeOf(model).Elem()).Interface()
 		if err := faker.FakeData(newModel); err != nil {
@@ -97,9 +121,13 @@ func createMockRecords(db *gorm.DB, model interface{}, count int) {
 		result := db.Create(newModel)
 		if result.Error != nil {
 			fmt.Printf("error inserting fake data for %T: %v\n", newModel, result.Error)
+		} else {
+			createdModel = newModel
 		}
 	}
+	return createdModel
 }
+
 func setValueOfObject(obj interface{}, fieldName string, value interface{}) {
 	field := reflect.ValueOf(obj).Elem().FieldByName(fieldName)
 	if field.IsValid() && field.CanSet() {
