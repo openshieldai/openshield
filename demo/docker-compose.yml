@@ -26,7 +26,7 @@ services:
       dockerfile: Dockerfile
 
   redis:
-    image: "redis:alpine"
+    image: "valkey/valkey:7.2.5-alpine"
     restart: always
     ports:
       - "6379:6379"
@@ -43,3 +43,9 @@ services:
       interval: 2s
       timeout: 2s
       retries: 5
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8085:8080
