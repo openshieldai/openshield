@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
 
   redis:
-    image: "redis:alpine"
+    image: "valkey/valkey:7.2.5-alpine"
     restart: always
     ports:
       - "6379:6379"
@@ -35,3 +35,9 @@ services:
       POSTGRES_PASSWORD: openshield
     ports:
       - "5433:5432"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8085:8080
