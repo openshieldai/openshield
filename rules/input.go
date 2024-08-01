@@ -200,10 +200,6 @@ func detectEnglish(text string) (float64, error) {
 	log.Println("Starting detectEnglish function")
 	config := lib.GetConfig()
 	apiKey := os.Getenv("HUGGINGFACE_API_KEY")
-	if apiKey == "" {
-		log.Println("HUGGINGFACE_API_KEY environment variable not set")
-		return 0, fmt.Errorf("HUGGINGFACE_API_KEY environment variable not set")
-	}
 
 	url := config.Settings.EnglishDetectionURL
 	if url == "" {
