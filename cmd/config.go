@@ -45,7 +45,10 @@ func editConfig() {
 
 		fmt.Println("\nEnter the number of the setting you want to change, or 'q' to quit:")
 		var input string
-		fmt.Scanln(&input)
+		_, err := fmt.Scanln(&input)
+		if err != nil {
+			return
+		}
 
 		if input == "q" {
 			break
@@ -196,7 +199,11 @@ func updateConfig(v *viper.Viper, path string, value string) error {
 }
 func addRule() {
 	v := viper.New()
-	v.SetConfigFile("config.yaml")
+	configFile := os.Getenv("OPENSHIELD_CONFIG_FILE")
+	if configFile == "" {
+		configFile = "config.yaml" // Default to config.yaml if env var is not set
+	}
+	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
 	if err != nil {
 		fmt.Printf("Error reading config file: %v\n", err)
@@ -205,7 +212,10 @@ func addRule() {
 
 	var ruleType string
 	fmt.Print("Enter rule type (input/output): ")
-	fmt.Scanln(&ruleType)
+	_, err = fmt.Scanln(&ruleType)
+	if err != nil {
+		return
+	}
 
 	if ruleType != "input" && ruleType != "output" {
 		fmt.Println("Invalid rule type. Please enter 'input' or 'output'.")
@@ -270,7 +280,11 @@ func createRuleWizard() map[string]interface{} {
 
 func removeRule() {
 	v := viper.New()
-	v.SetConfigFile("config.yaml")
+	configFile := os.Getenv("OPENSHIELD_CONFIG_FILE")
+	if configFile == "" {
+		configFile = "config.yaml" // Default to config.yaml if env var is not set
+	}
+	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
 	if err != nil {
 		fmt.Printf("Error reading config file: %v\n", err)
@@ -279,7 +293,10 @@ func removeRule() {
 
 	var ruleType string
 	fmt.Print("Enter rule type (input/output): ")
-	fmt.Scanln(&ruleType)
+	_, err = fmt.Scanln(&ruleType)
+	if err != nil {
+		return
+	}
 
 	if ruleType != "input" && ruleType != "output" {
 		fmt.Println("Invalid rule type. Please enter 'input' or 'output'.")
