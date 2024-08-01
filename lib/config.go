@@ -133,19 +133,19 @@ func init() {
 		panic(err)
 	}
 
-	//	if viperCfg.Get("providers.openai.enabled") == true {
-	//		if os.Getenv("OPENAI_API_KEY") == "" {
-	//			log.Fatal("OPENAI_API_KEY Environment variable is not set")
-	//		}
-	//		viperCfg.Set("secrets.openai_api_key", os.Getenv("OPENAI_API_KEY"))
-	//	}
-	//
-	//	if viperCfg.Get("providers.huggingface.enabled") == true {
-	//		if os.Getenv("HUGGINGFACE_API_KEY") == "" {
-	//			log.Fatal("HUGGINGFACE_API_KEY Environment variable is not set")
-	//		}
-	//		viperCfg.Set("secrets.huggingface_api_key", os.Getenv("HUGGINGFACE_API_KEY"))
-	//	}
+	if viperCfg.Get("providers.openai.enabled") == true && os.Getenv("ENV") != "test" {
+		if os.Getenv("OPENAI_API_KEY") == "" {
+			log.Fatal("OPENAI_API_KEY Environment variable is not set")
+		}
+		viperCfg.Set("secrets.openai_api_key", os.Getenv("OPENAI_API_KEY"))
+	}
+
+	if viperCfg.Get("providers.huggingface.enabled") == true && os.Getenv("ENV") != "test" {
+		if os.Getenv("HUGGINGFACE_API_KEY") == "" {
+			log.Fatal("HUGGINGFACE_API_KEY Environment variable is not set")
+		}
+		viperCfg.Set("secrets.huggingface_api_key", os.Getenv("HUGGINGFACE_API_KEY"))
+	}
 
 	if viperCfg.Get("settings.cache.enabled") == true || viperCfg.Get("settings.rate_limiting.enabled") == true {
 		if viperCfg.Get("settings.redis.uri") == "" || viperCfg.Get("settings.redis.uri") == nil {
