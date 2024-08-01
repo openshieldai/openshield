@@ -37,14 +37,15 @@ type Secrets struct {
 
 // Setting can include various configurations like database, cache, and different logging types
 type Setting struct {
-	Redis        *RedisConfig    `mapstructure:"redis"`
-	Database     *DatabaseConfig `mapstructure:"database"`
-	Cache        *CacheConfig    `mapstructure:"cache"`
-	AuditLogging *FeatureToggle  `mapstructure:"audit_logging,default=false"`
-	UsageLogging *FeatureToggle  `mapstructure:"usage_logging,default=false"`
-	Network      *Network        `mapstructure:"network"`
-	RateLimit    *RateLimiting   `mapstructure:"rate_limiting"`
-	RuleServer   *RuleServer     `mapstructure:"rule_server"`
+	Redis               *RedisConfig    `mapstructure:"redis"`
+	Database            *DatabaseConfig `mapstructure:"database"`
+	Cache               *CacheConfig    `mapstructure:"cache"`
+	AuditLogging        *FeatureToggle  `mapstructure:"audit_logging,default=false"`
+	UsageLogging        *FeatureToggle  `mapstructure:"usage_logging,default=false"`
+	Network             *Network        `mapstructure:"network"`
+	RateLimit           *RateLimiting   `mapstructure:"rate_limiting"`
+	RuleServer          *RuleServer     `mapstructure:"rule_server"`
+	EnglishDetectionURL string          `mapstructure:"english_detection_url"`
 }
 
 type RuleServer struct {
