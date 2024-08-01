@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -37,14 +38,15 @@ type Secrets struct {
 
 // Setting can include various configurations like database, cache, and different logging types
 type Setting struct {
-	Redis        *RedisConfig    `mapstructure:"redis"`
-	Database     *DatabaseConfig `mapstructure:"database"`
-	Cache        *CacheConfig    `mapstructure:"cache"`
-	AuditLogging *FeatureToggle  `mapstructure:"audit_logging,default=false"`
-	UsageLogging *FeatureToggle  `mapstructure:"usage_logging,default=false"`
-	Network      *Network        `mapstructure:"network"`
-	RateLimit    *RateLimiting   `mapstructure:"rate_limiting"`
-	RuleServer   *RuleServer     `mapstructure:"rule_server"`
+	Redis               *RedisConfig    `mapstructure:"redis"`
+	Database            *DatabaseConfig `mapstructure:"database"`
+	Cache               *CacheConfig    `mapstructure:"cache"`
+	AuditLogging        *FeatureToggle  `mapstructure:"audit_logging,default=false"`
+	UsageLogging        *FeatureToggle  `mapstructure:"usage_logging,default=false"`
+	Network             *Network        `mapstructure:"network"`
+	RateLimit           *RateLimiting   `mapstructure:"rate_limiting"`
+	RuleServer          *RuleServer     `mapstructure:"rule_server"`
+	EnglishDetectionURL string          `mapstructure:"english_detection_url"`
 }
 
 type RuleServer struct {
@@ -117,22 +119,28 @@ func init() {
 
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
-	viperCfg.AddConfigPath(".")
-	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	err := viperCfg.ReadInConfig()
+	rootDir, err := findProjectRoot()
 	if err != nil {
 		panic(err)
 	}
 
-	if viperCfg.Get("providers.openai.enabled") == true {
+	viperCfg.AddConfigPath(rootDir)
+	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	err = viperCfg.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	if viperCfg.Get("providers.openai.enabled") == true && os.Getenv("ENV") != "test" {
 		if os.Getenv("OPENAI_API_KEY") == "" {
 			log.Fatal("OPENAI_API_KEY Environment variable is not set")
 		}
 		viperCfg.Set("secrets.openai_api_key", os.Getenv("OPENAI_API_KEY"))
 	}
 
-	if viperCfg.Get("providers.huggingface.enabled") == true {
+	if viperCfg.Get("providers.huggingface.enabled") == true && os.Getenv("ENV") != "test" {
 		if os.Getenv("HUGGINGFACE_API_KEY") == "" {
 			log.Fatal("HUGGINGFACE_API_KEY Environment variable is not set")
 		}
@@ -162,4 +170,25 @@ func init() {
 
 func GetConfig() Configuration {
 	return AppConfig
+}
+func findProjectRoot() (string, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		// Check if the current directory contains the go.mod file
+		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+			return currentDir, nil
+		}
+
+		// Move up to the parent directory
+		parentDir := filepath.Dir(currentDir)
+		if parentDir == currentDir {
+			// We've reached the root of the file system without finding go.mod
+			return "", fmt.Errorf("unable to find project root (no go.mod found)")
+		}
+		currentDir = parentDir
+	}
 }
