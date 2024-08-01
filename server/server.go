@@ -1,3 +1,7 @@
+// @title OpenShield API
+// @version 1.0
+// @description This is the API server for OpenShield.
+
 package server
 
 import (
@@ -8,20 +12,72 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/openshieldai/openshield/lib/openai"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/gofiber/swagger"
+	_ "github.com/openshieldai/openshield/docs"
 	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/lib/openai"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
 	app    *fiber.App
 	config lib.Configuration
 )
+
+// ErrorResponse represents the structure of error responses
+type ErrorResponse struct {
+	Error struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Param   string `json:"param"`
+		Code    string `json:"code"`
+	} `json:"error"`
+}
+
+// @Summary List models
+// @Description Get a list of available models
+// @Tags openai
+// @Produce json
+// @Success 200 {object} openai.ModelsList
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /openai/v1/models [get]
+func ListModelsHandler(c *fiber.Ctx) error {
+	return openai.ListModelsHandler(c)
+}
+
+// @Summary Get model details
+// @Description Get details of a specific model
+// @Tags openai
+// @Produce json
+// @Param model path string true "Model ID"
+// @Success 200 {object} openai.Model
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /openai/v1/models/{model} [get]
+func GetModelHandler(c *fiber.Ctx) error {
+	return openai.GetModelHandler(c)
+}
+
+// @Summary Create chat completion
+// @Description Create a chat completion
+// @Tags openai
+// @Accept json
+// @Produce json
+// @Param request body openai.ChatCompletionRequest true "Chat completion request"
+// @Success 200 {object} openai.ChatCompletionResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /openai/v1/chat/completions [post]
+func ChatCompletionHandler(c *fiber.Ctx) error {
+	return openai.ChatCompletionHandler(c)
+}
 
 func StartServer() error {
 	config = lib.GetConfig()
@@ -49,6 +105,9 @@ func StartServer() error {
 
 	setupOpenAIRoutes(app)
 	//setupOpenShieldRoutes(app)
+
+	// Swagger route
+	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -91,6 +150,7 @@ func StopServer() error {
 	}
 	return fmt.Errorf("server is not running")
 }
+
 func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, keyGenerator ...func(c *fiber.Ctx) string) {
 	config := limiter.Config{
 		Max:        routesSettings.RateLimit.Max,
@@ -104,6 +164,7 @@ func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, k
 
 	app.Use(path, limiter.New(config))
 }
+
 func setupOpenAIRoutes(app *fiber.App) {
 	config := lib.GetRouteSettings()
 	routes := map[string]lib.RouteSettings{
@@ -115,7 +176,6 @@ func setupOpenAIRoutes(app *fiber.App) {
 	for path, routeSettings := range routes {
 		setupRoute(app, path, routeSettings)
 	}
-
 	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
 	app.Get("/openai/v1/models/:model", lib.AuthOpenShieldMiddleware(), openai.GetModelHandler)
 	app.Post("/openai/v1/chat/completions", lib.AuthOpenShieldMiddleware(), openai.ChatCompletionHandler)

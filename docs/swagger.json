@@ -1,0 +1,654 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is the API server for OpenShield.",
+        "title": "OpenShield API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/openai/v1/chat/completions": {
+            "post": {
+                "description": "Create a chat completion",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openai"
+                ],
+                "summary": "Create chat completion",
+                "parameters": [
+                    {
+                        "description": "Chat completion request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/openai.ChatCompletionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/openai.ChatCompletionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/openai/v1/models": {
+            "get": {
+                "description": "Get a list of available models",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openai"
+                ],
+                "summary": "List models",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/openai.ModelsList"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/openai/v1/models/{model}": {
+            "get": {
+                "description": "Get details of a specific model",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openai"
+                ],
+                "summary": "Get model details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Model ID",
+                        "name": "model",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/openai.Model"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "openai.ChatCompletionChoice": {
+            "type": "object",
+            "properties": {
+                "finish_reason": {
+                    "description": "FinishReason\nstop: API returned complete message,\nor a message terminated by one of the stop sequences provided via the stop parameter\nlength: Incomplete model output due to max_tokens parameter or token limit\nfunction_call: The model decided to call a function\ncontent_filter: Omitted content due to a flag from our content filters\nnull: API response still in progress or incomplete",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/openai.FinishReason"
+                        }
+                    ]
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "logprobs": {
+                    "$ref": "#/definitions/openai.LogProbs"
+                },
+                "message": {
+                    "$ref": "#/definitions/openai.ChatCompletionMessage"
+                }
+            }
+        },
+        "openai.ChatCompletionMessage": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "function_call": {
+                    "$ref": "#/definitions/openai.FunctionCall"
+                },
+                "multiContent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.ChatMessagePart"
+                    }
+                },
+                "name": {
+                    "description": "This property isn't in the official documentation, but it's in\nthe documentation for the official library for python:\n- https://github.com/openai/openai-python/blob/main/chatml.md\n- https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb",
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "tool_call_id": {
+                    "description": "For Role=tool prompts this should be set to the ID given in the assistant's prior request to call a tool.",
+                    "type": "string"
+                },
+                "tool_calls": {
+                    "description": "For Role=assistant prompts this may be set to the tool calls generated by the model, such as function calls.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.ToolCall"
+                    }
+                }
+            }
+        },
+        "openai.ChatCompletionRequest": {
+            "type": "object",
+            "properties": {
+                "frequency_penalty": {
+                    "type": "number"
+                },
+                "function_call": {
+                    "description": "Deprecated: use ToolChoice instead."
+                },
+                "functions": {
+                    "description": "Deprecated: use Tools instead.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.FunctionDefinition"
+                    }
+                },
+                "logit_bias": {
+                    "description": "LogitBias is must be a token id string (specified by their token ID in the tokenizer), not a word string.\nincorrect: `\"logit_bias\":{\"You\": 6}`, correct: `\"logit_bias\":{\"1639\": 6}`\nrefs: https://platform.openai.com/docs/api-reference/chat/create#chat/create-logit_bias",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "logprobs": {
+                    "description": "LogProbs indicates whether to return log probabilities of the output tokens or not.\nIf true, returns the log probabilities of each output token returned in the content of message.\nThis option is currently not available on the gpt-4-vision-preview model.",
+                    "type": "boolean"
+                },
+                "max_tokens": {
+                    "type": "integer"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.ChatCompletionMessage"
+                    }
+                },
+                "model": {
+                    "type": "string"
+                },
+                "n": {
+                    "type": "integer"
+                },
+                "parallel_tool_calls": {
+                    "description": "Disable the default behavior of parallel tool calls by setting it: false."
+                },
+                "presence_penalty": {
+                    "type": "number"
+                },
+                "response_format": {
+                    "$ref": "#/definitions/openai.ChatCompletionResponseFormat"
+                },
+                "seed": {
+                    "type": "integer"
+                },
+                "stop": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "stream": {
+                    "type": "boolean"
+                },
+                "stream_options": {
+                    "description": "Options for streaming response. Only set this when you set stream: true.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/openai.StreamOptions"
+                        }
+                    ]
+                },
+                "temperature": {
+                    "type": "number"
+                },
+                "tool_choice": {
+                    "description": "This can be either a string or an ToolChoice object."
+                },
+                "tools": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.Tool"
+                    }
+                },
+                "top_logprobs": {
+                    "description": "TopLogProbs is an integer between 0 and 5 specifying the number of most likely tokens to return at each\ntoken position, each with an associated log probability.\nlogprobs must be set to true if this parameter is used.",
+                    "type": "integer"
+                },
+                "top_p": {
+                    "type": "number"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "openai.ChatCompletionResponse": {
+            "type": "object",
+            "properties": {
+                "choices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.ChatCompletionChoice"
+                    }
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "object": {
+                    "type": "string"
+                },
+                "system_fingerprint": {
+                    "type": "string"
+                },
+                "usage": {
+                    "$ref": "#/definitions/openai.Usage"
+                }
+            }
+        },
+        "openai.ChatCompletionResponseFormat": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/definitions/openai.ChatCompletionResponseFormatType"
+                }
+            }
+        },
+        "openai.ChatCompletionResponseFormatType": {
+            "type": "string",
+            "enum": [
+                "json_object",
+                "text"
+            ],
+            "x-enum-varnames": [
+                "ChatCompletionResponseFormatTypeJSONObject",
+                "ChatCompletionResponseFormatTypeText"
+            ]
+        },
+        "openai.ChatMessageImageURL": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "$ref": "#/definitions/openai.ImageURLDetail"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "openai.ChatMessagePart": {
+            "type": "object",
+            "properties": {
+                "image_url": {
+                    "$ref": "#/definitions/openai.ChatMessageImageURL"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/openai.ChatMessagePartType"
+                }
+            }
+        },
+        "openai.ChatMessagePartType": {
+            "type": "string",
+            "enum": [
+                "text",
+                "image_url"
+            ],
+            "x-enum-varnames": [
+                "ChatMessagePartTypeText",
+                "ChatMessagePartTypeImageURL"
+            ]
+        },
+        "openai.FinishReason": {
+            "type": "string",
+            "enum": [
+                "stop",
+                "length",
+                "function_call",
+                "tool_calls",
+                "content_filter",
+                "null"
+            ],
+            "x-enum-varnames": [
+                "FinishReasonStop",
+                "FinishReasonLength",
+                "FinishReasonFunctionCall",
+                "FinishReasonToolCalls",
+                "FinishReasonContentFilter",
+                "FinishReasonNull"
+            ]
+        },
+        "openai.FunctionCall": {
+            "type": "object",
+            "properties": {
+                "arguments": {
+                    "description": "call function with arguments in JSON format",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "openai.FunctionDefinition": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "description": "Parameters is an object describing the function.\nYou can pass json.RawMessage to describe the schema,\nor you can pass in a struct which serializes to the proper JSON schema.\nThe jsonschema package is provided for convenience, but you should\nconsider another specialized library if you require more complex schemas."
+                }
+            }
+        },
+        "openai.ImageURLDetail": {
+            "type": "string",
+            "enum": [
+                "high",
+                "low",
+                "auto"
+            ],
+            "x-enum-varnames": [
+                "ImageURLDetailHigh",
+                "ImageURLDetailLow",
+                "ImageURLDetailAuto"
+            ]
+        },
+        "openai.LogProb": {
+            "type": "object",
+            "properties": {
+                "bytes": {
+                    "description": "Omitting the field if it is null",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "logprob": {
+                    "type": "number"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "top_logprobs": {
+                    "description": "TopLogProbs is a list of the most likely tokens and their log probability, at this token position.\nIn rare cases, there may be fewer than the number of requested top_logprobs returned.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.TopLogProbs"
+                    }
+                }
+            }
+        },
+        "openai.LogProbs": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "description": "Content is a list of message content tokens with log probability information.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.LogProb"
+                    }
+                }
+            }
+        },
+        "openai.Model": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "object": {
+                    "type": "string"
+                },
+                "owned_by": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "string"
+                },
+                "permission": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.Permission"
+                    }
+                },
+                "root": {
+                    "type": "string"
+                }
+            }
+        },
+        "openai.ModelsList": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/openai.Model"
+                    }
+                }
+            }
+        },
+        "openai.Permission": {
+            "type": "object",
+            "properties": {
+                "allow_create_engine": {
+                    "type": "boolean"
+                },
+                "allow_fine_tuning": {
+                    "type": "boolean"
+                },
+                "allow_logprobs": {
+                    "type": "boolean"
+                },
+                "allow_sampling": {
+                    "type": "boolean"
+                },
+                "allow_search_indices": {
+                    "type": "boolean"
+                },
+                "allow_view": {
+                    "type": "boolean"
+                },
+                "created": {
+                    "type": "integer"
+                },
+                "group": {},
+                "id": {
+                    "type": "string"
+                },
+                "is_blocking": {
+                    "type": "boolean"
+                },
+                "object": {
+                    "type": "string"
+                },
+                "organization": {
+                    "type": "string"
+                }
+            }
+        },
+        "openai.StreamOptions": {
+            "type": "object",
+            "properties": {
+                "include_usage": {
+                    "description": "If set, an additional chunk will be streamed before the data: [DONE] message.\nThe usage field on this chunk shows the token usage statistics for the entire request,\nand the choices field will always be an empty array.\nAll other chunks will also include a usage field, but with a null value.",
+                    "type": "boolean"
+                }
+            }
+        },
+        "openai.Tool": {
+            "type": "object",
+            "properties": {
+                "function": {
+                    "$ref": "#/definitions/openai.FunctionDefinition"
+                },
+                "type": {
+                    "$ref": "#/definitions/openai.ToolType"
+                }
+            }
+        },
+        "openai.ToolCall": {
+            "type": "object",
+            "properties": {
+                "function": {
+                    "$ref": "#/definitions/openai.FunctionCall"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "index": {
+                    "description": "Index is not nil only in chat completion chunk object",
+                    "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/openai.ToolType"
+                }
+            }
+        },
+        "openai.ToolType": {
+            "type": "string",
+            "enum": [
+                "function"
+            ],
+            "x-enum-varnames": [
+                "ToolTypeFunction"
+            ]
+        },
+        "openai.TopLogProbs": {
+            "type": "object",
+            "properties": {
+                "bytes": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "logprob": {
+                    "type": "number"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "openai.Usage": {
+            "type": "object",
+            "properties": {
+                "completion_tokens": {
+                    "type": "integer"
+                },
+                "prompt_tokens": {
+                    "type": "integer"
+                },
+                "total_tokens": {
+                    "type": "integer"
+                }
+            }
+        },
+        "server.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string"
+                        },
+                        "message": {
+                            "type": "string"
+                        },
+                        "param": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
