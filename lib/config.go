@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -118,10 +119,16 @@ func init() {
 
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
-	viperCfg.AddConfigPath(".")
+
+	rootDir, err := findProjectRoot()
+	if err != nil {
+		panic(err)
+	}
+
+	viperCfg.AddConfigPath(rootDir)
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	err := viperCfg.ReadInConfig()
+	err = viperCfg.ReadInConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -163,4 +170,25 @@ func init() {
 
 func GetConfig() Configuration {
 	return AppConfig
+}
+func findProjectRoot() (string, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		// Check if the current directory contains the go.mod file
+		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+			return currentDir, nil
+		}
+
+		// Move up to the parent directory
+		parentDir := filepath.Dir(currentDir)
+		if parentDir == currentDir {
+			// We've reached the root of the file system without finding go.mod
+			return "", fmt.Errorf("unable to find project root (no go.mod found)")
+		}
+		currentDir = parentDir
+	}
 }
