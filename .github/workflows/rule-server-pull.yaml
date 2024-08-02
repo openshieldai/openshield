@@ -36,6 +36,6 @@ jobs:
             poetry install
         - name: Run unit tests
           run: |
-            cd rules/rule-service/tests
-            python -m unittest test_api.py
+            cd rules/rule-service/rule_service/tests
+            poetry run python -m unittest test_api.py
 
