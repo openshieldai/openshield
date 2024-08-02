@@ -43,7 +43,7 @@ class TestAPIEndpoint(unittest.TestCase):
         # Shutdown logic if needed
         pass
 
-    @unittest.skipIf(API_KEY == "", "HuggingFace API key not set")
+    @unittest.skipIf(not API_KEY, "HuggingFace API key not set")
     def test_detect_english(self):
         # Test case 1: English text
         payload = {
