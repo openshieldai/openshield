@@ -178,8 +178,7 @@ func findProjectRoot() (string, error) {
 	}
 
 	for {
-		// Check if the current directory contains the go.mod file
-		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+		if _, err := os.Stat(filepath.Join(currentDir, "config.yaml")); err == nil {
 			return currentDir, nil
 		}
 
