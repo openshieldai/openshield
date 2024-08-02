@@ -120,12 +120,12 @@ func init() {
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
 
-	rootDir, err := findProjectRoot()
+	configDir, err := findConfigPath()
 	if err != nil {
 		panic(err)
 	}
 
-	viperCfg.AddConfigPath(rootDir)
+	viperCfg.AddConfigPath(configDir)
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	err = viperCfg.ReadInConfig()
@@ -171,7 +171,7 @@ func init() {
 func GetConfig() Configuration {
 	return AppConfig
 }
-func findProjectRoot() (string, error) {
+func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return "", err
