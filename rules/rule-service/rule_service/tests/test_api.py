@@ -1,10 +1,34 @@
 import unittest
 import requests
+import threading
+import time
+import uvicorn
+import sys
+import os
+
+# Add the parent directory to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from main import app
 
 API_URL = "http://127.0.0.1:8000/rule/execute"
 
+def run_server():
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 
 class TestAPIEndpoint(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Start the server in a separate thread
+        cls.server_thread = threading.Thread(target=run_server, daemon=True)
+        cls.server_thread.start()
+        # Wait for the server to start
+        time.sleep(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        # Shutdown logic if needed
+        pass
 
     def test_prompt_injection(self):
         # Test case 1: Normal prompt
@@ -71,7 +95,6 @@ class TestAPIEndpoint(unittest.TestCase):
         self.assertTrue(result['match'])
         self.assertGreater(result['inspection']['score'], 0)
         self.assertIn("John Smith", str(result['inspection']['pii_found']))
-
 
 if __name__ == '__main__':
     unittest.main()
