@@ -1,48 +1,48 @@
-settings:
-  network:
-    port: 3005
-  database:
-    uri: "postgres://"
-    auto_migration: false
-  redis:
-    uri: "redis://"
-    ssl: true
-  cache:
-    enabled: true
-    ttl: 3600
-  rate_limiting:
-    enabled: true
-    max: 100
-    window: 60
-    expiration: 60
-  audit_logging:
-    enabled: false
-  usage_logging:
-    enabled: false
-  rule_server:
-    url: "http://localhost:8080"
-
-providers:
-  openai:
-    enabled: true
-  huggingface:
-    enabled: true
-
-
 rules:
   input:
     - name: "language_detection"
       type: "language_detection"
-      enabled: false
+      enabled: true
+      config:
+        url: "https://api-inference.huggingface.co/models/papluca/xlm-roberta-base-language-detection"
+        apikey: ""
       action:
         type: "block" # blocking and logging
     - name: "pii_example"
       type: "pii_filter"
-      enabled: false
+      enabled: true
       config:
         model_name: "value1"
         model_url: "value2"
         model_type: ""
+        plugin_name: "pii"
+        piiservice:
+          Debug: false
+          Port: 8080
+          PIIMethod: LLM
+          RuleBased:
+            PIIEntities:
+              - PERSON
+              - EMAIL_ADDRESS
+              - PHONE_NUMBER
+              - CREDIT_CARD
+              - US_SSN
+              - GENERIC_PII
+          NLPEngineName: transformers
+          Models:
+            - LangCode: en
+              ModelName:
+                spacy: en_core_web_sm
+                transformers: dslim/bert-base-NER
+          NERModelConfig:
+            ModelToPresidioEntityMapping:
+              loc: LOCATION
+              location: LOCATION
+              org: ORGANIZATION
+              organization: ORGANIZATION
+              per: PERSON
+              person: PERSON
+              phone: PHONE_NUMBER
       action:
         type: "block" # blocking and logging
     #      - type: "mask" # masking and logging
@@ -50,6 +50,8 @@ rules:
 
     - name: "prompt_injection_example"
       type: "prompt_injection"
+      plugin_name: "prompt_injection_llm"
+      threshold: 0.85
       enabled: true
       config:
         plugin_name: "prompt_injection_llm"
@@ -66,3 +68,31 @@ rules:
         model_type: ""
       action:
         type: "block"
+providers:
+  huggingface:
+    enabled: false
+  openai:
+    enabled: false
+settings:
+  audit_logging:
+    enabled: false
+  cache:
+    enabled: true
+    ttl: 3600
+  database:
+    auto_migration: true
+    uri: postgresql://
+  network:
+    port: 10
+  rate_limiting:
+    enabled: true
+    expiration: 60
+    max: 100
+    window: 60
+  redis:
+    ssl: true
+    uri: rediss://
+  rule_server:
+    url: http://localhost:8000
+  usage_logging:
+    enabled: false
