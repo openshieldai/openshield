@@ -122,12 +122,12 @@ func init() {
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
 
-	rootDir, err := findProjectRoot()
+	configDir, err := findConfigPath()
 	if err != nil {
 		panic(err)
 	}
 
-	viperCfg.AddConfigPath(rootDir)
+	viperCfg.AddConfigPath(configDir)
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	err = viperCfg.ReadInConfig()
@@ -173,15 +173,14 @@ func init() {
 func GetConfig() Configuration {
 	return AppConfig
 }
-func findProjectRoot() (string, error) {
+func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
 
 	for {
-		// Check if the current directory contains the go.mod file
-		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+		if _, err := os.Stat(filepath.Join(currentDir, "config.yaml")); err == nil {
 			return currentDir, nil
 		}
 
@@ -189,7 +188,7 @@ func findProjectRoot() (string, error) {
 		parentDir := filepath.Dir(currentDir)
 		if parentDir == currentDir {
 			// We've reached the root of the file system without finding go.mod
-			return "", fmt.Errorf("unable to find project root (no go.mod found)")
+			return "", fmt.Errorf("unable to find path root (no config.yaml found)")
 		}
 		currentDir = parentDir
 	}
