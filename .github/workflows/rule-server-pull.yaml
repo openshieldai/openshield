@@ -37,5 +37,5 @@ jobs:
         - name: Run unit tests
           run: |
             cd rules/rule-service/rule_service/tests
-            python -m unittest test_api.py
+            poetry run python -m unittest test_api.py
 
