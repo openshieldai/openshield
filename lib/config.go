@@ -186,7 +186,7 @@ func findConfigPath() (string, error) {
 		parentDir := filepath.Dir(currentDir)
 		if parentDir == currentDir {
 			// We've reached the root of the file system without finding go.mod
-			return "", fmt.Errorf("unable to find project root (no go.mod found)")
+			return "", fmt.Errorf("unable to find path root (no config.yaml found)")
 		}
 		currentDir = parentDir
 	}
