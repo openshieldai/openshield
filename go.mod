@@ -18,7 +18,7 @@ require (
 	github.com/swaggo/swag v1.16.3
 	github.com/tiktoken-go/tokenizer v0.1.1
 	github.com/valyala/fasthttp v1.55.0
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.8.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.11
