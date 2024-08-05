@@ -73,8 +73,7 @@ type Network struct {
 
 // DatabaseConfig holds configuration for the database
 type DatabaseConfig struct {
-	URI           string `mapstructure:"uri"`
-	AutoMigration bool   `mapstructure:"auto_migration,omitempty,default=false"`
+	URI string `mapstructure:"uri"`
 }
 
 // CacheConfig holds configuration for cache settings
