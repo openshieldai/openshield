@@ -20,7 +20,7 @@ class InvisibleText:
         return bool(self.chars)
 
 
-def handler(text: str, threshold: float, config: dict) -> dict:
+def handler(text: str, threshold: float, _: dict) -> dict:
     inv_text = InvisibleText()
     if not contains_unicode(text):
         return {
