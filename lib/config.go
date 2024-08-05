@@ -102,6 +102,8 @@ type Rule struct {
 type Config struct {
 	PluginName string      `mapstructure:"plugin_name"`
 	Threshold  int         `mapstructure:"threshold,omitempty,default=0.5"`
+	Url        string      `mapstructure:"url,omitempty"`
+	ApiKey     string      `mapstructure:"api_key,omitempty"`
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
 }
 

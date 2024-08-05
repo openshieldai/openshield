@@ -1,16 +1,12 @@
 package rules
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/sashabaranov/go-openai"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"os"
 )
 
 type InputTypes struct {
@@ -71,17 +67,40 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 					return true, "No user message found in the request", fmt.Errorf("no user message found in the request")
 				}
 				log.Printf("Extracted prompt for language detection: %s", extractedPrompt)
-				englishScore, err := detectEnglish(extractedPrompt)
+
+				agent := fiber.Post(config.Settings.RuleServer.Url + "/rule/execute")
+				data := Rule{
+					Prompt: userPrompt,
+					Config: inputConfig.Config,
+				}
+				jsonData, err := json.Marshal(data)
 				if err != nil {
-					log.Printf("Language detection failed: %v", err)
-					return true, fmt.Sprintf("Language detection failed: %v", err), err
+					log.Printf("Failed to marshal language detection request: %v", err)
+					return true, fmt.Sprintf("Failed to marshal language detection request: %v", err), err
 				}
-				log.Printf("English language probability: %.4f", englishScore)
-				if englishScore <= 0.85 {
-					log.Printf("English probability too low: %.4f", englishScore)
-					return true, fmt.Sprintf("English probability too low: %.4f", englishScore), fmt.Errorf("English probability too low: %.4f", englishScore)
+
+				log.Printf("Request being sent to Python endpoint for Language Detection:\n%s", string(jsonData))
+
+				agent.Body(jsonData)
+				agent.Set("Content-Type", "application/json")
+				_, body, _ := agent.Bytes()
+
+				log.Printf("Response received from Python endpoint for Language Detection:\n%s", string(body))
+
+				var rule RuleResult
+				err = json.Unmarshal(body, &rule)
+				if err != nil {
+					log.Printf("Failed to decode language detection response: %v", err)
+					return true, fmt.Sprintf("Failed to decode language detection response: %v", err), err
 				}
-				log.Printf("Language Detection: English probability above threshold (%.4f)", englishScore)
+
+				log.Printf("Language Detection result: Match=%v, Score=%f", rule.Match, rule.Inspection.Score)
+
+				if !rule.Match {
+					log.Printf("English probability too low: %.4f", rule.Inspection.Score)
+					return true, fmt.Sprintf("English probability too low: %.4f", rule.Inspection.Score), fmt.Errorf("English probability too low: %.4f", rule.Inspection.Score)
+				}
+				log.Printf("Language Detection: English probability above threshold (%.4f)", rule.Inspection.Score)
 			}
 
 		case inputTypes.PIIFilter:
@@ -194,69 +213,4 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 
 	log.Println("Final result: No rules matched, request is not blocked")
 	return false, "request is not blocked", nil
-}
-
-func detectEnglish(text string) (float64, error) {
-	log.Println("Starting detectEnglish function")
-	config := lib.GetConfig()
-	apiKey := os.Getenv("HUGGINGFACE_API_KEY")
-
-	url := config.Settings.EnglishDetectionURL
-	if url == "" {
-		log.Println("English detection URL not set in configuration")
-		return 0, fmt.Errorf("English detection URL not set in configuration")
-	}
-
-	payload := map[string]string{"inputs": text}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("Failed to marshal payload: %v", err)
-		return 0, fmt.Errorf("failed to marshal payload: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		log.Printf("Failed to create request: %v", err)
-		return 0, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Failed to send request: %v", err)
-		return 0, fmt.Errorf("failed to send request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read response body: %v", err)
-		return 0, fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	log.Printf("Response from Hugging Face API: %s", string(body))
-
-	var results [][]LanguageScore
-	if err := json.Unmarshal(body, &results); err != nil {
-		log.Printf("Failed to unmarshal response: %v", err)
-		return 0, fmt.Errorf("failed to unmarshal response: %v", err)
-	}
-
-	if len(results) == 0 || len(results[0]) == 0 {
-		log.Println("Unexpected response format")
-		return 0, fmt.Errorf("unexpected response format")
-	}
-
-	for _, score := range results[0] {
-		if score.Label == "en" {
-			log.Printf("English score: %f", score.Score)
-			return score.Score, nil
-		}
-	}
-
-	log.Println("English not found in the response")
-	return 0, nil // English not found in the response
 }
