@@ -38,7 +38,7 @@ type ErrorResponse struct {
 	} `json:"error"`
 }
 
-// @Summary List models
+// ListModelsHandler @Summary List models
 // @Description Get a list of available models
 // @Tags openai
 // @Produce json
@@ -50,7 +50,7 @@ func ListModelsHandler(c *fiber.Ctx) error {
 	return openai.ListModelsHandler(c)
 }
 
-// @Summary Get model details
+// GetModelHandler @Summary Get model details
 // @Description Get details of a specific model
 // @Tags openai
 // @Produce json
@@ -64,7 +64,7 @@ func GetModelHandler(c *fiber.Ctx) error {
 	return openai.GetModelHandler(c)
 }
 
-// @Summary Create chat completion
+// ChatCompletionHandler @Summary Create chat completion
 // @Description Create a chat completion
 // @Tags openai
 // @Accept json
