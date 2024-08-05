@@ -15,7 +15,7 @@ COPY . .
 
 RUN go build -o openshield .
 
-FROM gcr.io/distroless/base-debian12:debug
+FROM gcr.io/distroless/base-debian12:nonroot
 
 COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 COPY --from=build /bin/sh /bin/sh

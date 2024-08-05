@@ -6,6 +6,7 @@
 
 >🫂 Join to our community on [Discord](https://discord.gg/sppsj7K6FT) 
 
+[![OpenShield Demo](https://img.youtube.com/vi/ZLE7wXOUWcw/0.jpg)](https://youtu.be/ZLE7wXOUWcw)
 
 ## Why do you need this?
 

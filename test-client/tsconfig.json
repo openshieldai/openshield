@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "esnext",
+    "module": "commonjs",
     "strict": true,
     "outDir": "dist",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "node"
   },
-  "include": [ "src" ],
-  "exclude": [ "node_modules" ]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }
