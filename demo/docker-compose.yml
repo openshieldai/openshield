@@ -29,7 +29,7 @@ services:
     image: "valkey/valkey:7.2.6-alpine"
     restart: always
     ports:
-      - "6379:6379"
+      - "6381:6379"
 
   postgres:
     image: postgres

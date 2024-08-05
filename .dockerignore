@@ -5,6 +5,5 @@ renovate.json
 test-client
 demo
 rules/rule-service
-docs
 .idea
 .github
