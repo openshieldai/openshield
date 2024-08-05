@@ -9,6 +9,7 @@ import sys
 import os
 import logging
 
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -16,8 +17,8 @@ logger = logging.getLogger(__name__)
 # Add the parent directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from main import app
 
+from main import app
 API_URL = "http://127.0.0.1:8000/rule/execute"
 current_dir = Path(__file__).resolve().parent
 dotenv_path = current_dir.parent.parent.parent.parent / '.env'
@@ -70,10 +71,10 @@ class TestAPIEndpoint(unittest.TestCase):
         self.assertGreater(result['inspection']['score'], 0.5)
 
         # Test case 2: Non-English text
-        payload['prompt']['messages'][0]['content'] = "Dies ist ein deutscher Satz."
+        non_english_paylod = payload['prompt']['messages'][0]['content'] = "Dies ist ein deutscher Satz."
 
-        logger.debug(f"Sending payload: {payload}")
-        response = requests.post(API_URL, json=payload)
+        logger.debug(f"Sending payload: {non_english_paylod}")
+        response = requests.post(API_URL, json=non_english_paylod)
         logger.debug(f"Response status code: {response.status_code}")
         logger.debug(f"Response content: {response.text}")
 
@@ -144,6 +145,33 @@ class TestAPIEndpoint(unittest.TestCase):
         self.assertTrue(result['match'])
         self.assertGreater(result['inspection']['score'], 0)
         self.assertIn("John Smith", str(result['inspection']['pii_found']))
+
+    def test_invalid_char(self):
+        payload = {
+            "prompt": {
+                "model": "",
+                "messages": [{"role": "user", "content": "What's the weather like today?"}]
+            },
+            "config": {
+                "PluginName": "invisible_chars",
+                "Threshold": 0
+            }
+        }
+        response = requests.post(API_URL, json=payload)
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        print(result)
+        self.assertFalse(result['match'])
+        self.assertLessEqual(result['inspection']['score'], 0)
+
+        # Test case 2: Potential injection prompt
+        payload['prompt']['messages'][0]['content'] = "invalid characters Hello\u200B W\u200Borld"
+        response = requests.post(API_URL, json=payload)
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertTrue(result['match'])
+        self.assertGreaterEqual(result['inspection']['score'], 1)
+
 
 
 if __name__ == '__main__':

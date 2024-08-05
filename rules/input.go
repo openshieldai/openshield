@@ -3,16 +3,18 @@ package rules
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/sashabaranov/go-openai"
-	"log"
 )
 
 type InputTypes struct {
 	LanguageDetection string
 	PromptInjection   string
 	PIIFilter         string
+	InvisibleChars    string
 }
 
 type Rule struct {
@@ -40,6 +42,7 @@ var inputTypes = InputTypes{
 	LanguageDetection: "language_detection",
 	PromptInjection:   "prompt_injection",
 	PIIFilter:         "pii_filter",
+	InvisibleChars:    "invisible_chars",
 }
 
 func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
@@ -52,6 +55,50 @@ func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string,
 		log.Printf("Processing input rule: %s", inputConfig.Type)
 
 		switch inputConfig.Type {
+
+		case inputTypes.InvisibleChars:
+			if inputConfig.Enabled {
+				log.Println("Invisible Characters check enabled")
+				agent := fiber.Post(config.Settings.RuleServer.Url + "/rule/execute")
+				data := Rule{
+					Prompt: userPrompt,
+					Config: inputConfig.Config,
+				}
+				jsonify, err := json.Marshal(data)
+				if err != nil {
+					log.Printf("Failed to marshal invalid characters: %v", err)
+					return true, fmt.Sprintf("Failed to marshal invalid characters request: %v", err), err
+				}
+
+				log.Printf("Request being sent to Python endpoint for Invalid Characters:\n%s", string(jsonify))
+
+				agent.Body(jsonify)
+				agent.Set("Content-Type", "application/json")
+				_, body, _ := agent.Bytes()
+
+				log.Printf("Response received from Python endpoint for Invalid Characters:\n%s", string(body))
+
+				var rule RuleResult
+				err = json.Unmarshal(body, &rule)
+				if err != nil {
+					log.Printf("Failed to decode Invalid Characters response: %v", err)
+					return true, fmt.Sprintf("Failed to decode Invalid Characters response: %v", err), err
+				}
+
+				log.Printf("Invalid Characters detection result: Match=%v, Score=%f", rule.Match, rule.Inspection.Score)
+
+				if rule.Match {
+					if inputConfig.Action.Type == "block" {
+						log.Println("Blocking request due to invalid characters detection.")
+						return true, "request blocked due to rule match", nil
+					} else if inputConfig.Action.Type == "monitoring" {
+						log.Println("Monitoring request due to invalid characters detection.")
+						// Continue processing
+					}
+				} else {
+					log.Println("Invalid Characters Rule Not Matched")
+				}
+			}
 		case inputTypes.LanguageDetection:
 			if inputConfig.Enabled {
 				log.Println("Language Detection enabled")
