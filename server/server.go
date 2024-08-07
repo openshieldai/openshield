@@ -7,6 +7,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -83,6 +85,9 @@ func StartServer() error {
 	config = lib.GetConfig()
 
 	app = fiber.New(fiber.Config{
+		ReadTimeout:       time.Minute * 5,
+		WriteTimeout:      time.Minute * 5,
+		IdleTimeout:       time.Minute * 5,
 		Prefork:           false,
 		CaseSensitive:     false,
 		StrictRouting:     true,
@@ -92,6 +97,7 @@ func StartServer() error {
 	})
 	app.Use(requestid.New())
 	app.Use(logger.New())
+	app.Server().StreamRequestBody = true
 
 	app.Use(logger.New(logger.Config{
 		Format: "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
@@ -166,11 +172,12 @@ func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, k
 }
 
 func setupOpenAIRoutes(app *fiber.App) {
-	config := lib.GetRouteSettings()
+	config := lib.GetConfig()
+	routeSettings := lib.GetRouteSettings()
 	routes := map[string]lib.RouteSettings{
-		"/openai/v1/models":           config,
-		"/openai/v1/models/:model":    config,
-		"/openai/v1/chat/completions": config,
+		"/openai/v1/models":           routeSettings,
+		"/openai/v1/models/:model":    routeSettings,
+		"/openai/v1/chat/completions": routeSettings,
 	}
 
 	for path, routeSettings := range routes {
@@ -179,6 +186,23 @@ func setupOpenAIRoutes(app *fiber.App) {
 	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
 	app.Get("/openai/v1/models/:model", lib.AuthOpenShieldMiddleware(), openai.GetModelHandler)
 	app.Post("/openai/v1/chat/completions", lib.AuthOpenShieldMiddleware(), openai.ChatCompletionHandler)
+
+	// Create a wrapper function for HTTPStreamHandler
+	streamHandler := func(w http.ResponseWriter, r *http.Request) {
+		// Read the request body
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		// Call the HTTPStreamHandler with the necessary parameters
+		openai.HTTPStreamHandler(w, r, body, config.Secrets.OpenAIApiKey)
+	}
+
+	// Register the wrapper function with http.HandleFunc
+	http.HandleFunc("/openai/v1/chat/completions/stream", streamHandler)
 }
 
 //func setupOpenShieldRoutes(app *fiber.App) {
