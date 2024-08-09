@@ -40,7 +40,6 @@ app = FastAPI()
 @app.post("/rule/execute")
 async def execute_plugin(rule: Rule):
     try:
-        logger.debug(f"Received rule: {rule}")
         plugin_name = rule.config.PluginName.lower()
         plugin_module = importlib.import_module(f"plugins.{plugin_name}")
     except ModuleNotFoundError:

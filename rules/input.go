@@ -1,11 +1,13 @@
 package rules
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/sashabaranov/go-openai"
 )
@@ -51,10 +53,23 @@ func sendRequest(data Rule) (RuleResult, error) {
 		return RuleResult{}, fmt.Errorf("failed to marshal request: %v", err)
 	}
 
-	agent := fiber.Post(lib.GetConfig().Settings.RuleServer.Url + "/rule/execute")
-	agent.Body(jsonify)
-	agent.Set("Content-Type", "application/json")
-	_, body, _ := agent.Bytes()
+	req, err := http.NewRequest("POST", lib.GetConfig().Settings.RuleServer.Url+"/rule/execute", bytes.NewBuffer(jsonify))
+	if err != nil {
+		return RuleResult{}, fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return RuleResult{}, fmt.Errorf("failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return RuleResult{}, fmt.Errorf("failed to read response body: %v", err)
+	}
 
 	var rule RuleResult
 	err = json.Unmarshal(body, &rule)
@@ -158,7 +173,7 @@ func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, s
 	return false, "", nil
 }
 
-func Input(_ *fiber.Ctx, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
+func Input(r *http.Request, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
 	config := lib.GetConfig()
 
 	log.Println("Starting Input function")

@@ -6,10 +6,11 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/cors v1.2.1
 	github.com/go-faker/faker/v4 v4.4.2
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/storage/redis/v3 v3.1.2
-	github.com/gofiber/swagger v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/sashabaranov/go-openai v1.27.1
 	github.com/spf13/cobra v1.8.1
@@ -51,7 +52,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
-	github.com/philhofer/fwd v1.1.3-0.20240612014219-fbbf4953d986 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/redis/go-redis/v9 v9.6.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -63,8 +63,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/swaggo/files/v2 v2.0.0 // indirect
-	github.com/tinylib/msgp v1.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

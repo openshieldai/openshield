@@ -7,26 +7,22 @@ package server
 import (
 	"context"
 	"fmt"
-	"io"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	_ "github.com/openshieldai/openshield/docs"
+	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/lib/openai"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/requestid"
-	"github.com/gofiber/swagger"
-	_ "github.com/openshieldai/openshield/docs"
-	"github.com/openshieldai/openshield/lib"
-	"github.com/openshieldai/openshield/lib/openai"
-	"golang.org/x/sync/errgroup"
 )
 
 var (
-	app    *fiber.App
+	router chi.Router
 	config lib.Configuration
 )
 
@@ -48,8 +44,8 @@ type ErrorResponse struct {
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /openai/v1/models [get]
-func ListModelsHandler(c *fiber.Ctx) error {
-	return openai.ListModelsHandler(c)
+func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
+	openai.ListModelsHandler(w, r)
 }
 
 // GetModelHandler @Summary Get model details
@@ -62,8 +58,8 @@ func ListModelsHandler(c *fiber.Ctx) error {
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /openai/v1/models/{model} [get]
-func GetModelHandler(c *fiber.Ctx) error {
-	return openai.GetModelHandler(c)
+func GetModelHandler(w http.ResponseWriter, r *http.Request) {
+	openai.GetModelHandler(w, r)
 }
 
 // ChatCompletionHandler @Summary Create chat completion
@@ -77,43 +73,41 @@ func GetModelHandler(c *fiber.Ctx) error {
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /openai/v1/chat/completions [post]
-func ChatCompletionHandler(c *fiber.Ctx) error {
-	return openai.ChatCompletionHandler(c)
+func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
+	openai.ChatCompletionHandler(w, r)
 }
 
 func StartServer() error {
 	config = lib.GetConfig()
 
-	app = fiber.New(fiber.Config{
-		ReadTimeout:       time.Minute * 5,
-		WriteTimeout:      time.Minute * 5,
-		IdleTimeout:       time.Minute * 5,
-		Prefork:           false,
-		CaseSensitive:     false,
-		StrictRouting:     true,
-		StreamRequestBody: true,
-		ServerHeader:      "openshield",
-		AppName:           "OpenShield",
-	})
-	app.Use(requestid.New())
-	app.Use(logger.New())
-	app.Server().StreamRequestBody = true
+	router = chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.Timeout(60 * time.Second))
 
-	app.Use(logger.New(logger.Config{
-		Format: "${pid} ${locals:requestid} ${status} - ${method} ${path}\n",
+	// CORS configuration
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
 	}))
 
-	app.Use(func(c *fiber.Ctx) error {
-		c.Set("Content-Type", "application/json")
-		c.Set("Accept", "application/json")
-		return c.Next()
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			next.ServeHTTP(w, r)
+		})
 	})
 
-	setupOpenAIRoutes(app)
-	//setupOpenShieldRoutes(app)
-
-	// Swagger route
-	app.Get("/swagger/*", swagger.HandlerDefault)
+	setupOpenAIRoutes(router)
+	//TODO
+	// Swagger route, relevant: https://github.com/swaggo/http-swagger
+	//	router.Get("/swagger/*", swagger.HandlerDefault)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -124,7 +118,7 @@ func StartServer() error {
 	g.Go(func() error {
 		addr := fmt.Sprintf(":%d", config.Settings.Network.Port)
 		fmt.Printf("Server is starting on %s...\n", addr)
-		return app.Listen(addr)
+		return http.ListenAndServe(addr, router)
 	})
 
 	// Handle graceful shutdown
@@ -135,10 +129,12 @@ func StartServer() error {
 		select {
 		case <-quit:
 			fmt.Println("Shutting down server...")
-			return app.Shutdown()
+			cancel()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+
+		return nil
 	})
 
 	if err := g.Wait(); err != nil {
@@ -150,70 +146,24 @@ func StartServer() error {
 }
 
 func StopServer() error {
-	if app != nil {
-		fmt.Println("Stopping the server...")
-		return app.Shutdown()
-	}
-	return fmt.Errorf("server is not running")
+	fmt.Println("Stopping the server...")
+	//TODO
+	//Chi doesn't have a built-in server shutdown method
+	//relevant : https://github.com/go-chi/chi/issues/58
+	return nil
 }
 
-func setupRoute(app *fiber.App, path string, routesSettings lib.RouteSettings, keyGenerator ...func(c *fiber.Ctx) string) {
-	config := limiter.Config{
-		Max:        routesSettings.RateLimit.Max,
-		Expiration: time.Duration(routesSettings.RateLimit.Expiration) * time.Second * time.Duration(routesSettings.RateLimit.Window),
-		Storage:    routesSettings.Storage,
-	}
-
-	if len(keyGenerator) > 0 {
-		config.KeyGenerator = keyGenerator[0]
-	}
-
-	app.Use(path, limiter.New(config))
+func setupOpenAIRoutes(r chi.Router) {
+	r.Route("/openai/v1", func(r chi.Router) {
+		r.Get("/models", lib.AuthOpenShieldMiddleware(openai.ListModelsHandler))
+		r.Get("/models/{model}", lib.AuthOpenShieldMiddleware(openai.GetModelHandler))
+		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(openai.ChatCompletionHandler))
+	})
 }
 
-func setupOpenAIRoutes(app *fiber.App) {
-	config := lib.GetConfig()
-	routeSettings := lib.GetRouteSettings()
-	routes := map[string]lib.RouteSettings{
-		"/openai/v1/models":           routeSettings,
-		"/openai/v1/models/:model":    routeSettings,
-		"/openai/v1/chat/completions": routeSettings,
-	}
-
-	for path, routeSettings := range routes {
-		setupRoute(app, path, routeSettings)
-	}
-	app.Get("/openai/v1/models", lib.AuthOpenShieldMiddleware(), openai.ListModelsHandler)
-	app.Get("/openai/v1/models/:model", lib.AuthOpenShieldMiddleware(), openai.GetModelHandler)
-	app.Post("/openai/v1/chat/completions", lib.AuthOpenShieldMiddleware(), openai.ChatCompletionHandler)
-
-	// Create a wrapper function for HTTPStreamHandler
-	streamHandler := func(w http.ResponseWriter, r *http.Request) {
-		// Read the request body
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusBadRequest)
-			return
-		}
-		defer r.Body.Close()
-
-		// Call the HTTPStreamHandler with the necessary parameters
-		openai.HTTPStreamHandler(w, r, body, config.Secrets.OpenAIApiKey)
-	}
-
-	// Register the wrapper function with http.HandleFunc
-	http.HandleFunc("/openai/v1/chat/completions/stream", streamHandler)
+func setupRoute(r chi.Router, path string, routesSettings lib.RouteSettings, handler http.HandlerFunc) {
+	//TODO
+	//Chi doesn't have built-in rate limiting, need middleware
+	// maybe https://github.com/go-chi/httprate?
+	r.Handle(path, handler)
 }
-
-//func setupOpenShieldRoutes(app *fiber.App) {
-//  config := lib.GetConfig()
-//  routes := map[string]lib.Route{
-//     "/tokenizer/:model": settings.Routes.Tokenizer,
-//  }
-//
-//  for path := range routes {
-//     setupRoute(app, path, lib.GetRouteSettings())
-//  }
-//
-//  app.Post("/tokenizer/:model", lib.AuthOpenShieldMiddleware(), lib.TokenizerHandler)
-//}

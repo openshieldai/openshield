@@ -3,8 +3,8 @@ from typing import Dict, Any
 
 
 def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
-    api_key = config.get('api_key')
-    url = config.get('url')
+    api_key = config.get('ApiKey')
+    url = config.get('Url')
 
     if not url:
         raise ValueError("English detection URL not set in configuration")

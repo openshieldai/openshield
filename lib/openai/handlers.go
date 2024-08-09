@@ -3,12 +3,11 @@ package openai
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"io"
 	"log"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/rules"
@@ -17,134 +16,120 @@ import (
 
 var client *openai.Client
 
-func ListModelsHandler(c *fiber.Ctx) error {
+func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
 	client = openai.NewClient(openAIAPIKey)
 
-	getCache, cacheStatus, err := lib.GetCache(c.Path())
+	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
 		log.Printf("Error getting cache: %v", err)
 	}
 	if cacheStatus {
-		c.Set("OS-Cache-Status", "HIT")
-		return c.Send(getCache)
-	} else {
-		log.Printf("Cache miss for %v", cacheStatus)
-		res, err := client.ListModels(c.Context())
-		if err != nil {
-			return lib.ErrorResponse(c, err)
-		}
-
-		if config.Settings.Cache.Enabled {
-			c.Set("OS-Cache-Status", "MISS")
-			resJson, err := json.Marshal(res)
-			if err != nil {
-				log.Printf("Error marshalling response to JSON: %v", err)
-				return c.Status(500).JSON(fiber.Map{
-					"error": fiber.Map{
-						"message": "Internal server error",
-						"type":    "server_error",
-					},
-				})
-			}
-
-			_, err = lib.SetCache(c.Path(), resJson)
-			if err != nil {
-				log.Printf("Error setting cache: %v", err)
-			}
-		} else {
-			c.Set("OS-Cache-Status", "BYPASS")
-		}
-
-		return c.JSON(res)
+		w.Header().Set("OS-Cache-Status", "HIT")
+		w.Write(getCache)
+		return
 	}
+
+	log.Printf("Cache miss for %v", cacheStatus)
+	res, err := client.ListModels(r.Context())
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
+
+	if config.Settings.Cache.Enabled {
+		w.Header().Set("OS-Cache-Status", "MISS")
+		resJson, err := json.Marshal(res)
+		if err != nil {
+			log.Printf("Error marshalling response to JSON: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = lib.SetCache(r.URL.Path, resJson)
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	} else {
+		w.Header().Set("OS-Cache-Status", "BYPASS")
+	}
+
+	json.NewEncoder(w).Encode(res)
 }
 
-func GetModelHandler(c *fiber.Ctx) error {
+func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
 
 	client = openai.NewClient(openAIAPIKey)
-	getCache, cacheStatus, err := lib.GetCache(c.Path())
+	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
 		log.Printf("Error getting cache: %v", err)
 	}
 	if cacheStatus {
-		c.Set("OS-Cache-Status", "HIT")
-		return c.Send(getCache)
-	} else {
-		log.Printf("Cache miss for %v", cacheStatus)
-		res, err := client.GetModel(c.Context(), c.Params("model"))
-		if err != nil {
-			return lib.ErrorResponse(c, err)
-		}
-
-		if config.Settings.Cache.Enabled {
-			c.Set("OS-Cache-Status", "MISS")
-			resJson, err := json.Marshal(res)
-			if err != nil {
-				log.Printf("Error marshalling response to JSON: %v", err)
-				return c.Status(500).JSON(fiber.Map{
-					"error": fiber.Map{
-						"message": "Internal server error",
-						"type":    "server_error",
-					},
-				})
-			}
-
-			_, err = lib.SetCache(c.Path(), resJson)
-			if err != nil {
-				log.Printf("Error setting cache: %v", err)
-			}
-		} else {
-			c.Set("OS-Cache-Status", "BYPASS")
-		}
-
-		return c.JSON(res)
+		w.Header().Set("OS-Cache-Status", "HIT")
+		w.Write(getCache)
+		return
 	}
+
+	log.Printf("Cache miss for %v", cacheStatus)
+	modelName := chi.URLParam(r, "model")
+	res, err := client.GetModel(r.Context(), modelName)
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
+
+	if config.Settings.Cache.Enabled {
+		w.Header().Set("OS-Cache-Status", "MISS")
+		resJson, err := json.Marshal(res)
+		if err != nil {
+			log.Printf("Error marshalling response to JSON: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = lib.SetCache(r.URL.Path, resJson)
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	} else {
+		w.Header().Set("OS-Cache-Status", "BYPASS")
+	}
+
+	json.NewEncoder(w).Encode(res)
 }
 
-func ChatCompletionHandler(c *fiber.Ctx) error {
+func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
 
 	// Read the entire request body
-	body, err := io.ReadAll(c.Request().BodyStream())
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Error reading request body: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": fiber.Map{
-				"message": "Error reading request body",
-				"type":    "invalid_request_error",
-			},
-		})
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
 	}
 
 	// Parse the request
 	var req openai.ChatCompletionRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		log.Printf("Error decoding request body: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": fiber.Map{
-				"message": "Invalid request body",
-				"type":    "invalid_request_error",
-			},
-		})
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 
 	// Perform audit logging
-	lib.AuditLogs(string(body), "openai_chat_completion", c.Locals("apiKeyId").(uuid.UUID), "input", c)
+	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
+	lib.AuditLogs(string(body), "openai_chat_completion", apiKeyId, "input", r)
 
 	// Apply input rules
-	filteredResp, errorMessage, err := rules.Input(c, req)
+	filteredResp, errorMessage, err := rules.Input(r, req)
 	if filteredResp {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": fiber.Map{
-				"message": errorMessage,
-				"type":    "rule_block",
-			},
-		})
+		http.Error(w, errorMessage, http.StatusBadRequest)
+		return
 	}
 
 	// Check cache
@@ -153,45 +138,31 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 		log.Printf("Error getting cache: %v", err)
 	}
 	if cacheStatus {
-		c.Set("OS-Cache-Status", "HIT")
-		return c.Send(getCache)
+		w.Header().Set("OS-Cache-Status", "HIT")
+		w.Write(getCache)
+		return
 	}
 
 	log.Printf("Cache miss for %v", cacheStatus)
 
 	// If streaming is requested, use the HTTP handler
 	if req.Stream {
-		// Create a closure that captures the necessary variables
-		handler := func(w http.ResponseWriter, r *http.Request) {
-			// Create a new request body
-			newBody, err := json.Marshal(req)
-			if err != nil {
-				log.Printf("Error marshaling request: %v", err)
-				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-			HTTPStreamHandler(w, r, newBody, openAIAPIKey)
-		}
-
-		return adaptor.HTTPHandler(http.HandlerFunc(handler))(c)
+		HTTPStreamHandler(w, r, body, openAIAPIKey)
+		return
 	}
 
 	// Non-streaming logic
 	client := openai.NewClient(openAIAPIKey)
-	resp, err := client.CreateChatCompletion(c.Context(), req)
+	resp, err := client.CreateChatCompletion(r.Context(), req)
 	if err != nil {
 		log.Printf("Error creating chat completion: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": fiber.Map{
-				"message": "Failed to create chat completion",
-				"type":    "server_error",
-			},
-		})
+		http.Error(w, "Failed to create chat completion", http.StatusInternalServerError)
+		return
 	}
 
 	// Cache the response if caching is enabled
 	if config.Settings.Cache.Enabled {
-		c.Set("OS-Cache-Status", "MISS")
+		w.Header().Set("OS-Cache-Status", "MISS")
 		resJson, err := json.Marshal(resp)
 		if err != nil {
 			log.Printf("Error marshalling response to JSON: %v", err)
@@ -202,14 +173,14 @@ func ChatCompletionHandler(c *fiber.Ctx) error {
 			}
 		}
 	} else {
-		c.Set("OS-Cache-Status", "BYPASS")
+		w.Header().Set("OS-Cache-Status", "BYPASS")
 	}
 
 	// Perform audit logging for the response
 	responseJSON, _ := json.Marshal(resp)
-	lib.AuditLogs(string(responseJSON), "openai_chat_completion", c.Locals("apiKeyId").(uuid.UUID), "output", c)
+	lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "output", r)
 	lib.Usage(resp.Model, 0, resp.Usage.TotalTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens, string(resp.Choices[0].FinishReason), "chat_completion")
-	return c.JSON(resp)
+	json.NewEncoder(w).Encode(resp)
 }
 
 func HTTPStreamHandler(w http.ResponseWriter, r *http.Request, body []byte, openAIAPIKey string) {
@@ -227,7 +198,7 @@ func HTTPStreamHandler(w http.ResponseWriter, r *http.Request, body []byte, open
 	req.Stream = true
 
 	// Apply input rules
-	filteredResp, errorMessage, err := rules.Input(nil, req)
+	filteredResp, errorMessage, err := rules.Input(r, req)
 	if filteredResp {
 		log.Printf("Request blocked by input rules: %s", errorMessage)
 		http.Error(w, errorMessage, http.StatusBadRequest)
