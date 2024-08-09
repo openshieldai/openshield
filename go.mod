@@ -11,7 +11,7 @@ require (
 	github.com/gofiber/storage/redis/v3 v3.1.2
 	github.com/gofiber/swagger v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/sashabaranov/go-openai v1.27.1
+	github.com/sashabaranov/go-openai v1.28.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
