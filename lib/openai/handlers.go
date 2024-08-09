@@ -16,6 +16,8 @@ import (
 
 var client *openai.Client
 
+const OSCacheStatusHeader = "OS-Cache-Status"
+
 func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
@@ -26,7 +28,7 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error getting cache: %v", err)
 	}
 	if cacheStatus {
-		w.Header().Set("OS-Cache-Status", "HIT")
+		w.Header().Set(OSCacheStatusHeader, "HIT")
 		w.Write(getCache)
 		return
 	}
@@ -39,7 +41,7 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if config.Settings.Cache.Enabled {
-		w.Header().Set("OS-Cache-Status", "MISS")
+		w.Header().Set(OSCacheStatusHeader, "MISS")
 		resJson, err := json.Marshal(res)
 		if err != nil {
 			log.Printf("Error marshalling response to JSON: %v", err)
@@ -52,7 +54,7 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error setting cache: %v", err)
 		}
 	} else {
-		w.Header().Set("OS-Cache-Status", "BYPASS")
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
 	}
 
 	json.NewEncoder(w).Encode(res)
@@ -68,7 +70,7 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error getting cache: %v", err)
 	}
 	if cacheStatus {
-		w.Header().Set("OS-Cache-Status", "HIT")
+		w.Header().Set(OSCacheStatusHeader, "HIT")
 		w.Write(getCache)
 		return
 	}
@@ -82,7 +84,7 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if config.Settings.Cache.Enabled {
-		w.Header().Set("OS-Cache-Status", "MISS")
+		w.Header().Set(OSCacheStatusHeader, "MISS")
 		resJson, err := json.Marshal(res)
 		if err != nil {
 			log.Printf("Error marshalling response to JSON: %v", err)
@@ -95,7 +97,7 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error setting cache: %v", err)
 		}
 	} else {
-		w.Header().Set("OS-Cache-Status", "BYPASS")
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
 	}
 
 	json.NewEncoder(w).Encode(res)
@@ -138,7 +140,7 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error getting cache: %v", err)
 	}
 	if cacheStatus {
-		w.Header().Set("OS-Cache-Status", "HIT")
+		w.Header().Set(OSCacheStatusHeader, "HIT")
 		w.Write(getCache)
 		return
 	}
@@ -162,7 +164,7 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Cache the response if caching is enabled
 	if config.Settings.Cache.Enabled {
-		w.Header().Set("OS-Cache-Status", "MISS")
+		w.Header().Set(OSCacheStatusHeader, "MISS")
 		resJson, err := json.Marshal(resp)
 		if err != nil {
 			log.Printf("Error marshalling response to JSON: %v", err)
@@ -173,7 +175,7 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		w.Header().Set("OS-Cache-Status", "BYPASS")
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
 	}
 
 	// Perform audit logging for the response

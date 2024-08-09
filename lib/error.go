@@ -40,16 +40,6 @@ func ErrorResponse(w http.ResponseWriter, err error) {
 				"code":    "invalid_header",
 			},
 		}
-	} else if strings.Contains(err.Error(), "500") {
-		statusCode = http.StatusInternalServerError
-		errorResponse = map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Internal Server Error",
-				"type":    "invalid_request_error",
-				"param":   "server",
-				"code":    "internal_server_error",
-			},
-		}
 	} else {
 		statusCode = http.StatusInternalServerError
 		errorResponse = map[string]interface{}{
