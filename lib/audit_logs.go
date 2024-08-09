@@ -1,15 +1,15 @@
 package lib
 
 import (
+	"log"
+	"net/http"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 	"github.com/openshieldai/openshield/models"
 )
 
-func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, c *fiber.Ctx) {
+func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, r *http.Request) {
 	config := GetConfig()
 
 	if config.Settings.AuditLogging.Enabled {
@@ -18,8 +18,8 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 			Type:        logType,
 			MessageType: messageType,
 			ApiKeyID:    apiKeyID,
-			IPAddress:   c.IP(),
-			RequestId:   c.Locals("requestid").(string),
+			IPAddress:   getIPAddress(r),
+			RequestId:   getRequestID(r),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
@@ -27,7 +27,26 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 		db := DB()
 		db.Create(&auditLog)
 	} else {
-		log.Debug("Audit log is disabled")
+		log.Println("Audit log is disabled")
 		return
 	}
+}
+
+func getIPAddress(r *http.Request) string {
+	ip := r.Header.Get("X-Real-IP")
+	if ip == "" {
+		ip = r.Header.Get("X-Forwarded-For")
+	}
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+	return ip
+}
+
+func getRequestID(r *http.Request) string {
+	requestID := r.Context().Value("requestid")
+	if requestID != nil {
+		return requestID.(string)
+	}
+	return ""
 }

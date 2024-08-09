@@ -6,11 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
-	"github.com/valyala/fasthttp"
 )
 
 func TestInput(t *testing.T) {
@@ -77,12 +75,7 @@ func TestInput(t *testing.T) {
 
 	lib.AppConfig.Settings.RuleServer.Url = ruleServer.URL
 
-	app := fiber.New()
-
 	t.Run("English Detection - English Input", func(t *testing.T) {
-		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
-		defer app.ReleaseCtx(ctx)
-
 		requestBody := openai.ChatCompletionRequest{
 			Model: "gpt-4",
 			Messages: []openai.ChatCompletionMessage{
@@ -102,7 +95,8 @@ func TestInput(t *testing.T) {
 			},
 		}
 
-		blocked, errorMessage, err := Input(ctx, requestBody)
+		req := httptest.NewRequest("POST", "/test", nil)
+		blocked, errorMessage, err := Input(req, requestBody)
 
 		assert.NoError(t, err)
 		assert.False(t, blocked)
@@ -110,9 +104,6 @@ func TestInput(t *testing.T) {
 	})
 
 	t.Run("English Detection - Non-English Input", func(t *testing.T) {
-		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
-		defer app.ReleaseCtx(ctx)
-
 		requestBody := openai.ChatCompletionRequest{
 			Model: "gpt-4",
 			Messages: []openai.ChatCompletionMessage{
@@ -132,7 +123,8 @@ func TestInput(t *testing.T) {
 			},
 		}
 
-		blocked, errorMessage, err := Input(ctx, requestBody)
+		req := httptest.NewRequest("POST", "/test", nil)
+		blocked, errorMessage, err := Input(req, requestBody)
 
 		assert.Error(t, err)
 		assert.True(t, blocked)
@@ -140,9 +132,6 @@ func TestInput(t *testing.T) {
 	})
 
 	t.Run("PII Filter", func(t *testing.T) {
-		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
-		defer app.ReleaseCtx(ctx)
-
 		requestBody := openai.ChatCompletionRequest{
 			Model: "gpt-4",
 			Messages: []openai.ChatCompletionMessage{
@@ -165,7 +154,8 @@ func TestInput(t *testing.T) {
 			},
 		}
 
-		blocked, errorMessage, err := Input(ctx, requestBody)
+		req := httptest.NewRequest("POST", "/test", nil)
+		blocked, errorMessage, err := Input(req, requestBody)
 
 		assert.NoError(t, err)
 		assert.True(t, blocked)
@@ -174,9 +164,6 @@ func TestInput(t *testing.T) {
 	})
 
 	t.Run("Prompt Injection - Safe Input", func(t *testing.T) {
-		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
-		defer app.ReleaseCtx(ctx)
-
 		requestBody := openai.ChatCompletionRequest{
 			Model: "gpt-4",
 			Messages: []openai.ChatCompletionMessage{
@@ -199,7 +186,8 @@ func TestInput(t *testing.T) {
 			},
 		}
 
-		blocked, errorMessage, err := Input(ctx, requestBody)
+		req := httptest.NewRequest("POST", "/test", nil)
+		blocked, errorMessage, err := Input(req, requestBody)
 
 		assert.NoError(t, err)
 		assert.False(t, blocked)
@@ -207,9 +195,6 @@ func TestInput(t *testing.T) {
 	})
 
 	t.Run("Prompt Injection - Unsafe Input", func(t *testing.T) {
-		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
-		defer app.ReleaseCtx(ctx)
-
 		requestBody := openai.ChatCompletionRequest{
 			Model: "gpt-4",
 			Messages: []openai.ChatCompletionMessage{
@@ -232,7 +217,8 @@ func TestInput(t *testing.T) {
 			},
 		}
 
-		blocked, errorMessage, err := Input(ctx, requestBody)
+		req := httptest.NewRequest("POST", "/test", nil)
+		blocked, errorMessage, err := Input(req, requestBody)
 
 		assert.NoError(t, err)
 		assert.True(t, blocked)
