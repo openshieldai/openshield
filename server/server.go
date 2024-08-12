@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	_ "github.com/openshieldai/openshield/docs"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/openai"
@@ -162,8 +163,16 @@ func setupOpenAIRoutes(r chi.Router) {
 }
 
 func setupRoute(r chi.Router, path string, routesSettings lib.RouteSettings, handler http.HandlerFunc) {
-	//TODO
-	//Chi doesn't have built-in rate limiting, need middleware
-	// maybe https://github.com/go-chi/httprate?
-	r.Handle(path, handler)
+
+	Max := routesSettings.RateLimit.Max
+	Window := time.Duration(routesSettings.RateLimit.Window) * time.Second
+	Expiration := time.Duration(routesSettings.RateLimit.Expiration) * Window
+
+	rateLimiter := httprate.Limit(
+		Max,
+		Expiration,
+		httprate.WithKeyFuncs(httprate.KeyByIP),
+	)
+
+	r.With(rateLimiter).Handle(path, handler)
 }

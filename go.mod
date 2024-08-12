@@ -8,6 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
+	github.com/go-chi/httprate v0.12.1
 	github.com/go-faker/faker/v4 v4.4.2
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/storage/redis/v3 v3.1.2
@@ -18,7 +19,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/swaggo/swag v1.16.3
 	github.com/tiktoken-go/tokenizer v0.1.1
-	github.com/valyala/fasthttp v1.55.0
 	golang.org/x/sync v0.8.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/postgres v1.5.9
@@ -64,6 +64,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
