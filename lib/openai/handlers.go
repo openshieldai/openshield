@@ -35,36 +35,14 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Cache miss for %v", cacheStatus)
 	res, err := client.ListModels(r.Context())
-	if err != nil {
-		lib.ErrorResponse(w, err)
-		return
-	}
-
-	if config.Settings.Cache.Enabled {
-		w.Header().Set(OSCacheStatusHeader, "MISS")
-		resJson, err := json.Marshal(res)
-		if err != nil {
-			log.Printf("Error marshalling response to JSON: %v", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		err = lib.SetCache(r.URL.Path, resJson)
-		if err != nil {
-			log.Printf("Error setting cache: %v", err)
-		}
-	} else {
-		w.Header().Set(OSCacheStatusHeader, "BYPASS")
-	}
-
-	json.NewEncoder(w).Encode(res)
+	handleModelResponse(w, r, res, err)
 }
 
 func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
-
 	client = openai.NewClient(openAIAPIKey)
+
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
 		log.Printf("Error getting cache: %v", err)
@@ -78,29 +56,7 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Cache miss for %v", cacheStatus)
 	modelName := chi.URLParam(r, "model")
 	res, err := client.GetModel(r.Context(), modelName)
-	if err != nil {
-		lib.ErrorResponse(w, err)
-		return
-	}
-
-	if config.Settings.Cache.Enabled {
-		w.Header().Set(OSCacheStatusHeader, "MISS")
-		resJson, err := json.Marshal(res)
-		if err != nil {
-			log.Printf("Error marshalling response to JSON: %v", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		err = lib.SetCache(r.URL.Path, resJson)
-		if err != nil {
-			log.Printf("Error setting cache: %v", err)
-		}
-	} else {
-		w.Header().Set(OSCacheStatusHeader, "BYPASS")
-	}
-
-	json.NewEncoder(w).Encode(res)
+	handleModelResponse(w, r, res, err)
 }
 
 func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
@@ -229,4 +185,31 @@ func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResp
 func handleError(w http.ResponseWriter, err error, statusCode int) {
 	log.Printf("Error: %v", err)
 	http.Error(w, err.Error(), statusCode)
+}
+
+func handleModelResponse(w http.ResponseWriter, r *http.Request, res interface{}, err error) {
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
+
+	config := lib.GetConfig()
+	if config.Settings.Cache.Enabled {
+		w.Header().Set(OSCacheStatusHeader, "MISS")
+		resJson, err := json.Marshal(res)
+		if err != nil {
+			log.Printf("Error marshalling response to JSON: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		err = lib.SetCache(r.URL.Path, resJson)
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	} else {
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
+	}
+
+	json.NewEncoder(w).Encode(res)
 }
