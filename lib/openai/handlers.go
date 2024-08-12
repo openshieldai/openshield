@@ -49,7 +49,7 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = lib.SetCache(r.URL.Path, resJson)
+		err = lib.SetCache(r.URL.Path, resJson)
 		if err != nil {
 			log.Printf("Error setting cache: %v", err)
 		}
@@ -92,7 +92,7 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = lib.SetCache(r.URL.Path, resJson)
+		err = lib.SetCache(r.URL.Path, resJson)
 		if err != nil {
 			log.Printf("Error setting cache: %v", err)
 		}
@@ -162,7 +162,7 @@ func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []by
 		if err != nil {
 			log.Printf("Error marshalling response to JSON: %v", err)
 		} else {
-			_, err = lib.SetCache(string(body), resJson)
+			err = lib.SetCache(string(body), resJson)
 			if err != nil {
 				log.Printf("Error setting cache: %v", err)
 			}
