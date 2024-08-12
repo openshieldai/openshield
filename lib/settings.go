@@ -2,8 +2,7 @@ package lib
 
 import (
 	"crypto/tls"
-	"github.com/gofiber/storage/redis/v3"
-	"runtime"
+	"github.com/redis/go-redis/v9"
 )
 
 type Settings struct {
@@ -38,7 +37,7 @@ type OpenAIRoutes struct {
 type Routes struct {
 	OpenAI    OpenAIRoutes
 	Tokenizer Route
-	Storage   *redis.Storage
+	Storage   *redis.Client
 }
 
 type openShield struct {
@@ -52,10 +51,7 @@ type Database struct {
 	AutoMigration bool
 }
 type Redis struct {
-	URI       string
-	PoolSize  int
-	Reset     bool
-	TLSConfig *tls.Config
+	Options *redis.Options
 }
 
 //func getEnvAsStatus(envVar string, defaultValue string) string {
@@ -73,12 +69,17 @@ type RouteSettings struct {
 	Redis     Redis
 }
 
-func GetRouteSettings() RouteSettings {
+func GetRouteSettings() (RouteSettings, error) {
 	config := GetConfig()
 
-	var redisTlsCfg *tls.Config
+	// Parse the Redis URL
+	redisOptions, err := redis.ParseURL(config.Settings.Redis.URI)
+	if err != nil {
+		return RouteSettings{}, err
+	}
+
 	if config.Settings.Redis.SSL {
-		redisTlsCfg = &tls.Config{
+		redisOptions.TLSConfig = &tls.Config{
 			MinVersion:       tls.VersionTLS12,
 			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
 			CipherSuites: []uint16{
@@ -97,12 +98,9 @@ func GetRouteSettings() RouteSettings {
 			Expiration: config.Settings.RateLimit.Expiration,
 		},
 		Redis: Redis{
-			URI:       config.Settings.Redis.URI,
-			PoolSize:  10 * runtime.GOMAXPROCS(0),
-			Reset:     false,
-			TLSConfig: redisTlsCfg,
+			Options: redisOptions,
 		},
-	}
+	}, nil
 }
 
 //func NewSettings() Settings {
