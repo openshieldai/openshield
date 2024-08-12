@@ -12,7 +12,6 @@ require (
 	github.com/go-chi/httprate-redis v0.5.1
 	github.com/go-faker/faker/v4 v4.4.2
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/gofiber/storage/redis/v3 v3.1.2
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/sashabaranov/go-openai v1.28.1
