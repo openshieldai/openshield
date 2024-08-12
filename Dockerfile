@@ -10,7 +10,6 @@ RUN go mod download \
     && apt-get install -y dumb-init  \
     && chmod +x /build/docker-entrypoint.sh
 
-
 COPY . .
 
 RUN go build -o openshield .
@@ -23,9 +22,6 @@ COPY --from=build /build/openshield /app/openshield
 COPY --from=build /build/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 USER nonroot:nonroot
-# https://github.com/gofiber/fiber/issues/1021
-# https://github.com/gofiber/fiber/issues/1036
-#ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 WORKDIR /app
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
