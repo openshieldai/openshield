@@ -16,11 +16,11 @@ import (
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/openai"
 	"github.com/redis/go-redis/v9"
+	"github.com/swaggo/http-swagger"
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"os"
 	"os/signal"
-
 	"syscall"
 	"time"
 )
@@ -109,9 +109,9 @@ func StartServer() error {
 	})
 
 	setupOpenAIRoutes(router)
-	//TODO
-	// Swagger route, relevant: https://github.com/swaggo/http-swagger
-	//	router.Get("/swagger/*", swagger.HandlerDefault)
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
