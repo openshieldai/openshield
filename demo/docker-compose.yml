@@ -10,7 +10,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
     ports:
-      - "8080:3005"
+      - "8081:3005"
     links:
       - redis
       - postgres
