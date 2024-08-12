@@ -5,7 +5,7 @@
 # PYTHON-BASE
 # Sets up all our shared environment variables
 ################################
-FROM python:3.12.4-slim as python-base
+FROM python:3.12.5-slim AS python-base
 
     # Python
 ENV PYTHONUNBUFFERED=1 \
@@ -27,7 +27,7 @@ ENV PYTHONUNBUFFERED=1 \
     VIRTUAL_ENV="/venv" \
     \
     # Node.js major version. Remove if you don't need.
-    NODE_MAJOR=18
+    NODE_MAJOR=20
 
 # prepend poetry and venv to path
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
@@ -37,7 +37,7 @@ RUN python -m venv $VIRTUAL_ENV
 
 # working directory and Python path
 WORKDIR /app
-ENV PYTHONPATH="/app:$PYTHONPATH"
+ENV PYTHONPATH="/app"
 
 # pretrained models cache path. Remove if you don't need.
 # ref: https://huggingface.co/docs/transformers/installation?highlight=transformers_cache#caching-models
@@ -47,16 +47,16 @@ ENV TRANSFORMERS_CACHE="/opt/transformers_cache/"
 # BUILDER-BASE
 # Used to build deps + create our virtual environment
 ################################
-FROM python-base as builder-base
+FROM python-base AS builder-base
 RUN apt-get update && \
     apt-get install -y \
     apt-transport-https \
-    gnupg \
-    ca-certificates \
     build-essential \
+    ca-certificates \
+    curl \
     git \
-    nano \
-    curl
+    gnupg \
+    nano
 
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 # The --mount will mount the buildx cache directory to where
@@ -85,11 +85,11 @@ COPY rule_service/ rule_service/
 ## DEVELOPMENT
 ## Image used during development / testing
 #################################
-#FROM builder-base as development
+#FROM builder-base AS development
 #
 #WORKDIR /app
 #
-## quicker install as runtime deps are already installed
+## quicker install AS runtime deps are already installed
 #RUN --mount=type=cache,target=/root/.cache \
 #    poetry install --no-root --with test,lint
 #
@@ -101,7 +101,7 @@ COPY rule_service/ rule_service/
 # PRODUCTION
 # Final image used for runtime
 ################################
-FROM python-base as production
+FROM python-base AS production
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
