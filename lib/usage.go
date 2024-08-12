@@ -1,8 +1,8 @@
 package lib
 
 import (
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/openshieldai/openshield/models"
+	"log"
 )
 
 func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string) {
@@ -11,7 +11,7 @@ func Usage(modelName string, predictedTokensCount int, promptTokensCount int, co
 	if config.Settings.UsageLogging.Enabled {
 		aiModel, err := GetModel(modelName)
 		if err != nil {
-			log.Error("Error: ", err)
+			log.Printf("Error: %v", err)
 			return
 		}
 
@@ -27,8 +27,7 @@ func Usage(modelName string, predictedTokensCount int, promptTokensCount int, co
 		db := DB()
 		db.Create(&usage)
 	} else {
-		log.Debug("Usage logs is disabled")
+		log.Printf("Usage logs is disabled")
 		return
 	}
-
 }

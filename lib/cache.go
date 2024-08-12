@@ -1,17 +1,21 @@
 package lib
 
 import (
+	"context"
 	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"log"
-	"runtime"
 	"strconv"
 	"time"
 
-	hash "github.com/cespare/xxhash/v2"
-	"github.com/gofiber/storage/redis/v3"
+	"github.com/cespare/xxhash/v2"
+	"github.com/redis/go-redis/v9"
 )
 
-func getRedisConfig(config *Configuration) redis.Config {
+var redisClient *redis.Client
+
+func initRedisClient(config *Configuration) {
 	var redisTlsCfg *tls.Config
 	if config.Settings.Redis.SSL {
 		redisTlsCfg = &tls.Config{
@@ -26,29 +30,35 @@ func getRedisConfig(config *Configuration) redis.Config {
 		}
 	}
 
-	return redis.Config{
-		URL:       config.Settings.Redis.URI,
-		PoolSize:  10 * runtime.GOMAXPROCS(0),
-		Reset:     false,
-		TLSConfig: redisTlsCfg,
+	opt, err := redis.ParseURL(config.Settings.Redis.URI)
+	if err != nil {
+		log.Fatalf("Failed to parse Redis URL: %v", err)
 	}
+
+	opt.TLSConfig = redisTlsCfg
+
+	redisClient = redis.NewClient(opt)
 }
 
 func GetCache(key string) ([]byte, bool, error) {
 	config := GetConfig()
-	storage := redis.New(getRedisConfig(&config))
+
+	if redisClient == nil {
+		initRedisClient(&config)
+	}
 
 	if config.Settings.Cache.Enabled {
-		hashed := hash.Sum64([]byte(key))
+		hashedKey := hashKey(key)
 
-		value, err := storage.Get(strconv.FormatUint(hashed, 10))
-		if err != nil {
-			return nil, false, err
-		}
-		if value == nil {
+		ctx := context.Background()
+		value, err := redisClient.Get(ctx, hashedKey).Bytes()
+		if errors.Is(err, redis.Nil) {
 			log.Println("Cache miss")
 			return nil, false, nil
+		} else if err != nil {
+			return nil, false, err
 		}
+
 		log.Printf("Cache hit: %s", string(value))
 		return value, true, nil
 	} else {
@@ -57,19 +67,42 @@ func GetCache(key string) ([]byte, bool, error) {
 	}
 }
 
-func SetCache(key string, value []byte) ([]byte, error) {
+func SetCache(key string, value interface{}) error {
 	config := GetConfig()
-	storage := redis.New(getRedisConfig(&config))
+
+	if redisClient == nil {
+		initRedisClient(&config)
+	}
 
 	if config.Settings.Cache.Enabled {
-		hashedKey := strconv.FormatUint(hash.Sum64([]byte(key)), 10)
-		err := storage.Set(hashedKey, value, time.Duration(config.Settings.Cache.TTL)*time.Second)
-		if err != nil {
-			return nil, err // Return the error instead of panicking
+		hashedKey := hashKey(key)
+
+		// Convert value to JSON if it's not already a []byte
+		var jsonValue []byte
+		var err error
+		switch v := value.(type) {
+		case []byte:
+			jsonValue = v
+		default:
+			jsonValue, err = json.Marshal(v)
+			if err != nil {
+				return err
+			}
 		}
-		return value, nil // Return the original value to indicate success
+
+		ctx := context.Background()
+		err = redisClient.Set(ctx, hashedKey, jsonValue, time.Duration(config.Settings.Cache.TTL)*time.Second).Err()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	} else {
 		log.Println("Cache is disabled")
-		return value, nil // Caching is disabled, return the original value
+		return nil
 	}
+}
+
+func hashKey(key string) string {
+	return strconv.FormatUint(xxhash.Sum64([]byte(key)), 10)
 }

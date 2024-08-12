@@ -2,24 +2,27 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
-	"github.com/openshieldai/openshield/lib"
-	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/openshieldai/openshield/lib"
+	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var (
@@ -89,10 +92,14 @@ func TestChatCompletion(t *testing.T) {
 	}
 	lib.SetDB(db)
 
-	app := setupTestServer()
-	if app == nil {
+	router := setupTestServer()
+	if router == nil {
 		t.Fatal("setupTestServer returned nil")
 	}
+
+	// Create a test server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
 	// Generate a test API key ID
 	apiKeyID := uuid.New()
@@ -121,17 +128,19 @@ func TestChatCompletion(t *testing.T) {
 	reqBody := bytes.NewBufferString(`{"model":"gpt-4","messages":[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the meaning of life?"}]}`)
 
 	// Create the request
-	req, _ := http.NewRequest("POST", "/openai/v1/chat/completions", reqBody)
+	req, _ := http.NewRequest("POST", ts.URL+"/openai/v1/chat/completions", reqBody)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", APIKey))
 	req.Header.Set("Content-Type", "application/json")
 	requestID := uuid.New().String()
 	req.Header.Set("X-Request-ID", requestID)
 
 	// Perform the request
-	resp, err := app.Test(req, 30000)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
-		t.Fatalf("app.Test returned an error: %v", err)
+		t.Fatalf("Failed to send request: %v", err)
 	}
+	defer resp.Body.Close()
 
 	// Print captured logs
 	t.Logf("Captured logs:\n%s", logBuffer.String())
@@ -169,30 +178,30 @@ func TestChatCompletion(t *testing.T) {
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
 }
-func setupTestServer() *fiber.App {
-	app := fiber.New(fiber.Config{
-		Prefork:           false,
-		CaseSensitive:     false,
-		StrictRouting:     true,
-		StreamRequestBody: true,
-		ServerHeader:      "openshield",
-		AppName:           "OpenShield",
+
+func setupTestServer() *chi.Mux {
+	router := chi.NewRouter()
+
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Ensure apiKeyId is set in the context
+			ctx := r.Context()
+			if ctx.Value("apiKeyId") == nil {
+				ctx = context.WithValue(ctx, "apiKeyId", uuid.New())
+			}
+			// Ensure requestid is set in the context
+			if ctx.Value("requestid") == nil {
+				ctx = context.WithValue(ctx, "requestid", r.Header.Get("X-Request-ID"))
+				if ctx.Value("requestid") == "" {
+					ctx = context.WithValue(ctx, "requestid", uuid.New().String())
+				}
+			}
+			log.Printf("Context set up: apiKeyId=%v, requestid=%v", ctx.Value("apiKeyId"), ctx.Value("requestid"))
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 	})
 
-	app.Use(func(c *fiber.Ctx) error {
-		// Ensure apiKeyId is set in the context
-		if c.Locals("apiKeyId") == nil {
-			c.Locals("apiKeyId", uuid.New())
-		}
-		// Ensure requestid is set in the context
-		if c.Locals("requestid") == nil {
-			c.Locals("requestid", c.Get("X-Request-ID", uuid.New().String()))
-		}
-		log.Printf("Context set up: apiKeyId=%v, requestid=%v", c.Locals("apiKeyId"), c.Locals("requestid"))
-		return c.Next()
-	})
+	setupOpenAIRoutes(router)
 
-	setupOpenAIRoutes(app)
-
-	return app
+	return router
 }

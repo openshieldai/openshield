@@ -1,35 +1,53 @@
 package lib
 
 import (
+	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"log"
+	"net/http"
+	"strings"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"github.com/openshieldai/openshield/models"
 )
 
-func AuthOpenShieldMiddleware() fiber.Handler {
+func AuthOpenShieldMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
 
-	return keyauth.New(keyauth.Config{
-		Validator: func(c *fiber.Ctx, key string) (bool, error) {
-			var apiKey = models.ApiKeys{ApiKey: key, Status: models.Active}
-			result := DB().Where(&apiKey).First(&apiKey)
-			if result.Error != nil {
-				log.Println("Error: ", result.Error)
-				return false, keyauth.ErrMissingOrMalformedAPIKey
-			}
-			hashedAPIKey := sha256.Sum256([]byte(key))
-			hashedKey := sha256.Sum256([]byte(apiKey.ApiKey))
+		splitToken := strings.Split(authHeader, "Bearer ")
+		if len(splitToken) != 2 {
+			http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
+			return
+		}
 
-			if subtle.ConstantTimeCompare(hashedAPIKey[:], hashedKey[:]) == 1 {
-				c.Locals("apiKeyId", apiKey.Id)
-				return true, nil
-			}
-			return false, keyauth.ErrMissingOrMalformedAPIKey
-		},
-	})
+		key := splitToken[1]
+
+		var apiKey = models.ApiKeys{ApiKey: key, Status: models.Active}
+		result := DB().Where(&apiKey).First(&apiKey)
+		if result.Error != nil {
+			log.Println("Error: ", result.Error)
+			http.Error(w, "Invalid API key", http.StatusUnauthorized)
+			return
+		}
+
+		hashedAPIKey := sha256.Sum256([]byte(key))
+		hashedKey := sha256.Sum256([]byte(apiKey.ApiKey))
+
+		if subtle.ConstantTimeCompare(hashedAPIKey[:], hashedKey[:]) == 1 {
+			// Store the API key ID in the request context
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, "apiKeyId", apiKey.Id)
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		} else {
+			http.Error(w, "Invalid API key", http.StatusUnauthorized)
+		}
+	}
 }
 
 //func AuthHeaderParser(c *fiber.Ctx) (string, error) {

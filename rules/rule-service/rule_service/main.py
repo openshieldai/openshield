@@ -40,7 +40,6 @@ app = FastAPI()
 @app.post("/rule/execute")
 async def execute_plugin(rule: Rule):
     try:
-        logger.debug(f"Received rule: {rule}")
         plugin_name = rule.config.PluginName.lower()
         plugin_module = importlib.import_module(f"plugins.{plugin_name}")
     except ModuleNotFoundError:
@@ -83,4 +82,4 @@ async def execute_plugin(rule: Rule):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

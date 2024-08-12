@@ -2,10 +2,7 @@ package lib
 
 import (
 	"crypto/tls"
-	"runtime"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/storage/redis/v3"
+	"github.com/redis/go-redis/v9"
 )
 
 type Settings struct {
@@ -38,10 +35,9 @@ type OpenAIRoutes struct {
 }
 
 type Routes struct {
-	OpenAI       OpenAIRoutes
-	Tokenizer    Route
-	Storage      *redis.Storage
-	KeyGenerator func(c *fiber.Ctx) string
+	OpenAI    OpenAIRoutes
+	Tokenizer Route
+	Storage   *redis.Client
 }
 
 type openShield struct {
@@ -53,6 +49,9 @@ type openShield struct {
 type Database struct {
 	URL           string
 	AutoMigration bool
+}
+type Redis struct {
+	Options *redis.Options
 }
 
 //func getEnvAsStatus(envVar string, defaultValue string) string {
@@ -66,16 +65,21 @@ type Database struct {
 //}
 
 type RouteSettings struct {
-	Storage   *redis.Storage
 	RateLimit *RateLimiting
+	Redis     Redis
 }
 
-func GetRouteSettings() RouteSettings {
+func GetRouteSettings() (RouteSettings, error) {
 	config := GetConfig()
 
-	var redisTlsCfg *tls.Config
+	// Parse the Redis URL
+	redisOptions, err := redis.ParseURL(config.Settings.Redis.URI)
+	if err != nil {
+		return RouteSettings{}, err
+	}
+
 	if config.Settings.Redis.SSL {
-		redisTlsCfg = &tls.Config{
+		redisOptions.TLSConfig = &tls.Config{
 			MinVersion:       tls.VersionTLS12,
 			CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
 			CipherSuites: []uint16{
@@ -87,20 +91,16 @@ func GetRouteSettings() RouteSettings {
 		}
 	}
 
-	// Assuming Route can have a Storage field of type *redis.Storage
 	return RouteSettings{
 		RateLimit: &RateLimiting{
 			Max:        config.Settings.RateLimit.Max,
 			Window:     config.Settings.RateLimit.Window,
 			Expiration: config.Settings.RateLimit.Expiration,
 		},
-		Storage: redis.New(redis.Config{
-			URL:       config.Settings.Redis.URI,
-			PoolSize:  10 * runtime.GOMAXPROCS(0),
-			Reset:     false,
-			TLSConfig: redisTlsCfg,
-		}),
-	}
+		Redis: Redis{
+			Options: redisOptions,
+		},
+	}, nil
 }
 
 //func NewSettings() Settings {
