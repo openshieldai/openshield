@@ -117,7 +117,11 @@ func StartServer() error {
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)
-
+	addr := fmt.Sprintf(":%d", config.Settings.Network.Port)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
 	// Start the server
 	g.Go(func() error {
 		addr := fmt.Sprintf(":%d", config.Settings.Network.Port)
@@ -132,8 +136,15 @@ func StartServer() error {
 
 		select {
 		case <-quit:
-			fmt.Println("Shutting down server...")
-			cancel()
+			fmt.Println("Starting shutdown...")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+
+			err := srv.Shutdown(ctx)
+			if err != nil {
+				return err
+			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -146,14 +157,6 @@ func StartServer() error {
 		return err
 	}
 
-	return nil
-}
-
-func StopServer() error {
-	fmt.Println("Stopping the server...")
-	//TODO
-	//Chi doesn't have a built-in server shutdown method
-	//relevant : https://github.com/go-chi/chi/issues/58
 	return nil
 }
 
