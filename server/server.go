@@ -11,13 +11,16 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+	httprateredis "github.com/go-chi/httprate-redis"
 	_ "github.com/openshieldai/openshield/docs"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/openai"
 	"golang.org/x/sync/errgroup"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -162,15 +165,34 @@ func setupOpenAIRoutes(r chi.Router) {
 	})
 }
 
-func setupRoute(r chi.Router, path string, routesSettings lib.RouteSettings, handler http.HandlerFunc) {
+func setupRoute(r chi.Router, path string, routeSettings lib.RouteSettings, handler http.HandlerFunc) {
+	Max := routeSettings.RateLimit.Max
+	Expiration := time.Duration(routeSettings.RateLimit.Expiration) * time.Second * time.Duration(routeSettings.RateLimit.Window)
 
-	Max := routesSettings.RateLimit.Max
-	Window := time.Duration(routesSettings.RateLimit.Window) * time.Second
-	Expiration := time.Duration(routesSettings.RateLimit.Expiration) * Window
+	// Parse the Redis URL
+	redisURL, err := url.Parse(routeSettings.Redis.URI)
+	if err != nil {
+		panic(err)
+	}
+
+	host := redisURL.Hostname()
+	port, _ := strconv.Atoi(redisURL.Port())
+
+	redisConfig := &httprateredis.Config{
+		Host:     host,
+		Port:     uint16(port),
+		Password: redisURL.User.Username(),
+	}
+
+	redisCounter, err := httprateredis.NewRedisLimitCounter(redisConfig)
+	if err != nil {
+		panic(err)
+	}
 
 	rateLimiter := httprate.Limit(
 		Max,
 		Expiration,
+		httprate.WithLimitCounter(redisCounter),
 		httprate.WithKeyFuncs(httprate.KeyByIP),
 	)
 

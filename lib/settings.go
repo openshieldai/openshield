@@ -2,10 +2,8 @@ package lib
 
 import (
 	"crypto/tls"
-	"runtime"
-
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/storage/redis/v3"
+	"runtime"
 )
 
 type Settings struct {
@@ -38,10 +36,9 @@ type OpenAIRoutes struct {
 }
 
 type Routes struct {
-	OpenAI       OpenAIRoutes
-	Tokenizer    Route
-	Storage      *redis.Storage
-	KeyGenerator func(c *fiber.Ctx) string
+	OpenAI    OpenAIRoutes
+	Tokenizer Route
+	Storage   *redis.Storage
 }
 
 type openShield struct {
@@ -53,6 +50,12 @@ type openShield struct {
 type Database struct {
 	URL           string
 	AutoMigration bool
+}
+type Redis struct {
+	URI       string
+	PoolSize  int
+	Reset     bool
+	TLSConfig *tls.Config
 }
 
 //func getEnvAsStatus(envVar string, defaultValue string) string {
@@ -66,8 +69,8 @@ type Database struct {
 //}
 
 type RouteSettings struct {
-	Storage   *redis.Storage
 	RateLimit *RateLimiting
+	Redis     Redis
 }
 
 func GetRouteSettings() RouteSettings {
@@ -87,19 +90,18 @@ func GetRouteSettings() RouteSettings {
 		}
 	}
 
-	// Assuming Route can have a Storage field of type *redis.Storage
 	return RouteSettings{
 		RateLimit: &RateLimiting{
 			Max:        config.Settings.RateLimit.Max,
 			Window:     config.Settings.RateLimit.Window,
 			Expiration: config.Settings.RateLimit.Expiration,
 		},
-		Storage: redis.New(redis.Config{
-			URL:       config.Settings.Redis.URI,
+		Redis: Redis{
+			URI:       config.Settings.Redis.URI,
 			PoolSize:  10 * runtime.GOMAXPROCS(0),
 			Reset:     false,
 			TLSConfig: redisTlsCfg,
-		}),
+		},
 	}
 }
 
