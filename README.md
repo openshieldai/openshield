@@ -89,15 +89,15 @@ cd demo
 cp .env.example .env
 ```
 
-You need to modify the .env file with your OpenAI API key and HuggingFace API key. Here's how to obtain these keys:
+You need to modify the .env file with your OpenAI API key and Hugging Face API key. Here's how to obtain these keys:
 
 1. OpenAI API key:
    - Sign up for an OpenAI account at https://platform.openai.com/signup
    - Once logged in, go to https://platform.openai.com/api-keys
    - Click on "Create new secret key" to generate your API key
 
-2. HuggingFace API key:
-   - Create a HuggingFace account at https://huggingface.co/join
+2. Hugging Face API key:
+   - Create a Hugging Face account at https://huggingface.co/join
    - Go to your account settings: https://huggingface.co/settings/token
    - Click on "Create new token" to create your API key
 
