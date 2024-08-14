@@ -10,7 +10,7 @@
   "license": "Apache-2.0",
   "description": "Demo client for OpenShield",
   "dependencies": {
-    "openai": "4.55.6"
+    "openai": "4.55.7"
   },
   "devDependencies": {
     "@types/node": "20.14.15",
