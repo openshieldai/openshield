@@ -37,7 +37,9 @@ func init() {
 	configCmd.AddCommand(addRuleCmd)
 	configCmd.AddCommand(removeRuleCmd)
 	configCmd.AddCommand(configWizardCmd)
+	uploadFileCmd.Flags().BoolP("detectsensitive", "s", false, "Enable sensitive data detection")
 	rootCmd.AddCommand(uploadFileCmd)
+
 }
 
 var uploadFileCmd = &cobra.Command{
@@ -46,7 +48,8 @@ var uploadFileCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		filePath := args[0]
-		err := uploadFile(filePath)
+		detectSensitive, _ := cmd.Flags().GetBool("detectsensitive")
+		err := uploadFile(filePath, detectSensitive)
 		if err != nil {
 			fmt.Printf("Error uploading file: %v\n", err)
 			os.Exit(1)
@@ -166,7 +169,7 @@ func stopServer() error {
 
 	return nil
 }
-func uploadFile(filePath string) error {
+func uploadFile(filePath string, detectSensitive bool) error {
 	config := lib.GetConfig()
 
 	file, err := os.Open(filePath)
@@ -190,7 +193,12 @@ func uploadFile(filePath string) error {
 		return fmt.Errorf("failed to close multipart writer: %v", err)
 	}
 
-	req, err := http.NewRequest("POST", config.Settings.RagServer.Url+"/upload", body)
+	endpoint := "/upload"
+	if detectSensitive {
+		endpoint = "/upload_sensitive_detection"
+	}
+
+	req, err := http.NewRequest("POST", config.Settings.RagServer.Url+endpoint, body)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}

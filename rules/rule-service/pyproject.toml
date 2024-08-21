@@ -24,6 +24,10 @@ pypdf2 = "^3.0.1"
 python-docx = "^1.1.2"
 pydantic-settings = "^2.4.0"
 sqlalchemy = "^2.0.32"
+sentence-transformers = "^3.0.1"
+einops = "^0.8.0"
+langchain = "^0.2.14"
+langchain-text-splitters = "^0.2.2"
 
 
 [build-system]

@@ -2,25 +2,27 @@ import os
 import nltk
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from langchain.text_splitter import NLTKTextSplitter
 from pydantic_settings import BaseSettings
 import logging
 from transformers import AutoModel, AutoTokenizer
 import torch
 import torch.nn.functional as F
-import psycopg2
-from psycopg2.extras import execute_values
-from typing import List
-from nltk.tokenize import sent_tokenize, word_tokenize
-import PyPDF2
-import docx
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import PyPDF2
+import docx
+from typing import List
+from sentence_transformers import SentenceTransformer
+import joblib
+from huggingface_hub import hf_hub_download
 
 # Download NLTK data
 nltk.download('punkt')
 nltk.download('punkt_tab')
+
 
 # Environment variables and settings
 class Settings(BaseSettings):
@@ -30,6 +32,7 @@ class Settings(BaseSettings):
     DB_USER: str = "vectoruser"
     DB_PASS: str = "vectorpass123"
     CHUNK_SIZE: int = 100
+    CHUNK_OVERLAP: int = 10
     MODEL_PATH: str = "Alibaba-NLP/gte-base-en-v1.5"
 
     class Config:
@@ -45,14 +48,39 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI()
 
-# Initialize model and tokenizer
+# Initialize models and tokenizers
 tokenizer = AutoTokenizer.from_pretrained(settings.MODEL_PATH)
 model = AutoModel.from_pretrained(settings.MODEL_PATH, trust_remote_code=True)
+
+
+# PIIDetectorWithML class
+class PIIDetectorWithML:
+    def __init__(self):
+        print("Loading embedding model...")
+        embed_model_id = "nomic-ai/nomic-embed-text-v1"
+        self.model = SentenceTransformer(model_name_or_path=embed_model_id, trust_remote_code=True)
+        print("Loading classifier model...")
+        REPO_ID = "Intel/business_safety_logistic_regression_classifier"
+        FILENAME = "lr_clf.joblib"
+        self.clf = joblib.load(hf_hub_download(repo_id=REPO_ID, filename=FILENAME))
+        print("ML detector instantiated successfully!")
+
+    def detect_pii(self, text):
+        print("Scanning text with ML detector...")
+        embeddings = self.model.encode(text, convert_to_tensor=True).reshape(1, -1).cpu()
+        predictions = self.clf.predict(embeddings)
+        return True if predictions[0] == 1 else False
+
+
+# Initialize PIIDetectorWithML
+pii_detector = PIIDetectorWithML()
+
 # SQLAlchemy setup
 DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASS}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
 
 # Define SQLAlchemy model
 class DocumentEmbedding(Base):
@@ -63,8 +91,10 @@ class DocumentEmbedding(Base):
     chunk_text = Column(Text)
     embedding = Column(ARRAY(Float))
 
+
 # Create tables
 Base.metadata.create_all(bind=engine)
+
 
 # Database connection
 def get_db():
@@ -74,33 +104,11 @@ def get_db():
     finally:
         db.close()
 
-# Function to create chunks
-def create_chunks(text: str, chunk_size: int) -> List[str]:
-    sentences = sent_tokenize(text)
-    chunks = []
-    current_chunk = []
-    current_chunk_size = 0
-
-    for sentence in sentences:
-        words = word_tokenize(sentence)
-        if current_chunk_size + len(words) <= chunk_size:
-            current_chunk.extend(words)
-            current_chunk_size += len(words)
-        else:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = words
-            current_chunk_size = len(words)
-
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-
-    return chunks
-
 
 # Function to create embeddings
-def create_embeddings(chunks: List[str]):
+def create_embeddings(texts: List[str]):
     try:
-        batch_dict = tokenizer(chunks, max_length=8192, padding=True, truncation=True, return_tensors='pt')
+        batch_dict = tokenizer(texts, max_length=8192, padding=True, truncation=True, return_tensors='pt')
         with torch.no_grad():
             outputs = model(**batch_dict)
         embeddings = outputs.last_hidden_state[:, 0]
@@ -135,14 +143,59 @@ def extract_text(file: UploadFile) -> str:
         raise HTTPException(status_code=400, detail=f"Error extracting text from file: {str(e)}")
 
 
+@app.post("/upload_sensitive_detection")
+async def upload_sensitive_detection(file: UploadFile = File(...)):
+    try:
+        # Extract text from file
+        text = extract_text(file)
+
+        # Split the text into sentences
+        sentences = nltk.sent_tokenize(text)
+
+        # Detect sensitive data
+        sensitive_sentences = [sentence for sentence in sentences if pii_detector.detect_pii(sentence)]
+
+        if sensitive_sentences:
+            logger.info(f"Detected {len(sensitive_sentences)} sensitive sentences in the file")
+
+            # Create embeddings only for sensitive sentences
+            embeddings = create_embeddings(sensitive_sentences)
+
+            # Store in database
+            db = next(get_db())
+
+            # Insert data
+            for sentence, embedding in zip(sensitive_sentences, embeddings):
+                db_embedding = DocumentEmbedding(
+                    filename=file.filename,
+                    chunk_text=sentence,
+                    embedding=embedding
+                )
+                db.add(db_embedding)
+
+            db.commit()
+
+            return JSONResponse(content={
+                "message": f"File processed. {len(sensitive_sentences)} sensitive sentences detected and stored in the database",
+                "sensitive_sentences": sensitive_sentences
+            })
+        else:
+            return JSONResponse(content={"message": "No sensitive data detected in the file"})
+
+    except Exception as e:
+        logger.error(f"Error processing file: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     try:
         # Extract text from file
         text = extract_text(file)
 
-        # Create chunks
-        chunks = create_chunks(text, settings.CHUNK_SIZE)
+        # Create chunks using NLTKTextSplitter
+        text_splitter = NLTKTextSplitter(chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
+        chunks = text_splitter.split_text(text)
         logger.info(f"Created {len(chunks)} chunks")
 
         # Create embeddings
@@ -168,6 +221,7 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error processing file: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn
