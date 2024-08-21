@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -188,6 +189,27 @@ func uploadFile(filePath string, detectSensitive bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to copy file content: %v", err)
 	}
+
+	// Add API settings to the request
+	apiSettings := map[string]interface{}{
+		"database_url": config.Settings.RagServer.Database.URI,
+	}
+
+	if !detectSensitive {
+		apiSettings["chunk_size"] = config.Settings.RagServer.Chunking.Size
+		apiSettings["chunk_overlap"] = config.Settings.RagServer.Chunking.Overlap
+	}
+
+	apiSettingsJson, err := json.Marshal(apiSettings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal API settings: %v", err)
+	}
+
+	err = writer.WriteField("api_settings", string(apiSettingsJson))
+	if err != nil {
+		return fmt.Errorf("failed to write API settings field: %v", err)
+	}
+
 	err = writer.Close()
 	if err != nil {
 		return fmt.Errorf("failed to close multipart writer: %v", err)
@@ -211,13 +233,13 @@ func uploadFile(filePath string, detectSensitive bool) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, string(respBody))
 	}
 
 	fmt.Printf("Response from server: %s\n", respBody)

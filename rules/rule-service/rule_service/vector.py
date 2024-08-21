@@ -1,9 +1,10 @@
+import json
 import os
 import nltk
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.responses import JSONResponse
 from langchain.text_splitter import NLTKTextSplitter
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel
 import logging
 from transformers import AutoModel, AutoTokenizer
 import torch
@@ -14,7 +15,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import PyPDF2
 import docx
-from typing import List
+from typing import List, Optional
 from sentence_transformers import SentenceTransformer
 import joblib
 from huggingface_hub import hf_hub_download
@@ -25,14 +26,14 @@ nltk.download('punkt_tab')
 
 
 # Environment variables and settings
-class Settings(BaseSettings):
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 5432
-    DB_NAME: str = "vectordb"
-    DB_USER: str = "vectoruser"
-    DB_PASS: str = "vectorpass123"
-    CHUNK_SIZE: int = 100
-    CHUNK_OVERLAP: int = 10
+# Pydantic model for API input
+class APISettings(BaseModel):
+    database_url: str
+    chunk_size: Optional[int] = None
+    chunk_overlap: Optional[int] = None
+
+# Environment variables and settings
+class Settings(BaseModel):
     MODEL_PATH: str = "Alibaba-NLP/gte-base-en-v1.5"
 
     class Config:
@@ -76,9 +77,6 @@ class PIIDetectorWithML:
 pii_detector = PIIDetectorWithML()
 
 # SQLAlchemy setup
-DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASS}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
@@ -92,12 +90,16 @@ class DocumentEmbedding(Base):
     embedding = Column(ARRAY(Float))
 
 
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 
 # Database connection
-def get_db():
+def get_db(api_settings: APISettings):
+    engine = create_engine(api_settings.database_url)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    # Create tables
+    Base.metadata.create_all(bind=engine)
+
     db = SessionLocal()
     try:
         yield db
@@ -144,8 +146,10 @@ def extract_text(file: UploadFile) -> str:
 
 
 @app.post("/upload_sensitive_detection")
-async def upload_sensitive_detection(file: UploadFile = File(...)):
+async def upload_sensitive_detection(file: UploadFile = File(...), api_settings: str = Form(...)):
     try:
+        settings = APISettings(**json.loads(api_settings))
+
         # Extract text from file
         text = extract_text(file)
 
@@ -162,7 +166,7 @@ async def upload_sensitive_detection(file: UploadFile = File(...)):
             embeddings = create_embeddings(sensitive_sentences)
 
             # Store in database
-            db = next(get_db())
+            db = next(get_db(settings))
 
             # Insert data
             for sentence, embedding in zip(sensitive_sentences, embeddings):
@@ -188,13 +192,15 @@ async def upload_sensitive_detection(file: UploadFile = File(...)):
 
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), api_settings: str = Form(...)):
     try:
+        settings = APISettings(**json.loads(api_settings))
+
         # Extract text from file
         text = extract_text(file)
 
         # Create chunks using NLTKTextSplitter
-        text_splitter = NLTKTextSplitter(chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
+        text_splitter = NLTKTextSplitter(chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap)
         chunks = text_splitter.split_text(text)
         logger.info(f"Created {len(chunks)} chunks")
 
@@ -203,7 +209,7 @@ async def upload_file(file: UploadFile = File(...)):
         logger.info(f"Created {len(embeddings)} embeddings")
 
         # Store in database
-        db = next(get_db())
+        db = next(get_db(settings))
 
         # Insert data
         for chunk, embedding in zip(chunks, embeddings):
