@@ -96,3 +96,10 @@ settings:
     url: http://localhost:8000
   usage_logging:
     enabled: false
+  rag_server:
+    url: http://localhost:8001
+    database:
+      uri: postgresql://vectoruser:vectorpass123@localhost:5432/vectordb
+    chunking:
+      size: 100
+      overlap: 10

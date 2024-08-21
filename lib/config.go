@@ -37,7 +37,9 @@ type Secrets struct {
 }
 
 type RagServer struct {
-	Url string `mapstructure:"url,default=http://localhost:8001"`
+	Url      string          `mapstructure:"url,default=http://localhost:8001"`
+	Database *DatabaseConfig `mapstructure:"database"`
+	Chunking *ChunkingConfig `mapstructure:"chunking"`
 }
 
 // Setting can include various configurations like database, cache, and different logging types
@@ -79,6 +81,11 @@ type Network struct {
 // DatabaseConfig holds configuration for the database
 type DatabaseConfig struct {
 	URI string `mapstructure:"uri"`
+}
+
+type ChunkingConfig struct {
+	Size    int `mapstructure:"size"`
+	Overlap int `mapstructure:"overlap"`
 }
 
 // CacheConfig holds configuration for cache settings
