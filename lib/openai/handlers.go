@@ -14,14 +14,15 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-var client *openai.Client
-
 const OSCacheStatusHeader = "OS-Cache-Status"
 
 func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
-	client = openai.NewClient(openAIAPIKey)
+	openAIBaseURL := config.Providers.OpenAI.BaseUrl
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
 
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
@@ -35,13 +36,20 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Cache miss for %v", cacheStatus)
 	res, err := client.ListModels(r.Context())
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
 	handleModelResponse(w, r, res, err)
 }
 
 func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
-	client = openai.NewClient(openAIAPIKey)
+	openAIBaseURL := config.Providers.OpenAI.BaseUrl
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
 
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
@@ -56,12 +64,17 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Cache miss for %v", cacheStatus)
 	modelName := chi.URLParam(r, "model")
 	res, err := client.GetModel(r.Context(), modelName)
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
 	handleModelResponse(w, r, res, err)
 }
 
 func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
+	openAIBaseURL := config.Providers.OpenAI.BaseUrl
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -83,9 +96,9 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Stream {
-		handleStreamingRequest(w, r, req, openAIAPIKey)
+		handleStreamingRequest(w, r, req, openAIAPIKey, openAIBaseURL)
 	} else {
-		handleNonStreamingRequest(w, r, body, req, config, openAIAPIKey)
+		handleNonStreamingRequest(w, r, body, req, config, openAIAPIKey, openAIBaseURL)
 	}
 }
 
@@ -94,7 +107,7 @@ func performAuditLogging(r *http.Request, body []byte) {
 	lib.AuditLogs(string(body), "openai_chat_completion", apiKeyId, "input", r)
 }
 
-func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []byte, req openai.ChatCompletionRequest, config lib.Configuration, openAIAPIKey string) {
+func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []byte, req openai.ChatCompletionRequest, config lib.Configuration, openAIAPIKey string, openAIBaseURL string) {
 	getCache, cacheStatus, err := lib.GetCache(string(body))
 	if err != nil {
 		log.Printf("Error getting cache: %v", err)
@@ -105,7 +118,9 @@ func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []by
 		return
 	}
 
-	client := openai.NewClient(openAIAPIKey)
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
 	resp, err := client.CreateChatCompletion(r.Context(), req)
 	if err != nil {
 		handleError(w, fmt.Errorf("failed to create chat completion: %v", err), http.StatusInternalServerError)
@@ -131,8 +146,10 @@ func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []by
 	json.NewEncoder(w).Encode(resp)
 }
 
-func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.ChatCompletionRequest, openAIAPIKey string) {
-	client := openai.NewClient(openAIAPIKey)
+func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.ChatCompletionRequest, openAIAPIKey string, openAIBaseURL string) {
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
 	stream, err := client.CreateChatCompletionStream(r.Context(), req)
 	if err != nil {
 		handleError(w, fmt.Errorf("failed to create chat completion stream: %v", err), http.StatusInternalServerError)

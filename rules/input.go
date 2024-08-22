@@ -174,7 +174,7 @@ func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, s
 	return false, "", nil
 }
 
-func Input(r *http.Request, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
+func Input(_ *http.Request, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
 	config := lib.GetConfig()
 
 	log.Println("Starting Input function")
