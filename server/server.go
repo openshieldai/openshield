@@ -126,7 +126,7 @@ func StartServer() error {
 	g.Go(func() error {
 		addr := fmt.Sprintf(":%d", config.Settings.Network.Port)
 		fmt.Printf("Server is starting on %s...\n", addr)
-		return http.ListenAndServe(addr, router)
+		return http.ListenAndServeTLS(addr, "cert.pem", "key.pem", router)
 	})
 
 	// Handle graceful shutdown
