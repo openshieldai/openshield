@@ -81,12 +81,13 @@ func sendRequest(data Rule) (RuleResult, error) {
 }
 
 func extractUserPrompt(userPrompt openai.ChatCompletionRequest) (string, int, error) {
+	fmt.Printf("Extracting user prompt from %+v\n", userPrompt)
 	for i, message := range userPrompt.Messages {
 		if message.Role == "user" {
 			return message.Content, i, nil
 		}
 	}
-	return "", -1, fmt.Errorf("no user message found in the request")
+	return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
 }
 
 func handleRule(inputConfig lib.Rule, userPrompt openai.ChatCompletionRequest, ruleType string) (bool, string, error) {
@@ -129,7 +130,7 @@ func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, st
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to invalid characters detection.")
-			return true, "request blocked due to rule match", nil
+			return true, `{"message": "request blocked due to rule match"}`, nil
 		}
 		log.Println("Monitoring request due to invalid characters detection.")
 	}
@@ -165,7 +166,7 @@ func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, s
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to prompt injection detection.")
-			return true, "request blocked due to rule match", nil
+			return true, `{"message": "request blocked due to rule match"}`, nil
 		}
 		log.Println("Monitoring request due to prompt injection detection.")
 	}
