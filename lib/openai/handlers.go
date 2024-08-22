@@ -16,13 +16,17 @@ import (
 
 const OSCacheStatusHeader = "OS-Cache-Status"
 
-func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
+func initializeOpenAIClient() *openai.Client {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
 	openAIBaseURL := config.Providers.OpenAI.BaseUrl
 	c := openai.DefaultConfig(openAIAPIKey)
 	c.BaseURL = openAIBaseURL
-	client := openai.NewClientWithConfig(c)
+	return openai.NewClientWithConfig(c)
+}
+
+func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
+	client := initializeOpenAIClient()
 
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
@@ -44,12 +48,7 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetModelHandler(w http.ResponseWriter, r *http.Request) {
-	config := lib.GetConfig()
-	openAIAPIKey := config.Secrets.OpenAIApiKey
-	openAIBaseURL := config.Providers.OpenAI.BaseUrl
-	c := openai.DefaultConfig(openAIAPIKey)
-	c.BaseURL = openAIBaseURL
-	client := openai.NewClientWithConfig(c)
+	client := initializeOpenAIClient()
 
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
