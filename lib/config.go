@@ -24,10 +24,15 @@ type Configuration struct {
 	Providers Providers `mapstructure:"providers"`
 }
 
+type ProviderOpenAI struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"base_url"`
+}
+
 // Providers section contains all the providers
 type Providers struct {
-	OpenAI      *FeatureToggle `mapstructure:"openai"`
-	HuggingFace *FeatureToggle `mapstructure:"huggingface"`
+	OpenAI      *ProviderOpenAI `mapstructure:"openai"`
+	HuggingFace *FeatureToggle  `mapstructure:"huggingface"`
 }
 
 // Secrets section contains all the secrets
@@ -55,9 +60,8 @@ type RuleServer struct {
 
 type RateLimiting struct {
 	*FeatureToggle
-	Window     int `mapstructure:"window"`
-	Max        int `mapstructure:"max"`
-	Expiration int `mapstructure:"expiration"`
+	Window int `mapstructure:"window"`
+	Max    int `mapstructure:"max"`
 }
 
 // RedisConfig holds configuration for the redis cache
@@ -73,7 +77,8 @@ type Network struct {
 
 // DatabaseConfig holds configuration for the database
 type DatabaseConfig struct {
-	URI string `mapstructure:"uri"`
+	URI           string `mapstructure:"uri"`
+	AutoMigration bool   `mapstructure:"auto_migration,default=false"`
 }
 
 // CacheConfig holds configuration for cache settings
@@ -128,6 +133,7 @@ func init() {
 
 	viperCfg.AddConfigPath(configDir)
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viperCfg.SetDefault("providers.openai.base_url", "https://api.openai.com/v1")
 
 	err = viperCfg.ReadInConfig()
 	if err != nil {

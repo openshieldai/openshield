@@ -86,7 +86,6 @@ settings:
     port: 10
   rate_limiting:
     enabled: true
-    expiration: 60
     max: 100
     window: 60
   redis:
