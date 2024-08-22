@@ -190,9 +190,8 @@ func uploadFile(filePath string, detectSensitive bool) error {
 		return fmt.Errorf("failed to copy file content: %v", err)
 	}
 
-	// Add API settings to the request
 	apiSettings := map[string]interface{}{
-		"database_url": config.Settings.RagServer.Database.URI,
+		"database_url": config.Settings.Database.URI,
 	}
 
 	if !detectSensitive {

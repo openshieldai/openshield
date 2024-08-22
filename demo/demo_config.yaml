@@ -2,7 +2,7 @@ settings:
   network:
       port: 3005
   database:
-      uri: "postgres://postgres:openshield@postgres:5432/postgres"
+      uri: "postgresql://postgres:openshield@postgres:5432/postgres"
       auto_migration: true
   redis:
       uri: "redis://redis:6379/0"
@@ -21,6 +21,11 @@ settings:
       enabled: true
   rule_server:
        url: "http://ruleserver:8000"
+  rag_server:
+        url: "http://ragserver:8001"
+        chunking:
+          size: 100
+          overlap: 10
 
 providers:
   openai:

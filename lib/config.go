@@ -38,7 +38,6 @@ type Secrets struct {
 
 type RagServer struct {
 	Url      string          `mapstructure:"url,default=http://localhost:8001"`
-	Database *DatabaseConfig `mapstructure:"database"`
 	Chunking *ChunkingConfig `mapstructure:"chunking"`
 }
 
