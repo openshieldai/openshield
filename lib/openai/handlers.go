@@ -104,6 +104,7 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 	if filtered {
 		performAuditLogging(r, "rule", "filtered", logMessage)
+		handleError(w, fmt.Errorf(message), http.StatusBadRequest)
 		return
 	}
 
