@@ -21,12 +21,18 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 			return
 		}
 
+		ipAddress, err := KeyByRealIP(r)
+		if err != nil {
+			log.Printf("Error getting IP: %v", err)
+			return
+		}
+
 		auditLog := models.AuditLogs{
 			Message:     minifiedMessage,
 			Type:        logType,
 			MessageType: messageType,
 			ApiKeyID:    apiKeyID,
-			IPAddress:   getIPAddress(r),
+			IPAddress:   ipAddress,
 			RequestId:   getRequestID(r),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -38,17 +44,6 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 		log.Println("Audit log is disabled")
 		return
 	}
-}
-
-func getIPAddress(r *http.Request) string {
-	ip := r.Header.Get("X-Real-IP")
-	if ip == "" {
-		ip = r.Header.Get("X-Forwarded-For")
-	}
-	if ip == "" {
-		ip = r.RemoteAddr
-	}
-	return ip
 }
 
 func minifyJSON(jsonStr string) (string, error) {
