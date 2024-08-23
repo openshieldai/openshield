@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
-	github.com/go-chi/httprate v0.12.1
+	github.com/go-chi/httprate v0.13.1
 	github.com/go-chi/httprate-redis v0.5.1
 	github.com/go-faker/faker/v4 v4.4.2
 	github.com/gofiber/fiber/v2 v2.52.5
