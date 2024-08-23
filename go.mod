@@ -8,13 +8,13 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
-	github.com/go-chi/httprate v0.12.1
+	github.com/go-chi/httprate v0.13.1
 	github.com/go-chi/httprate-redis v0.5.1
 	github.com/go-faker/faker/v4 v4.4.2
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.6.1
-	github.com/sashabaranov/go-openai v1.28.2
+	github.com/sashabaranov/go-openai v1.28.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
