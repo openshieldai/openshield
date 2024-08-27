@@ -178,6 +178,9 @@ func init() {
 func GetConfig() Configuration {
 	return AppConfig
 }
+func SetConfig(config Configuration) {
+	AppConfig = config
+}
 func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
