@@ -113,7 +113,7 @@ func setupRoute(r chi.Router, routeSettings lib.RouteSettings) {
 	r.Use(httprate.Limit(
 		routeSettings.RateLimit.Max,
 		time.Duration(routeSettings.RateLimit.Window),
-		httprate.WithKeyByRealIP(),
+		lib.WithKeyByRealIP(),
 		httprateredis.WithRedisLimitCounter(&httprateredis.Config{
 			Client: redisClient,
 		}),

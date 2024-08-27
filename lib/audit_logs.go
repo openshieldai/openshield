@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -13,12 +15,24 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 	config := GetConfig()
 
 	if config.Settings.AuditLogging.Enabled {
+		minifiedMessage, err := minifyJSON(message)
+		if err != nil {
+			log.Printf("Error minifying JSON: %v", err)
+			return
+		}
+
+		ipAddress, err := KeyByRealIP(r)
+		if err != nil {
+			log.Printf("Error getting IP: %v", err)
+			return
+		}
+
 		auditLog := models.AuditLogs{
-			Message:     message,
+			Message:     minifiedMessage,
 			Type:        logType,
 			MessageType: messageType,
 			ApiKeyID:    apiKeyID,
-			IPAddress:   getIPAddress(r),
+			IPAddress:   ipAddress,
 			RequestId:   getRequestID(r),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -32,15 +46,12 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 	}
 }
 
-func getIPAddress(r *http.Request) string {
-	ip := r.Header.Get("X-Real-IP")
-	if ip == "" {
-		ip = r.Header.Get("X-Forwarded-For")
+func minifyJSON(jsonStr string) (string, error) {
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, []byte(jsonStr)); err != nil {
+		return "", err
 	}
-	if ip == "" {
-		ip = r.RemoteAddr
-	}
-	return ip
+	return buf.String(), nil
 }
 
 func getRequestID(r *http.Request) string {
