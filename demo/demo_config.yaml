@@ -14,7 +14,6 @@ settings:
       enabled: true
       max: 100
       window: 60
-      expiration: 60
   audit_logging:
       enabled: true
   usage_logging:

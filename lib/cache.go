@@ -15,7 +15,7 @@ import (
 
 var redisClient *redis.Client
 
-func initRedisClient(config *Configuration) {
+func InitRedisClient(config *Configuration) {
 	var redisTlsCfg *tls.Config
 	if config.Settings.Redis.SSL {
 		redisTlsCfg = &tls.Config{
@@ -44,7 +44,7 @@ func GetCache(key string) ([]byte, bool, error) {
 	config := GetConfig()
 
 	if redisClient == nil {
-		initRedisClient(&config)
+		InitRedisClient(&config)
 	}
 
 	if config.Settings.Cache.Enabled {
@@ -71,7 +71,7 @@ func SetCache(key string, value interface{}) error {
 	config := GetConfig()
 
 	if redisClient == nil {
-		initRedisClient(&config)
+		InitRedisClient(&config)
 	}
 
 	if config.Settings.Cache.Enabled {

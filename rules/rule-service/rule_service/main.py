@@ -47,10 +47,16 @@ async def execute_plugin(rule: Rule):
 
     handler = getattr(plugin_module, 'handler')
 
-    user_message = next((msg.content for msg in rule.prompt.messages if msg.role == 'user'), None)
-    if user_message is None:
-        raise HTTPException(status_code=400, detail="No user message found in the prompt")
+    prompt_user_messages = []
 
+    for msg in rule.prompt.messages:
+        if msg.role == 'user':
+            message = msg.content
+            prompt_user_messages.append(message)
+            if message is None:
+                raise HTTPException(status_code=400, detail="No user message found in the prompt")
+
+    user_message = ''.join((str(x) for x in prompt_user_messages))
     threshold = rule.config.Threshold
     plugin_result = handler(user_message, threshold, rule.config.model_dump())
 
@@ -79,6 +85,7 @@ async def execute_plugin(rule: Rule):
     logger.debug(f"API response: {response}")
 
     return response
+
 
 
 if __name__ == "__main__":

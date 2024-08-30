@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,14 +15,19 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-var client *openai.Client
-
 const OSCacheStatusHeader = "OS-Cache-Status"
 
-func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
+func initializeOpenAIClient() *openai.Client {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
-	client = openai.NewClient(openAIAPIKey)
+	openAIBaseURL := config.Providers.OpenAI.BaseUrl
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	return openai.NewClientWithConfig(c)
+}
+
+func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
+	client := initializeOpenAIClient()
 
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
@@ -35,13 +41,15 @@ func ListModelsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Cache miss for %v", cacheStatus)
 	res, err := client.ListModels(r.Context())
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
 	handleModelResponse(w, r, res, err)
 }
 
 func GetModelHandler(w http.ResponseWriter, r *http.Request) {
-	config := lib.GetConfig()
-	openAIAPIKey := config.Secrets.OpenAIApiKey
-	client = openai.NewClient(openAIAPIKey)
+	client := initializeOpenAIClient()
 
 	getCache, cacheStatus, err := lib.GetCache(r.URL.Path)
 	if err != nil {
@@ -56,12 +64,17 @@ func GetModelHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Cache miss for %v", cacheStatus)
 	modelName := chi.URLParam(r, "model")
 	res, err := client.GetModel(r.Context(), modelName)
+	if err != nil {
+		lib.ErrorResponse(w, err)
+		return
+	}
 	handleModelResponse(w, r, res, err)
 }
 
 func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	config := lib.GetConfig()
 	openAIAPIKey := config.Secrets.OpenAIApiKey
+	openAIBaseURL := config.Providers.OpenAI.BaseUrl
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -75,26 +88,39 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	performAuditLogging(r, body)
+	performAuditLogging(r, "openai_chat_completion", "input", body)
 
-	if filtered, errorMessage, _ := rules.Input(r, req); filtered {
-		handleError(w, fmt.Errorf(errorMessage), http.StatusBadRequest)
+	filtered, message, errorMessage := rules.Input(r, req)
+	if errorMessage != nil {
+		handleError(w, fmt.Errorf("error processing input: %v", errorMessage), http.StatusBadRequest)
+		return
+	}
+
+	logMessage, err := json.Marshal(message)
+	if err != nil {
+		handleError(w, fmt.Errorf("error marshalling message: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if filtered {
+		performAuditLogging(r, "rule", "filtered", logMessage)
+		handleError(w, fmt.Errorf(message), http.StatusBadRequest)
 		return
 	}
 
 	if req.Stream {
-		handleStreamingRequest(w, r, req, openAIAPIKey)
+		handleStreamingRequest(w, r, req, openAIAPIKey, openAIBaseURL)
 	} else {
-		handleNonStreamingRequest(w, r, body, req, config, openAIAPIKey)
+		handleNonStreamingRequest(w, r, body, req, config, openAIAPIKey, openAIBaseURL)
 	}
 }
 
-func performAuditLogging(r *http.Request, body []byte) {
+func performAuditLogging(r *http.Request, logType string, messageType string, body []byte) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
-	lib.AuditLogs(string(body), "openai_chat_completion", apiKeyId, "input", r)
+	lib.AuditLogs(string(body), logType, apiKeyId, messageType, r)
 }
 
-func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []byte, req openai.ChatCompletionRequest, config lib.Configuration, openAIAPIKey string) {
+func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []byte, req openai.ChatCompletionRequest, config lib.Configuration, openAIAPIKey string, openAIBaseURL string) {
 	getCache, cacheStatus, err := lib.GetCache(string(body))
 	if err != nil {
 		log.Printf("Error getting cache: %v", err)
@@ -105,7 +131,9 @@ func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []by
 		return
 	}
 
-	client := openai.NewClient(openAIAPIKey)
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
 	resp, err := client.CreateChatCompletion(r.Context(), req)
 	if err != nil {
 		handleError(w, fmt.Errorf("failed to create chat completion: %v", err), http.StatusInternalServerError)
@@ -131,8 +159,10 @@ func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []by
 	json.NewEncoder(w).Encode(resp)
 }
 
-func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.ChatCompletionRequest, openAIAPIKey string) {
-	client := openai.NewClient(openAIAPIKey)
+func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.ChatCompletionRequest, openAIAPIKey string, openAIBaseURL string) {
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
 	stream, err := client.CreateChatCompletionStream(r.Context(), req)
 	if err != nil {
 		handleError(w, fmt.Errorf("failed to create chat completion stream: %v", err), http.StatusInternalServerError)
@@ -150,18 +180,20 @@ func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.C
 		return
 	}
 
+	var buffer bytes.Buffer
+
 	for {
 		response, err := stream.Recv()
 		if err == io.EOF {
-			fmt.Fprintf(w, "data: [DONE]\n\n")
+			buffer.WriteString("data: [DONE]\n\n")
 			flusher.Flush()
-			return
+			break
 		}
 		if err != nil {
 			log.Printf("Error receiving stream: %v", err)
-			fmt.Fprintf(w, "data: {\"error\": \"%v\"}\n\n", err)
+			buffer.WriteString(fmt.Sprintf("data: {\"error\": \"%v\"}\n\n", err))
 			flusher.Flush()
-			return
+			break
 		}
 		if len(response.Choices) > 0 && response.Choices[0].Delta.Content != "" {
 			data, err := json.Marshal(response)
@@ -169,9 +201,19 @@ func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.C
 				log.Printf("Error marshaling response: %v", err)
 				continue
 			}
-			fmt.Fprintf(w, "data: %s\n\n", string(data))
+			buffer.WriteString(fmt.Sprintf("data: %s\n\n", string(data)))
 			flusher.Flush()
 		}
+	}
+
+	// Write the full output to the response
+	fmt.Fprint(w, buffer.String())
+	flusher.Flush()
+
+	// Perform response audit logging
+	var resp openai.ChatCompletionResponse
+	if err := json.Unmarshal(buffer.Bytes(), &resp); err == nil {
+		performResponseAuditLogging(r, resp)
 	}
 }
 
@@ -211,5 +253,8 @@ func handleModelResponse(w http.ResponseWriter, r *http.Request, res interface{}
 		w.Header().Set(OSCacheStatusHeader, "BYPASS")
 	}
 
-	json.NewEncoder(w).Encode(res)
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		return
+	}
 }

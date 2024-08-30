@@ -62,7 +62,7 @@ func TestInput(t *testing.T) {
 				},
 			},
 			expectedBlock: true,
-			errorMessage:  "English probability too low",
+			errorMessage:  `{"message": "request blocked due to rule match", "rule_type": "language_detection"}`,
 		},
 		{
 			name: "PII Filter",
@@ -85,7 +85,7 @@ func TestInput(t *testing.T) {
 				},
 			},
 			expectedBlock: true,
-			errorMessage:  "request blocked due to PII detection",
+			errorMessage:  `{"message": "request blocked due to rule match", "rule_type": "pii_data"}`,
 		},
 		{
 			name: "Prompt Injection - Safe Input",
@@ -231,7 +231,7 @@ func assertTestCase(t *testing.T, tc struct {
 		assert.Equal(t, tc.errorMessage, errorMessage)
 	}
 
-	if tc.name == "English Detection - Non-English Input" {
+	if tc.name == `{"message": "request blocked due to rule match", "rule_type": "language_detection"}` {
 		assert.Error(t, err)
 	} else {
 		assert.NoError(t, err)

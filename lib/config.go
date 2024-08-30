@@ -24,10 +24,15 @@ type Configuration struct {
 	Providers Providers `mapstructure:"providers"`
 }
 
+type ProviderOpenAI struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"base_url"`
+}
+
 // Providers section contains all the providers
 type Providers struct {
-	OpenAI      *FeatureToggle `mapstructure:"openai"`
-	HuggingFace *FeatureToggle `mapstructure:"huggingface"`
+	OpenAI      *ProviderOpenAI `mapstructure:"openai"`
+	HuggingFace *FeatureToggle  `mapstructure:"huggingface"`
 }
 
 // Secrets section contains all the secrets
@@ -61,9 +66,8 @@ type RuleServer struct {
 
 type RateLimiting struct {
 	*FeatureToggle
-	Window     int `mapstructure:"window"`
-	Max        int `mapstructure:"max"`
-	Expiration int `mapstructure:"expiration"`
+	Window int `mapstructure:"window"`
+	Max    int `mapstructure:"max"`
 }
 
 // RedisConfig holds configuration for the redis cache
@@ -79,7 +83,8 @@ type Network struct {
 
 // DatabaseConfig holds configuration for the database
 type DatabaseConfig struct {
-	URI string `mapstructure:"uri"`
+	URI           string `mapstructure:"uri"`
+	AutoMigration bool   `mapstructure:"auto_migration,default=false"`
 }
 
 type ChunkingConfig struct {
@@ -132,17 +137,22 @@ func init() {
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
 
-	configDir, err := findConfigPath()
-	if err != nil {
-		panic(err)
+	if os.Getenv("NONVIPER_CONFIG") != "true" {
+		configDir, err := findConfigPath()
+		if err != nil {
+			print(os.Getenv("NONVIPER_CONFIG"))
+			panic(err)
+		}
+
+		viperCfg.AddConfigPath(configDir)
 	}
-
-	viperCfg.AddConfigPath(configDir)
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	err = viperCfg.ReadInConfig()
-	if err != nil {
-		panic(err)
+	viperCfg.SetDefault("providers.openai.base_url", "https://api.openai.com/v1")
+	if os.Getenv("NONVIPER_CONFIG") != "true" {
+		err := viperCfg.ReadInConfig()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if viperCfg.Get("providers.openai.enabled") == true && os.Getenv("ENV") != "test" {
@@ -165,7 +175,7 @@ func init() {
 		}
 	}
 
-	err = viperCfg.Unmarshal(&AppConfig)
+	err := viperCfg.Unmarshal(&AppConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -182,6 +192,9 @@ func init() {
 
 func GetConfig() Configuration {
 	return AppConfig
+}
+func SetConfig(config Configuration) {
+	AppConfig = config
 }
 func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
