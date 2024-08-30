@@ -41,6 +41,8 @@ github.com/go-chi/httprate v0.14.1 h1:EKZHYEZ58Cg6hWcYzoZILsv7ppb46Wt4uQ738IRtpZ
 github.com/go-chi/httprate v0.14.1/go.mod h1:TUepLXaz/pCjmCtf/obgOQJ2Sz6rC8fSf5cAt5cnTt0=
 github.com/go-chi/httprate-redis v0.5.1 h1:DPDn+RDKL8T3umI1bG9PZ9OXl21icGr2/jWKXQuxg+c=
 github.com/go-chi/httprate-redis v0.5.1/go.mod h1:T87bMjtnKTLnj4OutHNaLz4bYR6hV9RNmsq3s0a3oZc=
+github.com/go-chi/httprate-redis v0.5.2 h1:Guel5o38pKaQVjtpGHYhyl2I3Pi62mVUyUji5YTYXxI=
+github.com/go-chi/httprate-redis v0.5.2/go.mod h1:T87bMjtnKTLnj4OutHNaLz4bYR6hV9RNmsq3s0a3oZc=
 github.com/go-faker/faker/v4 v4.4.2 h1:96WeU9QKEqRUVYdjHquY2/5bAqmVM0IfGKHV5mbfqmQ=
 github.com/go-faker/faker/v4 v4.4.2/go.mod h1:4K3v4AbKXYNHMQNaREMc9/kRB9j5JJzpFo6KHRvrcIw=
 github.com/go-faker/faker/v4 v4.5.0 h1:ARzAY2XoOL9tOUK+KSecUQzyXQsUaZHefjyF8x6YFHc=
