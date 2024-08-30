@@ -25,7 +25,6 @@ nltk.download('punkt')
 nltk.download('punkt_tab')
 
 
-# Environment variables and settings
 # Pydantic model for API input
 class APISettings(BaseModel):
     database_url: str
