@@ -41,6 +41,11 @@ type Secrets struct {
 	HuggingFaceAPIKey string `mapstructure:"huggingface_api_key"`
 }
 
+type RagServer struct {
+	Url      string          `mapstructure:"url,default=http://localhost:8001"`
+	Chunking *ChunkingConfig `mapstructure:"chunking"`
+}
+
 // Setting can include various configurations like database, cache, and different logging types
 type Setting struct {
 	Redis               *RedisConfig    `mapstructure:"redis"`
@@ -51,6 +56,7 @@ type Setting struct {
 	Network             *Network        `mapstructure:"network"`
 	RateLimit           *RateLimiting   `mapstructure:"rate_limiting"`
 	RuleServer          *RuleServer     `mapstructure:"rule_server"`
+	RagServer           *RagServer      `mapstructure:"rag_server"`
 	EnglishDetectionURL string          `mapstructure:"english_detection_url"`
 }
 
@@ -79,6 +85,11 @@ type Network struct {
 type DatabaseConfig struct {
 	URI           string `mapstructure:"uri"`
 	AutoMigration bool   `mapstructure:"auto_migration,default=false"`
+}
+
+type ChunkingConfig struct {
+	Size    int `mapstructure:"size"`
+	Overlap int `mapstructure:"overlap"`
 }
 
 // CacheConfig holds configuration for cache settings

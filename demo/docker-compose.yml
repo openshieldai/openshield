@@ -15,6 +15,7 @@ services:
       - redis
       - postgres
     volumes:
+      - ./data:/app/data
       - ./demo_config.yaml:/app/config.yaml
     depends_on:
       postgres:
@@ -24,7 +25,10 @@ services:
     build:
       context: ../rules/rule-service
       dockerfile: Dockerfile
-
+  ragserver:
+    build:
+      context: ../rag
+      dockerfile: Dockerfile
   redis:
     image: "valkey/valkey:7.2.6-alpine"
     restart: always
@@ -32,7 +36,7 @@ services:
       - "6381:6379"
 
   postgres:
-    image: postgres
+    image: pgvector/pgvector:pg16
     restart: always
     environment:
       POSTGRES_PASSWORD: openshield

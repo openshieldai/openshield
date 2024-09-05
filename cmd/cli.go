@@ -1,9 +1,15 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -32,6 +38,25 @@ func init() {
 	configCmd.AddCommand(addRuleCmd)
 	configCmd.AddCommand(removeRuleCmd)
 	configCmd.AddCommand(configWizardCmd)
+	uploadFileCmd.Flags().BoolP("detectsensitive", "s", false, "Enable sensitive data detection")
+	rootCmd.AddCommand(uploadFileCmd)
+
+}
+
+var uploadFileCmd = &cobra.Command{
+	Use:   "upload-file [filepath]",
+	Short: "Upload a file to the Python endpoint",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		filePath := args[0]
+		detectSensitive, _ := cmd.Flags().GetBool("detectsensitive")
+		err := uploadFile(filePath, detectSensitive)
+		if err != nil {
+			fmt.Printf("Error uploading file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("File uploaded successfully")
+	},
 }
 
 var dbCmd = &cobra.Command{
@@ -143,5 +168,79 @@ func stopServer() error {
 		fmt.Println("No confirmation received, but signal was sent")
 	}
 
+	return nil
+}
+func uploadFile(filePath string, detectSensitive bool) error {
+	config := lib.GetConfig()
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	if err != nil {
+		return fmt.Errorf("failed to create form file: %v", err)
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return fmt.Errorf("failed to copy file content: %v", err)
+	}
+
+	apiSettings := map[string]interface{}{
+		"database_url": config.Settings.Database.URI,
+	}
+
+	if !detectSensitive {
+		apiSettings["chunk_size"] = config.Settings.RagServer.Chunking.Size
+		apiSettings["chunk_overlap"] = config.Settings.RagServer.Chunking.Overlap
+	}
+
+	apiSettingsJson, err := json.Marshal(apiSettings)
+	if err != nil {
+		return fmt.Errorf("failed to marshal API settings: %v", err)
+	}
+
+	err = writer.WriteField("api_settings", string(apiSettingsJson))
+	if err != nil {
+		return fmt.Errorf("failed to write API settings field: %v", err)
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close multipart writer: %v", err)
+	}
+
+	endpoint := "/upload"
+	if detectSensitive {
+		endpoint = "/upload_sensitive_detection"
+	}
+
+	req, err := http.NewRequest("POST", config.Settings.RagServer.Url+endpoint, body)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, string(respBody))
+	}
+
+	fmt.Printf("Response from server: %s\n", respBody)
 	return nil
 }

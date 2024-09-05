@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "rag"
+version = "0.1.0"
+description = "rag service"
+authors = ["krichard1212 <richardkohegyi@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.112.1"
+uvicorn = "^0.30.6"
+pydantic = "^2.8.2"
+sqlalchemy = "^2.0.32"
+nltk = "^3.9.1"
+transformers = "^4.44.1"
+torch = "^2.4.0"
+sentence-transformers = "^3.0.1"
+joblib = "^1.4.2"
+huggingface-hub = "^0.24.6"
+pypdf2 = "^3.0.1"
+python-docx = "^1.1.2"
+langchain = "^0.2.14"
+einops = "^0.8.0"
+psycopg2-binary = "^2.9.9"
+
+
+[tool.poetry.group.dev.dependencies]
+python-multipart = "^0.0.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
