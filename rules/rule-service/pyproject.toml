@@ -8,7 +8,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-fastapi = "^0.113.0"
+fastapi = "^0.114.0"
 transformers = "^4.42.4"
 torch = "^2.3.1"
 rule-engine = "^4.5.0"
