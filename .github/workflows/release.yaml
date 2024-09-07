@@ -50,8 +50,8 @@ jobs:
           context: .
           platforms: linux/arm64,linux/amd64
           push: true
-          tags: ${{ steps.api.outputs.tags }}
-          labels: ${{ steps.api.outputs.labels }}
+          tags: ${{ steps.openshield.outputs.tags }}
+          labels: ${{ steps.openshield.outputs.labels }}
 
   rule-service-release:
     runs-on: ubuntu-latest
@@ -98,5 +98,5 @@ jobs:
           context: rules/rule-service
           platforms: linux/arm64,linux/amd64
           push: true
-          tags: ${{ steps.api.outputs.tags }}
-          labels: ${{ steps.api.outputs.labels }}
+          tags: ${{ steps.rule-service.outputs.tags }}
+          labels: ${{ steps.rule-service.outputs.labels }}
