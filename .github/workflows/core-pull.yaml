@@ -79,6 +79,6 @@ jobs:
         with:
           context: .
           platforms: linux/arm64,linux/amd64
-          push: true
+          push: false
           tags: ${{ steps.api.outputs.tags }}
           labels: ${{ steps.api.outputs.labels }}
