@@ -95,7 +95,7 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: rules/rule-service
           platforms: linux/arm64,linux/amd64
           push: true
           tags: ${{ steps.api.outputs.tags }}
