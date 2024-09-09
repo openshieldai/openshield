@@ -19,4 +19,5 @@ type AuditLogs struct {
 	MessageType string          `gorm:"message_type;<-:create;not null"`
 	Type        string          `gorm:"log_type;<-:create;not null"`
 	Metadata    string          `gorm:"metadata;<-:create;not null"`
+	ProductID   uuid.UUID       `gorm:"product_id;type:uuid; not null"`
 }

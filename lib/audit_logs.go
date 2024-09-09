@@ -11,7 +11,7 @@ import (
 	"github.com/openshieldai/openshield/models"
 )
 
-func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, r *http.Request) {
+func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, productID uuid.UUID, r *http.Request) {
 	config := GetConfig()
 
 	if config.Settings.AuditLogging.Enabled {
@@ -34,6 +34,7 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 			ApiKeyID:    apiKeyID,
 			IPAddress:   ipAddress,
 			RequestId:   getRequestID(r),
+			ProductID:   productID,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
