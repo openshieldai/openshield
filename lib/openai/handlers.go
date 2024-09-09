@@ -118,14 +118,13 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 func performAuditLogging(r *http.Request, logType string, messageType string, body []byte) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
-	lib.AuditLogs(string(body), logType, apiKeyId, messageType, r)
+
 	productID, err := getProductIDFromAPIKey(apiKeyId)
 	if err != nil {
 		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
 		return
 	}
-
-	lib.AuditLogs(string(body), "openai_chat_completion", apiKeyId, "input", productID, r)
+	lib.AuditLogs(string(body), logType, apiKeyId, messageType, productID, r)
 
 }
 func getProductIDFromAPIKey(apiKeyId uuid.UUID) (uuid.UUID, error) {
