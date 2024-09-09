@@ -2,6 +2,7 @@ package openai
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -103,7 +104,28 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 func performAuditLogging(r *http.Request, body []byte) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
-	lib.AuditLogs(string(body), "openai_chat_completion", apiKeyId, "input", r)
+	productID, err := getProductIDFromAPIKey(apiKeyId)
+	if err != nil {
+		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
+		return
+	}
+
+	lib.AuditLogs(string(body), "openai_chat_completion", apiKeyId, "input", productID, r)
+
+}
+func getProductIDFromAPIKey(apiKeyId uuid.UUID) (uuid.UUID, error) {
+	var productIDStr string
+	err := lib.DB().Table("api_keys").Where("id = ?", apiKeyId).Pluck("product_id", &productIDStr).Error
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	productID, err := uuid.Parse(productIDStr)
+	if err != nil {
+		return uuid.Nil, errors.New("failed to parse product_id as UUID")
+	}
+
+	return productID, nil
 }
 
 func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []byte, req openai.ChatCompletionRequest, config lib.Configuration, openAIAPIKey string, openAIBaseURL string) {
@@ -193,9 +215,15 @@ func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.C
 
 func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResponse) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
+	productID, err := getProductIDFromAPIKey(apiKeyId)
 	responseJSON, _ := json.Marshal(resp)
-	lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "output", r)
-	lib.Usage(resp.Model, 0, resp.Usage.TotalTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens, string(resp.Choices[0].FinishReason), "chat_completion")
+	if err != nil {
+		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
+		return
+	}
+
+	lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "input", productID, r)
+	lib.Usage(resp.Model, 0, resp.Usage.TotalTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens, string(resp.Choices[0].FinishReason), "chat_completion", productID)
 }
 
 func handleError(w http.ResponseWriter, err error, statusCode int) {
