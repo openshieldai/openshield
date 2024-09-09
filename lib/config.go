@@ -105,7 +105,7 @@ type Rule struct {
 // Config holds the configuration specifics of a filter
 type Config struct {
 	PluginName string      `mapstructure:"plugin_name"`
-	Threshold  int         `mapstructure:"threshold,omitempty,default=0.5"`
+	Threshold  float64     `mapstructure:"threshold,omitempty,default=0.5"`
 	Url        string      `mapstructure:"url,omitempty"`
 	ApiKey     string      `mapstructure:"api_key,omitempty"`
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
