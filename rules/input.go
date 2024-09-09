@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/openshieldai/openshield/lib"
 	"github.com/sashabaranov/go-openai"
@@ -64,9 +65,14 @@ func sendRequest(data Rule) (RuleResult, error) {
 	if err != nil {
 		return RuleResult{}, fmt.Errorf("failed to send request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}(resp.Body)
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return RuleResult{}, fmt.Errorf("failed to read response body: %v", err)
 	}
@@ -81,13 +87,24 @@ func sendRequest(data Rule) (RuleResult, error) {
 }
 
 func extractUserPrompt(userPrompt openai.ChatCompletionRequest) (string, int, error) {
-	fmt.Printf("Extracting user prompt from %+v\n", userPrompt)
+	var userMessages []string
+	var firstUserMessageIndex int = -1
+
 	for i, message := range userPrompt.Messages {
 		if message.Role == "user" {
-			return message.Content, i, nil
+			if firstUserMessageIndex == -1 {
+				firstUserMessageIndex = i
+			}
+			userMessages = append(userMessages, message.Content)
 		}
 	}
-	return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
+
+	if firstUserMessageIndex == -1 {
+		return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
+	}
+
+	concatenatedMessages := strings.Join(userMessages, " ")
+	return concatenatedMessages, firstUserMessageIndex, nil
 }
 
 func handleRule(inputConfig lib.Rule, userPrompt openai.ChatCompletionRequest, ruleType string) (bool, string, error) {
@@ -130,7 +147,7 @@ func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, st
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to invalid characters detection.")
-			return true, `{"message": "request blocked due to rule match"}`, nil
+			return true, `{"message": "request blocked due to rule match", "rule_type": "invisible_chars"}`, nil
 		}
 		log.Println("Monitoring request due to invalid characters detection.")
 	}
@@ -141,7 +158,7 @@ func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, st
 func handleLanguageDetectionAction(rule RuleResult) (bool, string, error) {
 	if !rule.Match {
 		log.Printf("English probability too low: %.4f", rule.Inspection.Score)
-		return true, fmt.Sprintf("English probability too low: %.4f", rule.Inspection.Score), fmt.Errorf("english probability too low: %.4f", rule.Inspection.Score)
+		return true, `{"message": "request blocked due to rule match", "rule_type": "language_detection"}`, nil
 	}
 	log.Printf("Language Detection: English probability above threshold (%.4f)", rule.Inspection.Score)
 	return false, "", nil
@@ -153,7 +170,7 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, userPrompt ope
 		userPrompt.Messages[userMessageIndex].Content = rule.Inspection.AnonymizedContent
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to PII detection.")
-			return true, "request blocked due to PII detection", nil
+			return true, `{"message": "request blocked due to rule match", "rule_type": "pii_data"}`, nil
 		}
 		log.Println("Monitoring request due to PII detection.")
 	} else {
@@ -166,7 +183,7 @@ func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, s
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to prompt injection detection.")
-			return true, `{"message": "request blocked due to rule match"}`, nil
+			return true, `{"message": "request blocked due to rule match", "rule_type": "prompt_injection"}`, nil
 		}
 		log.Println("Monitoring request due to prompt injection detection.")
 	}
