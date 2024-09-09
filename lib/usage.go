@@ -1,11 +1,12 @@
 package lib
 
 import (
+	"github.com/google/uuid"
 	"github.com/openshieldai/openshield/models"
 	"log"
 )
 
-func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string) {
+func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string, productID uuid.UUID) {
 	config := GetConfig()
 
 	if config.Settings.UsageLogging.Enabled {
@@ -23,6 +24,7 @@ func Usage(modelName string, predictedTokensCount int, promptTokensCount int, co
 			TotalTokens:          totalTokens,
 			FinishReason:         models.FinishReason(finishReason),
 			RequestType:          requestType,
+			ProductID:            productID,
 		}
 		db := DB()
 		db.Create(&usage)
