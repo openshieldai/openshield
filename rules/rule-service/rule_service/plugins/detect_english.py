@@ -6,7 +6,7 @@ from typing import Dict, Any
 
 def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
     api_key = os.getenv("HUGGINGFACE_API_KEY")
-    url = config.get('url')
+    url = config.get('Url')
 
     if not url:
         raise ValueError("English detection URL not set in configuration")
