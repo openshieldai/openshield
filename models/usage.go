@@ -21,4 +21,5 @@ type Usage struct {
 	TotalTokens          int          `gorm:"total_tokens;<-:create;not null"`
 	FinishReason         FinishReason `faker:"finishreason" gorm:"finish_reason;<-:create;not null"`
 	RequestType          string       `gorm:"request_type;<-:create;not null"`
+	ProductID            uuid.UUID    `gorm:"product_id;type:uuid; not null"`
 }
