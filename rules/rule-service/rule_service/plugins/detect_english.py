@@ -1,9 +1,11 @@
+import os
+
 import requests
 from typing import Dict, Any
 
 
 def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
-    api_key = config.get('ApiKey')
+    api_key = os.getenv("HUGGINGFACE_API_KEY")
     url = config.get('Url')
 
     if not url:
