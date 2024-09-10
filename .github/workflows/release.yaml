@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'release/*'
+      - 'v*'
 jobs:
   core-release:
     runs-on: ubuntu-latest
