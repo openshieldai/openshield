@@ -21,8 +21,8 @@ type InputTypes struct {
 }
 
 type Rule struct {
-	Prompt openai.ChatCompletionRequest `json:"prompt"`
-	Config lib.Config                   `json:"config"`
+	Prompt interface{} `json:"prompt"`
+	Config lib.Config  `json:"config"`
 }
 
 type RuleInspection struct {
@@ -86,63 +86,6 @@ func sendRequest(data Rule) (RuleResult, error) {
 	return rule, nil
 }
 
-func extractUserPrompt(userPrompt openai.ChatCompletionRequest) (string, int, error) {
-	var userMessages []string
-	var firstUserMessageIndex int = -1
-
-	for i, message := range userPrompt.Messages {
-		if message.Role == "user" {
-			if firstUserMessageIndex == -1 {
-				firstUserMessageIndex = i
-			}
-			userMessages = append(userMessages, message.Content)
-		}
-	}
-
-	if firstUserMessageIndex == -1 {
-		return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
-	}
-
-	concatenatedMessages := strings.Join(userMessages, " ")
-	return concatenatedMessages, firstUserMessageIndex, nil
-}
-
-func handleRule(inputConfig lib.Rule, userPrompt openai.ChatCompletionRequest, ruleType string) (bool, string, error) {
-	if !inputConfig.Enabled {
-		return false, "", nil
-	}
-
-	log.Printf("%s check enabled", ruleType)
-	extractedPrompt, userMessageIndex, err := extractUserPrompt(userPrompt)
-	if err != nil {
-		log.Println(err)
-		return true, err.Error(), err
-	}
-	log.Printf("Extracted prompt for %s: %s", ruleType, extractedPrompt)
-
-	data := Rule{Prompt: userPrompt, Config: inputConfig.Config}
-	rule, err := sendRequest(data)
-	if err != nil {
-		return true, err.Error(), err
-	}
-
-	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
-
-	switch ruleType {
-	case inputTypes.InvisibleChars:
-		return handleInvisibleCharsAction(inputConfig, rule)
-	case inputTypes.LanguageDetection:
-		return handleLanguageDetectionAction(rule)
-	case inputTypes.PIIFilter:
-		return handlePIIFilterAction(inputConfig, rule, userPrompt, userMessageIndex)
-	case inputTypes.PromptInjection:
-		return handlePromptInjectionAction(inputConfig, rule)
-	default:
-		log.Printf("%s Rule Not Matched", ruleType)
-		return false, "", nil
-	}
-}
-
 func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
@@ -164,21 +107,6 @@ func handleLanguageDetectionAction(rule RuleResult) (bool, string, error) {
 	return false, "", nil
 }
 
-func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, userPrompt openai.ChatCompletionRequest, userMessageIndex int) (bool, string, error) {
-	if rule.Inspection.CheckResult {
-		log.Println("PII detected, anonymizing content")
-		userPrompt.Messages[userMessageIndex].Content = rule.Inspection.AnonymizedContent
-		if inputConfig.Action.Type == "block" {
-			log.Println("Blocking request due to PII detection.")
-			return true, `{"message": "request blocked due to rule match", "rule_type": "pii_data"}`, nil
-		}
-		log.Println("Monitoring request due to PII detection.")
-	} else {
-		log.Println("No PII detected")
-	}
-	return false, "", nil
-}
-
 func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
@@ -191,7 +119,31 @@ func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, s
 	return false, "", nil
 }
 
-func Input(_ *http.Request, userPrompt openai.ChatCompletionRequest) (bool, string, error) {
+func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages interface{}, userMessageIndex int) (bool, string, error) {
+	if rule.Inspection.CheckResult {
+		log.Println("PII detected, anonymizing content")
+
+		switch msg := messages.(type) {
+		case []openai.ChatCompletionMessage:
+			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
+		case []openai.ThreadMessage:
+			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
+		default:
+			return true, "Invalid message type", fmt.Errorf("unsupported message type")
+		}
+
+		if inputConfig.Action.Type == "block" {
+			log.Println("Blocking request due to PII detection.")
+			return true, `{"message": "request blocked due to rule match", "rule_type": "pii_data"}`, nil
+		}
+		log.Println("Monitoring request due to PII detection.")
+	} else {
+		log.Println("No PII detected")
+	}
+	return false, "", nil
+}
+
+func Input(_ *http.Request, request interface{}) (bool, string, error) {
 	config := lib.GetConfig()
 
 	log.Println("Starting Input function")
@@ -200,23 +152,7 @@ func Input(_ *http.Request, userPrompt openai.ChatCompletionRequest) (bool, stri
 		inputConfig := config.Rules.Input[input]
 		log.Printf("Processing input rule: %s", inputConfig.Type)
 
-		var blocked bool
-		var message string
-		var err error
-
-		switch inputConfig.Type {
-		case inputTypes.InvisibleChars:
-			blocked, message, err = handleRule(inputConfig, userPrompt, inputTypes.InvisibleChars)
-		case inputTypes.LanguageDetection:
-			blocked, message, err = handleRule(inputConfig, userPrompt, inputTypes.LanguageDetection)
-		case inputTypes.PIIFilter:
-			blocked, message, err = handleRule(inputConfig, userPrompt, inputTypes.PIIFilter)
-		case inputTypes.PromptInjection:
-			blocked, message, err = handleRule(inputConfig, userPrompt, inputTypes.PromptInjection)
-		default:
-			log.Printf("ERROR: Invalid input filter type %s", inputConfig.Type)
-		}
-
+		blocked, message, err := handleRule(inputConfig, request, inputConfig.Type)
 		if blocked {
 			return blocked, message, err
 		}
@@ -224,4 +160,116 @@ func Input(_ *http.Request, userPrompt openai.ChatCompletionRequest) (bool, stri
 
 	log.Println("Final result: No rules matched, request is not blocked")
 	return false, "request is not blocked", nil
+}
+func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (bool, string, error) {
+	if !inputConfig.Enabled {
+		return false, "", nil
+	}
+
+	log.Printf("%s check enabled", ruleType)
+
+	var extractedPrompt string
+	var userMessageIndex int
+	var err error
+	var messages interface{}
+
+	switch req := request.(type) {
+	case openai.ChatCompletionRequest:
+		extractedPrompt, userMessageIndex, err = extractUserPromptFromChat(req.Messages)
+		messages = req.Messages
+	case openai.ThreadRequest:
+		extractedPrompt, userMessageIndex, err = extractUserPromptFromThread(req.Messages)
+		if extractedPrompt == "" {
+			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
+			return false, "", nil
+		}
+		messages = req.Messages
+	case openai.MessageRequest:
+		extractedPrompt, userMessageIndex, err = extractUserPromptFromMessage(req)
+		messages = req
+	default:
+		return true, "Invalid request type", fmt.Errorf("unsupported request type")
+	}
+	if err != nil {
+		log.Println(err)
+		return true, err.Error(), err
+	}
+	log.Printf("Extracted prompt for %s: %s", ruleType, extractedPrompt)
+
+	data := Rule{Prompt: request, Config: inputConfig.Config}
+	rule, err := sendRequest(data)
+	if err != nil {
+		return true, err.Error(), err
+	}
+
+	log.Printf("Rule result for %s: %+v", ruleType, rule)
+
+	return handleRuleAction(inputConfig, rule, ruleType, messages, userMessageIndex)
+}
+
+func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, messages interface{}, userMessageIndex int) (bool, string, error) {
+	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
+
+	switch ruleType {
+	case inputTypes.InvisibleChars:
+		return handleInvisibleCharsAction(inputConfig, rule)
+	case inputTypes.LanguageDetection:
+		return handleLanguageDetectionAction(rule)
+	case inputTypes.PIIFilter:
+		return handlePIIFilterAction(inputConfig, rule, messages, userMessageIndex)
+	case inputTypes.PromptInjection:
+		return handlePromptInjectionAction(inputConfig, rule)
+	default:
+		log.Printf("%s Rule Not Matched", ruleType)
+		return false, "", nil
+	}
+}
+
+func extractUserPromptFromChat(messages []openai.ChatCompletionMessage) (string, int, error) {
+	var userMessages []string
+	var firstUserMessageIndex int = -1
+
+	for i, message := range messages {
+		if message.Role == "user" {
+			if firstUserMessageIndex == -1 {
+				firstUserMessageIndex = i
+			}
+			userMessages = append(userMessages, message.Content)
+		}
+	}
+
+	if firstUserMessageIndex == -1 {
+		return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
+	}
+
+	concatenatedMessages := strings.Join(userMessages, " ")
+	return concatenatedMessages, firstUserMessageIndex, nil
+}
+
+func extractUserPromptFromThread(messages []openai.ThreadMessage) (string, int, error) {
+	var userMessages []string
+	var firstUserMessageIndex int = -1
+
+	for i, message := range messages {
+		if message.Role == "user" {
+			if firstUserMessageIndex == -1 {
+				firstUserMessageIndex = i
+			}
+			userMessages = append(userMessages, message.Content)
+		}
+	}
+
+	if firstUserMessageIndex == -1 {
+		log.Println("No user message found in the ThreadRequest, continuing processing other rules.")
+		return "", -1, nil
+	}
+
+	concatenatedMessages := strings.Join(userMessages, " ")
+	return concatenatedMessages, firstUserMessageIndex, nil
+}
+func extractUserPromptFromMessage(message openai.MessageRequest) (string, int, error) {
+	if message.Role == "user" {
+		return message.Content, 0, nil
+	}
+	return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
 }
