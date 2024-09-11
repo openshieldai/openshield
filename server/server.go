@@ -85,9 +85,11 @@ func StartServer() error {
 func setupOpenAIRoutes(r chi.Router) {
 	routeSettings, _ := lib.GetRouteSettings()
 	routes := map[string]lib.RouteSettings{
-		"/openai/v1/models":           routeSettings,
-		"/openai/v1/models/{model}":   routeSettings,
-		"/openai/v1/chat/completions": routeSettings,
+		"/openai/v1/models":              routeSettings,
+		"/openai/v1/models/{model}":      routeSettings,
+		"/openai/v1/chat/completions":    routeSettings,
+		"/openai/v1/threads":             routeSettings,
+		"/openai/v1/threads/{thread_id}": routeSettings,
 	}
 
 	for _, routeSettings := range routes {
@@ -97,6 +99,15 @@ func setupOpenAIRoutes(r chi.Router) {
 		r.Get("/models", lib.AuthOpenShieldMiddleware(openai.ListModelsHandler))
 		r.Get("/models/{model}", lib.AuthOpenShieldMiddleware(openai.GetModelHandler))
 		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(openai.ChatCompletionHandler))
+		r.Post("/threads", lib.AuthOpenShieldMiddleware(openai.CreateThreadHandler))
+		r.Get("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.GetThreadHandler))
+		r.Post("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.ModifyThreadHandler))
+		r.Delete("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.DeleteThreadHandler))
+		r.Post("/threads/{thread_id}/messages", lib.AuthOpenShieldMiddleware(openai.CreateMessageHandler))
+		r.Get("/threads/{thread_id}/messages", lib.AuthOpenShieldMiddleware(openai.ListMessagesHandler))
+		r.Get("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveMessageHandler))
+		r.Post("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.ModifyMessageHandler))
+		r.Delete("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.DeleteMessageHandler))
 	})
 }
 
