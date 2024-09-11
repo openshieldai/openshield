@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string, productID uuid.UUID) {
+func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string, productID uuid.UUID, auditLogID uuid.UUID) {
 	config := GetConfig()
 
 	if config.Settings.UsageLogging.Enabled {
@@ -25,6 +25,7 @@ func Usage(modelName string, predictedTokensCount int, promptTokensCount int, co
 			FinishReason:         models.FinishReason(finishReason),
 			RequestType:          requestType,
 			ProductID:            productID,
+			AuditLogID:           auditLogID,
 		}
 		db := DB()
 		db.Create(&usage)
