@@ -22,4 +22,5 @@ type Usage struct {
 	FinishReason         FinishReason `faker:"finishreason" gorm:"finish_reason;<-:create;not null"`
 	RequestType          string       `gorm:"request_type;<-:create;not null"`
 	ProductID            uuid.UUID    `gorm:"product_id;type:uuid; not null"`
+	AuditLogID           uuid.UUID    `gorm:"type:uuid;not null"`
 }

@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"
 	"time"
@@ -11,20 +12,20 @@ import (
 	"github.com/openshieldai/openshield/models"
 )
 
-func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, productID uuid.UUID, r *http.Request) {
+func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType string, productID uuid.UUID, r *http.Request) *models.AuditLogs {
 	config := GetConfig()
 
 	if config.Settings.AuditLogging.Enabled {
 		minifiedMessage, err := minifyJSON(message)
 		if err != nil {
 			log.Printf("Error minifying JSON: %v", err)
-			return
+			return nil
 		}
 
 		ipAddress, err := KeyByRealIP(r)
 		if err != nil {
 			log.Printf("Error getting IP: %v", err)
-			return
+			return nil
 		}
 
 		auditLog := models.AuditLogs{
@@ -40,10 +41,16 @@ func AuditLogs(message string, logType string, apiKeyID uuid.UUID, messageType s
 		}
 
 		db := DB()
-		db.Create(&auditLog)
+		result := db.Create(&auditLog)
+		if result.Error != nil {
+			log.Printf("Error creating audit log: %v", result.Error)
+			return nil
+		}
+
+		return &auditLog
 	} else {
 		log.Println("Audit log is disabled")
-		return
+		return nil
 	}
 }
 
@@ -56,9 +63,9 @@ func minifyJSON(jsonStr string) (string, error) {
 }
 
 func getRequestID(r *http.Request) string {
-	requestID := r.Context().Value("requestid")
-	if requestID != nil {
-		return requestID.(string)
+	requestID := middleware.GetReqID(r.Context())
+	if requestID != "" {
+		return requestID
 	}
 	return ""
 }

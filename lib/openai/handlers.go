@@ -579,14 +579,35 @@ func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.C
 func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResponse) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
 	productID, err := getProductIDFromAPIKey(apiKeyId)
-	responseJSON, _ := json.Marshal(resp)
 	if err != nil {
 		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
 		return
 	}
 
-	lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "input", productID, r)
-	lib.Usage(resp.Model, 0, resp.Usage.TotalTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens, string(resp.Choices[0].FinishReason), "chat_completion", productID)
+	responseJSON, err := json.Marshal(resp)
+	if err != nil {
+		log.Printf("Failed to marshal response: %v", err)
+		return
+	}
+
+	auditLog := lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "input", productID, r)
+
+	if auditLog == nil {
+		log.Printf("Failed to create audit log")
+		return
+	}
+
+	lib.Usage(
+		resp.Model,
+		0,
+		resp.Usage.PromptTokens,
+		resp.Usage.CompletionTokens,
+		resp.Usage.TotalTokens,
+		string(resp.Choices[0].FinishReason),
+		"chat_completion",
+		productID,
+		auditLog.Id,
+	)
 }
 
 func handleError(w http.ResponseWriter, err error, statusCode int) {
