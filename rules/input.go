@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/openshieldai/openshield/lib"
-	"github.com/sashabaranov/go-openai"
 )
 
 type InputTypes struct {

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/openshieldai/openshield/lib"
-	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
 )
 
