@@ -105,7 +105,7 @@ async def execute_plugin(rule: Rule):
     logger.debug(f"Rule engine result: match={match}")
 
     response = {"match": match, "inspection": plugin_result}
-    logger.debug(f"API response: {response}")
+    logger.debug(f"Plugin Name: {plugin_name} API response: {response}")
 
     return response
 
