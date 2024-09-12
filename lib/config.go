@@ -127,7 +127,7 @@ func init() {
 	viperCfg.SetConfigName("config")
 	viperCfg.SetConfigType("yaml")
 
-	if os.Getenv("NONVIPER_CONFIG") != "true" {
+	if strings.ToLower(os.Getenv("NONVIPER_CONFIG")) != "true" {
 		configDir, err := findConfigPath()
 		if err != nil {
 			print(os.Getenv("NONVIPER_CONFIG"))
@@ -138,7 +138,7 @@ func init() {
 	}
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viperCfg.SetDefault("providers.openai.base_url", "https://api.openai.com/v1")
-	if os.Getenv("NONVIPER_CONFIG") != "true" {
+	if strings.ToLower(os.Getenv("NONVIPER_CONFIG")) != "true" {
 		err := viperCfg.ReadInConfig()
 		if err != nil {
 			panic(err)

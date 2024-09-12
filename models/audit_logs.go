@@ -9,7 +9,7 @@ import (
 
 type AuditLogs struct {
 	Id          uuid.UUID       `gorm:"id;<-:create;type:uuid;default:gen_random_uuid();primaryKey;not null"`
-	RequestId   string          `gorm:"request_id;<-:create;not null;default:'59b36c2a-c563-4e3d-b196-3641d3dadc97'"`
+	RequestId   string          `gorm:"request_id;<-:create;not null;"`
 	CreatedAt   time.Time       `gorm:"created_at;<-:create;default:now();not null"`
 	UpdatedAt   time.Time       `gorm:"updated_at;<-:create;default:now();not null"`
 	DeletedAt   *gorm.DeletedAt `gorm:"deleted_at;index"`
