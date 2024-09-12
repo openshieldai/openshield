@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/openshieldai/go-openai"
 	"io"
 	"log"
 	"net/http"
