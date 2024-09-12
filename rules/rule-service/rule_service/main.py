@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 import importlib
 import rule_engine
 import logging
@@ -16,8 +16,14 @@ class Message(BaseModel):
     content: str
 
 
+class Thread(BaseModel):
+    messages: List[Message]
+
+
 class Prompt(BaseModel):
     model: Optional[str] = None
+    assistant_id: Optional[str] = None
+    thread: Optional[Thread] = None
     messages: Optional[List[Message]] = None
     role: Optional[str] = None
     content: Optional[str] = None
@@ -38,6 +44,13 @@ class Rule(BaseModel):
 
 
 app = FastAPI()
+@app.middleware("http")
+async def log_request(request: Request, call_next):
+    logger.debug(f"Incoming request: {request.method} {request.url}")
+    logger.debug(f"Headers: {request.headers}")
+    logger.debug(f"Body: {await request.body()}")
+    response = await call_next(request)
+    return response
 
 
 @app.post("/rule/execute")
@@ -55,7 +68,15 @@ async def execute_plugin(rule: Rule):
 
     prompt_user_messages = []
 
-    if rule.prompt.messages:
+    if rule.prompt.thread and rule.prompt.thread.messages:
+        for msg in rule.prompt.thread.messages:
+            if msg.role == 'user':
+                message = msg.content
+                prompt_user_messages.append(message)
+                if message is None:
+                    logger.error("No user message found in the prompt")
+                    raise HTTPException(status_code=400, detail="No user message found in the prompt")
+    elif rule.prompt.messages:
         for msg in rule.prompt.messages:
             if msg.role == 'user':
                 message = msg.content

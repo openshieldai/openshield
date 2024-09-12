@@ -13,8 +13,8 @@ require (
 	github.com/go-faker/faker/v4 v4.5.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/google/uuid v1.6.0
+	github.com/openshieldai/go-openai v0.0.0-20240912174749-592876e040cf
 	github.com/redis/go-redis/v9 v9.6.1
-	github.com/sashabaranov/go-openai v1.29.2
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
