@@ -95,11 +95,12 @@ type Rules struct {
 
 // Rule defines a rule configuration
 type Rule struct {
-	Enabled bool   `mapstructure:"enabled,default=false"`
-	Name    string `mapstructure:"name"`
-	Type    string `mapstructure:"type"`
-	Config  Config `mapstructure:"config"`
-	Action  Action `mapstructure:"action"`
+	Enabled     bool   `mapstructure:"enabled,default=false"`
+	Name        string `mapstructure:"name"`
+	Type        string `mapstructure:"type"`
+	Config      Config `mapstructure:"config"`
+	Action      Action `mapstructure:"action"`
+	OrderNumber int    `mapstructure:"order_number"`
 }
 
 // Config holds the configuration specifics of a filter

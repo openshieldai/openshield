@@ -3,6 +3,7 @@ rules:
     - name: "language_detection"
       type: "language_detection"
       enabled: true
+      order_number: 1
       config:
         url: "https://api-inference.huggingface.co/models/papluca/xlm-roberta-base-language-detection"
         apikey: ""
@@ -11,6 +12,7 @@ rules:
     - name: "pii_example"
       type: "pii_filter"
       enabled: true
+      order_number: 2
       config:
         model_name: "value1"
         model_url: "value2"
@@ -53,6 +55,7 @@ rules:
       plugin_name: "prompt_injection_llm"
       threshold: 0.85
       enabled: true
+      order_number: 3
       config:
         plugin_name: "prompt_injection_llm"
         threshold: 0.85
