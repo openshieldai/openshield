@@ -185,7 +185,7 @@ func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (boo
 	case openai.ThreadRequest:
 		extractedPrompt, userMessageIndex, err = extractUserPromptFromThread(req.Messages)
 		if extractedPrompt == "" {
-			log.Printf("No user message found in the ThreadRequest, skipping rule %s", ruleType)
+			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
 			return false, "", nil
 		}
 		messages = req.Messages
