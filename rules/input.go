@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/openshieldai/openshield/lib"
@@ -148,9 +149,17 @@ func Input(_ *http.Request, request interface{}) (bool, string, error) {
 
 	log.Println("Starting Input function")
 
-	for input := range config.Rules.Input {
-		inputConfig := config.Rules.Input[input]
-		log.Printf("Processing input rule: %s", inputConfig.Type)
+	sort.Slice(config.Rules.Input, func(i, j int) bool {
+		return config.Rules.Input[i].OrderNumber < config.Rules.Input[j].OrderNumber
+	})
+
+	for _, inputConfig := range config.Rules.Input {
+		log.Printf("Processing input rule: %s (Order: %d)", inputConfig.Type, inputConfig.OrderNumber)
+
+		if !inputConfig.Enabled {
+			log.Printf("Rule %s is disabled, skipping", inputConfig.Type)
+			continue
+		}
 
 		blocked, message, err := handleRule(inputConfig, request, inputConfig.Type)
 		if blocked {
@@ -162,11 +171,7 @@ func Input(_ *http.Request, request interface{}) (bool, string, error) {
 	return false, "request is not blocked", nil
 }
 func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (bool, string, error) {
-	if !inputConfig.Enabled {
-		return false, "", nil
-	}
-
-	log.Printf("%s check enabled", ruleType)
+	log.Printf("%s check enabled (Order: %d)", ruleType, inputConfig.OrderNumber)
 
 	var extractedPrompt string
 	var userMessageIndex int

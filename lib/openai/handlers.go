@@ -590,7 +590,7 @@ func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResp
 		return
 	}
 
-	auditLog := lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "input", productID, r)
+	auditLog := lib.AuditLogs(string(responseJSON), "openai_chat_completion", apiKeyId, "output", productID, r)
 
 	if auditLog == nil {
 		log.Printf("Failed to create audit log")
