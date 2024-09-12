@@ -170,6 +170,7 @@ func Input(_ *http.Request, request interface{}) (bool, string, error) {
 	log.Println("Final result: No rules matched, request is not blocked")
 	return false, "request is not blocked", nil
 }
+
 func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (bool, string, error) {
 	log.Printf("%s check enabled (Order: %d)", ruleType, inputConfig.OrderNumber)
 
@@ -192,6 +193,13 @@ func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (boo
 	case openai.MessageRequest:
 		extractedPrompt, userMessageIndex, err = extractUserPromptFromMessage(req)
 		messages = req
+	case openai.CreateThreadAndRunRequest:
+		extractedPrompt, userMessageIndex, err = extractUserPromptFromCreateThreadAndRun(req)
+		if extractedPrompt == "" {
+			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
+			return false, "", nil
+		}
+		messages = req.Thread.Messages
 	default:
 		return true, "Invalid request type", fmt.Errorf("unsupported request type")
 	}
@@ -211,7 +219,12 @@ func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (boo
 
 	return handleRuleAction(inputConfig, rule, ruleType, messages, userMessageIndex)
 }
-
+func extractUserPromptFromCreateThreadAndRun(request openai.CreateThreadAndRunRequest) (string, int, error) {
+	if len(request.Thread.Messages) > 0 {
+		return extractUserPromptFromThread(request.Thread.Messages)
+	}
+	return "", -1, nil
+}
 func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, messages interface{}, userMessageIndex int) (bool, string, error) {
 	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
 

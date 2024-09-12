@@ -108,6 +108,24 @@ func setupOpenAIRoutes(r chi.Router) {
 		r.Get("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveMessageHandler))
 		r.Post("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.ModifyMessageHandler))
 		r.Delete("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.DeleteMessageHandler))
+		r.Post("/assistants", lib.AuthOpenShieldMiddleware(openai.CreateAssistantHandler))
+		r.Get("/assistants", lib.AuthOpenShieldMiddleware(openai.ListAssistantsHandler))
+		r.Get("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveAssistantHandler))
+		r.Post("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.ModifyAssistantHandler))
+		r.Delete("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.DeleteAssistantHandler))
+
+		// Run routes
+		r.Post("/threads/{thread_id}/runs", lib.AuthOpenShieldMiddleware(openai.CreateRunHandler))
+		r.Get("/threads/{thread_id}/runs", lib.AuthOpenShieldMiddleware(openai.ListRunsHandler))
+		r.Get("/threads/{thread_id}/runs/{run_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveRunHandler))
+		r.Post("/threads/{thread_id}/runs/{run_id}", lib.AuthOpenShieldMiddleware(openai.ModifyRunHandler))
+		r.Post("/threads/{thread_id}/runs/{run_id}/cancel", lib.AuthOpenShieldMiddleware(openai.CancelRunHandler))
+		r.Post("/threads/{thread_id}/runs/{run_id}/submit_tool_outputs", lib.AuthOpenShieldMiddleware(openai.SubmitToolOutputsHandler))
+		r.Post("/threads/runs", lib.AuthOpenShieldMiddleware(openai.CreateThreadAndRunHandler))
+
+		// Run Step routes
+		r.Get("/threads/{thread_id}/runs/{run_id}/steps", lib.AuthOpenShieldMiddleware(openai.ListRunStepsHandler))
+		r.Get("/threads/{thread_id}/runs/{run_id}/steps/{step_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveRunStepHandler))
 	})
 }
 
