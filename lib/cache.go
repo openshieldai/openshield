@@ -48,7 +48,8 @@ func GetCache(key string) ([]byte, bool, error) {
 	}
 
 	if config.Settings.Cache.Enabled {
-		hashedKey := hashKey(key)
+		cachePrefix := config.Settings.Cache.Prefix
+		hashedKey := cachePrefix + ":" + hashKey(key)
 
 		ctx := context.Background()
 		value, err := redisClient.Get(ctx, hashedKey).Bytes()
@@ -59,10 +60,9 @@ func GetCache(key string) ([]byte, bool, error) {
 			return nil, false, err
 		}
 
-		log.Printf("Cache hit: %s", string(value))
+		log.Printf("Cache hit: %s", hashedKey)
 		return value, true, nil
 	} else {
-		log.Println("Cache is disabled")
 		return nil, false, nil
 	}
 }
@@ -75,7 +75,8 @@ func SetCache(key string, value interface{}) error {
 	}
 
 	if config.Settings.Cache.Enabled {
-		hashedKey := hashKey(key)
+		cachePrefix := config.Settings.Cache.Prefix
+		hashedKey := cachePrefix + ":" + hashKey(key)
 
 		// Convert value to JSON if it's not already a []byte
 		var jsonValue []byte
@@ -98,7 +99,6 @@ func SetCache(key string, value interface{}) error {
 
 		return nil
 	} else {
-		log.Println("Cache is disabled")
 		return nil
 	}
 }

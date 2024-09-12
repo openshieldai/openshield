@@ -83,8 +83,9 @@ type DatabaseConfig struct {
 
 // CacheConfig holds configuration for cache settings
 type CacheConfig struct {
-	Enabled bool `mapstructure:"enabled,default=false"`
-	TTL     int  `mapstructure:"ttl,default=60"`
+	Enabled bool   `mapstructure:"enabled,default=false"`
+	TTL     int    `mapstructure:"ttl,default=60"`
+	Prefix  string `mapstructure:"prefix,default=openshield"`
 }
 
 // Rules section contains input and output rule configurations
