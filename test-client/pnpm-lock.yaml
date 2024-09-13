@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       openai:
-        specifier: 4.60.0
-        version: 4.60.0
+        specifier: 4.60.1
+        version: 4.60.1
     devDependencies:
       '@types/node':
         specifier: 20.16.5
@@ -139,8 +139,8 @@ packages:
     resolution: {integrity: sha512-IRZSRuzJiynemAXPYtPe5BoI/RESNYR7TYm50MC5Mqbd3Jmw5y790sErYw3V6SryFJD64b74qQQs9wn5Bg/k3g==}
     engines: {node: '>= 0.4'}
 
-  openai@4.60.0:
-    resolution: {integrity: sha512-U/wNmrUPdfsvU1GrKRP5mY5YHR3ev6vtdfNID6Sauz+oquWD8r+cXPL1xiUlYniosPKajy33muVHhGS/9/t6KA==}
+  openai@4.60.1:
+    resolution: {integrity: sha512-j7aZOpgN0MtflPgNaBlSnOyok4jwto0GVOxVC5g0jCfa0lvywYx+LhlFim/dXzPtyi8MjKozyLshSj93617vNQ==}
     hasBin: true
     peerDependencies:
       zod: ^3.23.8
@@ -298,7 +298,7 @@ snapshots:
 
   object-inspect@1.13.2: {}
 
-  openai@4.60.0:
+  openai@4.60.1:
     dependencies:
       '@types/node': 18.19.42
       '@types/node-fetch': 2.6.11
