@@ -26,7 +26,7 @@ services:
       dockerfile: Dockerfile
 
   redis:
-    image: "valkey/valkey:7.2.6-alpine"
+    image: "valkey/valkey:8.0.0-alpine"
     restart: always
     ports:
       - "6381:6379"
