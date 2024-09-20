@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       openai:
-        specifier: 4.62.1
-        version: 4.62.1
+        specifier: 4.63.0
+        version: 4.63.0
     devDependencies:
       '@types/node':
         specifier: 20.16.5
@@ -91,8 +91,8 @@ packages:
       encoding:
         optional: true
 
-  openai@4.62.1:
-    resolution: {integrity: sha512-Aa6i4oBR1tV8E2d2p3MvXg57X98i8gZtHq4bQNX274qLKZVX7PXXq5P1FMonTXOrX3zwvkqN1iNccn3XK3CwVg==}
+  openai@4.63.0:
+    resolution: {integrity: sha512-Y9V4KODbmrOpqiOmCDVnPfMxMqKLOx8Hwcdn/r8mePq4yv7FSXGnxCs8/jZKO7zCB/IVPWihpJXwJNAIOEiZ2g==}
     hasBin: true
     peerDependencies:
       zod: ^3.23.8
@@ -188,7 +188,7 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
-  openai@4.62.1:
+  openai@4.63.0:
     dependencies:
       '@types/node': 18.19.42
       '@types/node-fetch': 2.6.11
