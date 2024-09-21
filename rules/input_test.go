@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/stretchr/testify/assert"
 )

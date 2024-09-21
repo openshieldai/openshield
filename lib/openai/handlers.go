@@ -310,7 +310,7 @@ func ListMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	c.BaseURL = openAIBaseURL
 	client := openai.NewClientWithConfig(c)
 
-	resp, err := client.ListMessage(r.Context(), threadID, limitInt, orderStr, afterStr, beforeStr)
+	resp, err := client.ListMessage(r.Context(), threadID, limitInt, orderStr, afterStr, beforeStr, nil)
 	if err != nil {
 		handleError(w, fmt.Errorf("failed to list messages: %v", err), http.StatusInternalServerError)
 		return
