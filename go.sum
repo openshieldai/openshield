@@ -91,6 +91,8 @@ github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyua
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/openshieldai/go-openai v0.0.0-20240912174749-592876e040cf h1:IOcHMCXbrJVPtNVdrsaLfUBxfF5N/P990cCCNOcitNY=
 github.com/openshieldai/go-openai v0.0.0-20240912174749-592876e040cf/go.mod h1:eWSk17Eq8yg0xc6F5SvL7Kx8l0zsP9gMzdQuLKgWC/I=
+github.com/openshieldai/go-openai v1.30.3-stream h1:gt5EoAH7jL6MZVx7zYI2UtQ9hkYoz09a0eWM1SpOKoM=
+github.com/openshieldai/go-openai v1.30.3-stream/go.mod h1:eWSk17Eq8yg0xc6F5SvL7Kx8l0zsP9gMzdQuLKgWC/I=
 github.com/pelletier/go-toml/v2 v2.2.2 h1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=
 github.com/pelletier/go-toml/v2 v2.2.2/go.mod h1:1t835xjRzz80PqgE6HHgN2JOsmgYu/h4qDAS4n929Rs=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
