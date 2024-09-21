@@ -112,14 +112,14 @@ func TestChatCompletion(t *testing.T) {
 
 	// Mock the database operations for input audit log
 	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs" ("request_id","deleted_at","api_key_id","ip_address","message","message_type","type","metadata","created_at","updated_at","project_id") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "id","created_at","updated_at"`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs" ("request_id","deleted_at","api_key_id","ip_address","message","message_type","type","metadata","created_at","updated_at","product_id") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "id","created_at","updated_at"`)).
 		WithArgs(sqlmock.AnyArg(), nil, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "input", "openai_chat_completion", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(uuid.New(), time.Now(), time.Now()))
 	mock.ExpectCommit()
 
 	// Mock the database operations for output audit log
 	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs" ("request_id","deleted_at","api_key_id","ip_address","message","message_type","type","metadata","created_at","updated_at","project_id") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "id","created_at","updated_at"`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs" ("request_id","deleted_at","api_key_id","ip_address","message","message_type","type","metadata","created_at","updated_at","product_id") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING "id","created_at","updated_at"`)).
 		WithArgs(sqlmock.AnyArg(), nil, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "output", "openai_chat_completion", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(uuid.New(), time.Now(), time.Now()))
 	mock.ExpectCommit()
