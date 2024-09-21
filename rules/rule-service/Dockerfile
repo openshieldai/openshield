@@ -5,7 +5,7 @@
 # PYTHON-BASE
 # Sets up all our shared environment variables
 ################################
-FROM python:3.12.6-slim AS python-base
+FROM python:3.11-slim AS python-base
 
     # Python
 ENV PYTHONUNBUFFERED=1 \
