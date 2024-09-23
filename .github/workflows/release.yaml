@@ -6,7 +6,7 @@ on:
       - 'v*'
 jobs:
   core-release:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     steps:
       - name: Login to Github Packages
         uses: docker/login-action@v3
@@ -54,7 +54,7 @@ jobs:
           labels: ${{ steps.openshield.outputs.labels }}
 
   rule-service-release:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     steps:
       - name: Login to Github Packages
         uses: docker/login-action@v3
