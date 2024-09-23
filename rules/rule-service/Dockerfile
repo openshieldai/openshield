@@ -68,8 +68,9 @@ RUN --mount=type=cache,target=/root/.cache \
 WORKDIR /app
 COPY poetry.lock pyproject.toml ./
 # install runtime deps to $VIRTUAL_ENV
-RUN --mount=type=cache,target=/root/.cache \
-    poetry install --no-root --only main
+RUN poetry export -f requirements.txt > requirements.txt && \
+    python -m pip install -r requirements.txt
+
 #COPY scripts scripts/
 COPY rule_service/ rule_service/
 

@@ -1,7 +1,8 @@
 name: core-unit-test
 
 on:
-  pull_request:
+  pull_request_review:
+    types: [submitted]
     branches:
       - main
     paths:
@@ -12,8 +13,9 @@ on:
 
 jobs:
   core-unit-test:
+    if: github.event.review.state == 'approved'
     name: Core unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     strategy:
       matrix:
         go-version: [ '1.21', '1.22', '1.23' ]
@@ -36,7 +38,8 @@ jobs:
 
 
   core-docker-build:
-    runs-on: ubuntu-latest
+    if: github.event.review.state == 'approved'
+    runs-on: ubicloud-standard-2
     steps:
       - name: Login to Github Packages
         uses: docker/login-action@v3
