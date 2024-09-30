@@ -90,6 +90,49 @@ func sendRequest(data Rule) (RuleResult, error) {
 	return rule, nil
 }
 
+// func sendMultipleRuleRequests(data Rule) ([]RuleResult, error) {
+// 	ruleServers := []string{
+// 		lib.GetConfig().Settings.RuleServer.Url,
+// 		lib.GetConfig().Settings.ContextCache.URL,
+// 		// Add more rule server URLs as needed
+// 	}
+
+// 	var (
+// 		wg         sync.WaitGroup
+// 		mu         sync.Mutex
+// 		results    []RuleResult
+// 		firstError error
+// 	)
+
+// 	for _, url := range ruleServers {
+// 		wg.Add(1)
+// 		go func(serverURL string) {
+// 			defer wg.Done()
+// 			data.Config.URL = serverURL // Assuming Rule struct has a URL field
+// 			result, err := sendRequest(data)
+// 			if err != nil {
+// 				mu.Lock()
+// 				if firstError == nil {
+// 					firstError = err
+// 				}
+// 				mu.Unlock()
+// 				return
+// 			}
+// 			mu.Lock()
+// 			results = append(results, result)
+// 			mu.Unlock()
+// 		}(url)
+// 	}
+
+// 	wg.Wait()
+
+// 	if firstError != nil {
+// 		return nil, firstError
+// 	}
+
+// 	return results, nil
+// }
+
 func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
@@ -147,40 +190,69 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages inter
 	return false, `{"status": "non_blocked", "rule_type": "pii_filter"}`, nil
 }
 
-func Input(_ *http.Request, request interface{}) (bool, string, error) {
+func Input(r *http.Request, request interface{}) (bool, string, error) {
 	config := lib.GetConfig()
+
 	log.Println("Starting Input function")
 
 	sort.Slice(config.Rules.Input, func(i, j int) bool {
 		return config.Rules.Input[i].OrderNumber < config.Rules.Input[j].OrderNumber
 	})
 
-	var (
-		wg       sync.WaitGroup
-		mu       sync.Mutex
-		blocked  bool
-		message  string
-		firstErr error
-	)
+	var messages []openai.ChatCompletionMessage
+	var model string
+	var maxTokens int
+
+	switch req := request.(type) {
+	case struct {
+		Model     string                         `json:"model"`
+		Messages  []openai.ChatCompletionMessage `json:"messages"`
+		MaxTokens int                            `json:"max_tokens"`
+		Stream    bool                           `json:"stream"`
+	}:
+		messages = req.Messages
+		model = req.Model
+		maxTokens = req.MaxTokens
+	case openai.ChatCompletionRequest:
+		messages = req.Messages
+		model = req.Model
+		maxTokens = req.MaxTokens
+	default:
+		return true, "Invalid request type", fmt.Errorf("unsupported request type")
+	}
+
+    var (
+        wg        sync.WaitGroup
+        mu        sync.Mutex
+        blocked   bool
+        message   string
+        firstErr  error
+    )
 
 	for _, inputConfig := range config.Rules.Input {
+		log.Printf("Processing input rule: %s (Order: %d)", inputConfig.Type, inputConfig.OrderNumber)
+
 		if !inputConfig.Enabled {
 			log.Printf("Rule %s is disabled, skipping", inputConfig.Type)
 			continue
 		}
 
-		wg.Add(1)
-		go func(ic lib.Rule) {
-			defer wg.Done()
-			blk, msg, err := handleRule(ic, request, ic.Type)
-			if blk {
-				mu.Lock()
-				if !blocked { // Capture the first block
-					blocked = true
-					message = msg
-					firstErr = err
-				}
-				mu.Unlock()
+		blocked, message, err := handleRule(inputConfig, messages, model, maxTokens, inputConfig.Type)
+		if blocked {
+			return blocked, message, err
+		}
+			wg.Add(1)
+			go func(ic lib.Rule) {
+					defer wg.Done()
+					blk, msg, err := handleRule(ic, request, ic.Type)
+					if blk {
+							mu.Lock()
+							if !blocked { // Capture the first block
+									blocked = true
+									message = msg
+									firstErr = err
+							}
+			mu.Unlock()
 			}
 		}(inputConfig)
 	}
@@ -195,45 +267,28 @@ func Input(_ *http.Request, request interface{}) (bool, string, error) {
 	return false, `{"status": "non_blocked", "rule_type": "input"}`, nil
 }
 
-func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (bool, string, error) {
+func handleRule(inputConfig lib.Rule, messages []openai.ChatCompletionMessage, model string, maxTokens int, ruleType string) (bool, string, error) {
 	log.Printf("%s check enabled (Order: %d)", ruleType, inputConfig.OrderNumber)
 
-	var extractedPrompt string
-	var userMessageIndex int
-	var err error
-	var messages interface{}
-
-	switch req := request.(type) {
-	case openai.ChatCompletionRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromChat(req.Messages)
-		messages = req.Messages
-	case openai.ThreadRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromThread(req.Messages)
-		if extractedPrompt == "" {
-			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
-			return false, "", nil
-		}
-		messages = req.Messages
-	case openai.MessageRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromMessage(req)
-		messages = req
-	case openai.CreateThreadAndRunRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromCreateThreadAndRun(req)
-		if extractedPrompt == "" {
-			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
-			return false, "", nil
-		}
-		messages = req.Thread.Messages
-	default:
-		return true, "Invalid request type", fmt.Errorf("unsupported request type")
-	}
+	extractedPrompt, userMessageIndex, err := extractUserPromptFromChat(messages)
 	if err != nil {
 		log.Println(err)
 		return true, err.Error(), err
 	}
 	log.Printf("Extracted prompt for %s: %s", ruleType, extractedPrompt)
 
-	data := Rule{Prompt: request, Config: inputConfig.Config}
+	data := Rule{
+		Prompt: struct {
+			Messages  []openai.ChatCompletionMessage `json:"messages"`
+			Model     string                         `json:"model"`
+			MaxTokens int                            `json:"max_tokens"`
+		}{
+			Messages:  messages,
+			Model:     model,
+			MaxTokens: maxTokens,
+		},
+		Config: inputConfig.Config,
+	}
 	rule, err := sendRequest(data)
 	if err != nil {
 		return true, err.Error(), err

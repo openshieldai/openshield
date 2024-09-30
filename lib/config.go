@@ -24,24 +24,15 @@ type Configuration struct {
 	Providers Providers `mapstructure:"providers"`
 }
 
-type Providers struct {
-	OpenAI    *ProviderOpenAI    `mapstructure:"openai"`
-	Anthropic *ProviderAnthropic `mapstructure:"anthropic"`
-	Nvidia    *ProviderNvidia    `mapstructure:"nvidia"`
-}
-
 type ProviderOpenAI struct {
 	Enabled bool   `mapstructure:"enabled"`
-	BaseUrl string `mapstructure:"url"`
+	BaseUrl string `mapstructure:"base_url"`
 }
 
-type ProviderAnthropic struct {
-	Enabled bool   `mapstructure:"enabled"`
-	BaseUrl string `mapstructure:"url"`
-}
-type ProviderNvidia struct {
-	Enabled bool   `mapstructure:"enabled"`
-	BaseUrl string `mapstructure:"url"`
+// Providers section contains all the providers
+type Providers struct {
+	OpenAI      *ProviderOpenAI `mapstructure:"openai"`
+	HuggingFace *FeatureToggle  `mapstructure:"huggingface"`
 }
 
 // Secrets section contains all the secrets
