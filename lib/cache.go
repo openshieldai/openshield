@@ -49,7 +49,7 @@ func GetCache(key string) ([]byte, bool, error) {
 
 	if config.Settings.Cache.Enabled {
 		cachePrefix := config.Settings.Cache.Prefix
-		hashedKey := cachePrefix + ":" + hashKey(key)
+		hashedKey := cachePrefix + ":" + HashKey(key)
 
 		ctx := context.Background()
 		value, err := redisClient.Get(ctx, hashedKey).Bytes()
@@ -76,7 +76,7 @@ func SetCache(key string, value interface{}) error {
 
 	if config.Settings.Cache.Enabled {
 		cachePrefix := config.Settings.Cache.Prefix
-		hashedKey := cachePrefix + ":" + hashKey(key)
+		hashedKey := cachePrefix + ":" + HashKey(key)
 
 		// Convert value to JSON if it's not already a []byte
 		var jsonValue []byte
@@ -103,6 +103,6 @@ func SetCache(key string, value interface{}) error {
 	}
 }
 
-func hashKey(key string) string {
+func HashKey(key string) string {
 	return strconv.FormatUint(xxhash.Sum64([]byte(key)), 10)
 }
