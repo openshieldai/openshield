@@ -1,7 +1,6 @@
 package openai
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -747,10 +746,20 @@ func getPaginationFromRequest(r *http.Request) openai.Pagination {
 	return pagination
 }
 
+var openaiProvider *lib.OpenAIProvider
+
+func InitOpenAIProvider(config lib.Configuration) {
+	openaiProvider = lib.NewOpenAIProvider(
+		config.Secrets.OpenAIApiKey,
+		config.Providers.OpenAI.BaseUrl,
+	)
+}
+
 func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
-	config := lib.GetConfig()
-	openAIAPIKey := config.Secrets.OpenAIApiKey
-	openAIBaseURL := config.Providers.OpenAI.BaseUrl
+	if openaiProvider == nil {
+		config := lib.GetConfig()
+		InitOpenAIProvider(config)
+	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -758,7 +767,13 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req openai.ChatCompletionRequest
+	var req struct {
+		Model     string                         `json:"model"`
+		Messages  []openai.ChatCompletionMessage `json:"messages"`
+		MaxTokens int                            `json:"max_tokens"`
+		Stream    bool                           `json:"stream"`
+	}
+
 	if err := json.Unmarshal(body, &req); err != nil {
 		handleError(w, fmt.Errorf("error decoding request body: %v", err), http.StatusBadRequest)
 		return
@@ -772,25 +787,100 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logMessage, err := json.Marshal(message)
-	if err != nil {
-		handleError(w, fmt.Errorf("error marshalling message: %v", err), http.StatusBadRequest)
-		return
-	}
-
 	if filtered {
-		performAuditLogging(r, "rule", "filtered", logMessage)
-		handleError(w, fmt.Errorf(message), http.StatusBadRequest)
+		performAuditLogging(r, "rule", "filtered", []byte(message))
+		handleError(w, fmt.Errorf("%v", message), http.StatusBadRequest)
 		return
 	}
 
 	if req.Stream {
-		handleStreamingRequest(w, r, req, openAIAPIKey, openAIBaseURL)
+		handleStreamingRequest(w, r, req.Messages, req.Model, req.MaxTokens)
 	} else {
-		handleNonStreamingRequest(w, r, body, req, config, openAIAPIKey, openAIBaseURL)
+		handleNonStreamingRequest(w, r, req.Messages, req.Model, req.MaxTokens)
 	}
 }
 
+func handleStreamingRequest(w http.ResponseWriter, r *http.Request, messages []openai.ChatCompletionMessage, model string, maxTokens int) {
+	stream, err := openaiProvider.CreateChatCompletionStream(r.Context(), messages, model, maxTokens)
+	if err != nil {
+		handleError(w, fmt.Errorf("failed to create chat completion stream: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer stream.Close()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		handleError(w, fmt.Errorf("streaming unsupported"), http.StatusInternalServerError)
+		return
+	}
+
+	for {
+		response, err := stream.Recv()
+		if err == io.EOF {
+			fmt.Fprintf(w, "data: [DONE]\n\n")
+			flusher.Flush()
+			return
+		}
+		if err != nil {
+			log.Printf("Error receiving stream: %v", err)
+			fmt.Fprintf(w, "data: {\"error\": \"%v\"}\n\n", err)
+			flusher.Flush()
+			return
+		}
+
+		data, err := json.Marshal(response)
+		if err != nil {
+			log.Printf("Error marshaling response: %v", err)
+			continue
+		}
+
+		fmt.Fprintf(w, "data: %s\n\n", data)
+		flusher.Flush()
+	}
+}
+
+func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, messages []openai.ChatCompletionMessage, model string, maxTokens int) {
+	config := lib.GetConfig()
+
+	cacheKey := fmt.Sprintf("%s-%s-%d", model, messages, maxTokens)
+	getCache, cacheStatus, err := lib.GetCache(cacheKey)
+	if err != nil {
+		log.Printf("Error getting cache: %v", err)
+	}
+	if cacheStatus {
+		w.Header().Set(OSCacheStatusHeader, "HIT")
+		w.Write(getCache)
+		return
+	}
+
+	resp, err := openaiProvider.CreateChatCompletion(r.Context(), messages, model, maxTokens)
+	if err != nil {
+		handleError(w, fmt.Errorf("failed to create chat completion: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if config.Settings.Cache.Enabled {
+		w.Header().Set(OSCacheStatusHeader, "MISS")
+		resJson, err := json.Marshal(resp)
+		if err != nil {
+			log.Printf("Error marshalling response to JSON: %v", err)
+		} else {
+			err = lib.SetCache(cacheKey, resJson)
+			if err != nil {
+				log.Printf("Error setting cache: %v", err)
+			}
+		}
+	} else {
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
+	}
+
+	performResponseAuditLogging(r, *resp)
+	json.NewEncoder(w).Encode(resp)
+}
 func performAuditLogging(r *http.Request, logType string, messageType string, body []byte) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
 
@@ -817,103 +907,6 @@ func getProductIDFromAPIKey(apiKeyId uuid.UUID) (uuid.UUID, error) {
 	return productID, nil
 }
 
-func handleNonStreamingRequest(w http.ResponseWriter, r *http.Request, body []byte, req openai.ChatCompletionRequest, config lib.Configuration, openAIAPIKey string, openAIBaseURL string) {
-	getCache, cacheStatus, err := lib.GetCache(string(body))
-	if err != nil {
-		log.Printf("Error getting cache: %v", err)
-	}
-	if cacheStatus {
-		w.Header().Set(OSCacheStatusHeader, "HIT")
-		w.Write(getCache)
-		return
-	}
-
-	c := openai.DefaultConfig(openAIAPIKey)
-	c.BaseURL = openAIBaseURL
-	client := openai.NewClientWithConfig(c)
-	resp, err := client.CreateChatCompletion(r.Context(), req)
-	if err != nil {
-		handleError(w, fmt.Errorf("failed to create chat completion: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	if config.Settings.Cache.Enabled {
-		w.Header().Set(OSCacheStatusHeader, "MISS")
-		resJson, err := json.Marshal(resp)
-		if err != nil {
-			log.Printf("Error marshalling response to JSON: %v", err)
-		} else {
-			err = lib.SetCache(string(body), resJson)
-			if err != nil {
-				log.Printf("Error setting cache: %v", err)
-			}
-		}
-	} else {
-		w.Header().Set(OSCacheStatusHeader, "BYPASS")
-	}
-
-	performResponseAuditLogging(r, resp)
-	json.NewEncoder(w).Encode(resp)
-}
-
-func handleStreamingRequest(w http.ResponseWriter, r *http.Request, req openai.ChatCompletionRequest, openAIAPIKey string, openAIBaseURL string) {
-	c := openai.DefaultConfig(openAIAPIKey)
-	c.BaseURL = openAIBaseURL
-	client := openai.NewClientWithConfig(c)
-	stream, err := client.CreateChatCompletionStream(r.Context(), req)
-	if err != nil {
-		handleError(w, fmt.Errorf("failed to create chat completion stream: %v", err), http.StatusInternalServerError)
-		return
-	}
-	defer stream.Close()
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		handleError(w, fmt.Errorf("streaming unsupported"), http.StatusInternalServerError)
-		return
-	}
-
-	var buffer bytes.Buffer
-
-	for {
-		response, err := stream.Recv()
-		if err == io.EOF {
-			buffer.WriteString("data: [DONE]\n\n")
-			flusher.Flush()
-			break
-		}
-		if err != nil {
-			log.Printf("Error receiving stream: %v", err)
-			buffer.WriteString(fmt.Sprintf("data: {\"error\": \"%v\"}\n\n", err))
-			flusher.Flush()
-			break
-		}
-		if len(response.Choices) > 0 && response.Choices[0].Delta.Content != "" {
-			data, err := json.Marshal(response)
-			if err != nil {
-				log.Printf("Error marshaling response: %v", err)
-				continue
-			}
-			buffer.WriteString(fmt.Sprintf("data: %s\n\n", string(data)))
-			flusher.Flush()
-		}
-	}
-
-	// Write the full output to the response
-	fmt.Fprint(w, buffer.String())
-	flusher.Flush()
-
-	// Perform response audit logging
-	var resp openai.ChatCompletionResponse
-	if err := json.Unmarshal(buffer.Bytes(), &resp); err == nil {
-		performResponseAuditLogging(r, resp)
-	}
-}
-
 func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResponse) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
 	productID, err := getProductIDFromAPIKey(apiKeyId)
@@ -935,7 +928,7 @@ func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResp
 		return
 	}
 
-	lib.Usage(
+	lib.LogUsage(
 		resp.Model,
 		0,
 		resp.Usage.PromptTokens,
