@@ -767,16 +767,38 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
+	var openaiReq struct {
 		Model     string                         `json:"model"`
 		Messages  []openai.ChatCompletionMessage `json:"messages"`
 		MaxTokens int                            `json:"max_tokens"`
 		Stream    bool                           `json:"stream"`
 	}
 
-	if err := json.Unmarshal(body, &req); err != nil {
+	if err := json.Unmarshal(body, &openaiReq); err != nil {
 		handleError(w, fmt.Errorf("error decoding request body: %v", err), http.StatusBadRequest)
 		return
+	}
+
+	// Convert openai.ChatCompletionMessage to lib.Message
+	libMessages := make([]lib.Message, len(openaiReq.Messages))
+	for i, msg := range openaiReq.Messages {
+		libMessages[i] = lib.Message{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+
+	// Create a new request struct with lib.Message
+	req := struct {
+		Model     string        `json:"model"`
+		Messages  []lib.Message `json:"messages"`
+		MaxTokens int           `json:"max_tokens"`
+		Stream    bool          `json:"stream"`
+	}{
+		Model:     openaiReq.Model,
+		Messages:  libMessages,
+		MaxTokens: openaiReq.MaxTokens,
+		Stream:    openaiReq.Stream,
 	}
 
 	performAuditLogging(r, "openai_chat_completion", "input", body)
@@ -794,9 +816,9 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Stream {
-		handleStreamingRequest(w, r, req.Messages, req.Model, req.MaxTokens)
+		handleStreamingRequest(w, r, openaiReq.Messages, req.Model, req.MaxTokens)
 	} else {
-		handleNonStreamingRequest(w, r, req.Messages, req.Model, req.MaxTokens)
+		handleNonStreamingRequest(w, r, openaiReq.Messages, req.Model, req.MaxTokens)
 	}
 }
 

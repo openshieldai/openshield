@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/openshieldai/openshield/lib/anthropic"
 	"github.com/openshieldai/openshield/lib/openai"
 	"net/http"
 	"time"
@@ -128,9 +129,9 @@ func setupOpenAIRoutes(r chi.Router) {
 		r.Get("/threads/{thread_id}/runs/{run_id}/steps", lib.AuthOpenShieldMiddleware(openai.ListRunStepsHandler))
 		r.Get("/threads/{thread_id}/runs/{run_id}/steps/{step_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveRunStepHandler))
 	})
-	//	r.Route("/anthropic/v1", func(r chi.Router) {
-	//		r.Post("/messages", lib.AuthOpenShieldMiddleware(anthropic.CreateMessageHandler))
-	//	})
+	r.Route("/anthropic/v1", func(r chi.Router) {
+		r.Post("/messages", lib.AuthOpenShieldMiddleware(anthropic.CreateMessageHandler))
+	})
 }
 
 var redisClient *redis.Client

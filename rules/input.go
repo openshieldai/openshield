@@ -153,21 +153,17 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 		return config.Rules.Input[i].OrderNumber < config.Rules.Input[j].OrderNumber
 	})
 
-	var messages []openai.ChatCompletionMessage
+	var messages []lib.Message
 	var model string
 	var maxTokens int
 
 	switch req := request.(type) {
 	case struct {
-		Model     string                         `json:"model"`
-		Messages  []openai.ChatCompletionMessage `json:"messages"`
-		MaxTokens int                            `json:"max_tokens"`
-		Stream    bool                           `json:"stream"`
+		Model     string        `json:"model"`
+		Messages  []lib.Message `json:"messages"`
+		MaxTokens int           `json:"max_tokens"`
+		Stream    bool          `json:"stream"`
 	}:
-		messages = req.Messages
-		model = req.Model
-		maxTokens = req.MaxTokens
-	case openai.ChatCompletionRequest:
 		messages = req.Messages
 		model = req.Model
 		maxTokens = req.MaxTokens
@@ -193,10 +189,10 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 	return false, "request is not blocked", nil
 }
 
-func handleRule(inputConfig lib.Rule, messages []openai.ChatCompletionMessage, model string, maxTokens int, ruleType string) (bool, string, error) {
+func handleRule(inputConfig lib.Rule, messages []lib.Message, model string, maxTokens int, ruleType string) (bool, string, error) {
 	log.Printf("%s check enabled (Order: %d)", ruleType, inputConfig.OrderNumber)
 
-	extractedPrompt, userMessageIndex, err := extractUserPromptFromChat(messages)
+	extractedPrompt, userMessageIndex, err := extractUserPromptFromMessages(messages)
 	if err != nil {
 		log.Println(err)
 		return true, err.Error(), err
@@ -205,9 +201,9 @@ func handleRule(inputConfig lib.Rule, messages []openai.ChatCompletionMessage, m
 
 	data := Rule{
 		Prompt: struct {
-			Messages  []openai.ChatCompletionMessage `json:"messages"`
-			Model     string                         `json:"model"`
-			MaxTokens int                            `json:"max_tokens"`
+			Messages  []lib.Message `json:"messages"`
+			Model     string        `json:"model"`
+			MaxTokens int           `json:"max_tokens"`
 		}{
 			Messages:  messages,
 			Model:     model,
@@ -223,6 +219,27 @@ func handleRule(inputConfig lib.Rule, messages []openai.ChatCompletionMessage, m
 	log.Printf("Rule result for %s: %+v", ruleType, rule)
 
 	return handleRuleAction(inputConfig, rule, ruleType, messages, userMessageIndex)
+}
+
+func extractUserPromptFromMessages(messages []lib.Message) (string, int, error) {
+	var userMessages []string
+	var firstUserMessageIndex int = -1
+
+	for i, message := range messages {
+		if message.Role == "user" {
+			if firstUserMessageIndex == -1 {
+				firstUserMessageIndex = i
+			}
+			userMessages = append(userMessages, message.Content)
+		}
+	}
+
+	if firstUserMessageIndex == -1 {
+		return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
+	}
+
+	concatenatedMessages := strings.Join(userMessages, " ")
+	return concatenatedMessages, firstUserMessageIndex, nil
 }
 
 func extractUserPromptFromCreateThreadAndRun(request openai.CreateThreadAndRunRequest) (string, int, error) {

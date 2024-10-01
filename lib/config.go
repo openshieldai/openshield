@@ -43,6 +43,7 @@ type ProviderAnthropic struct {
 type Secrets struct {
 	OpenAIApiKey      string `mapstructure:"openai_api_key"`
 	HuggingFaceAPIKey string `mapstructure:"huggingface_api_key"`
+	AnthropicApiKey   string `mapstructure:"anthropic_api_key"`
 }
 
 // Setting can include various configurations like database, cache, and different logging types
