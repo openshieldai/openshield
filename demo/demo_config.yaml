@@ -10,6 +10,9 @@ settings:
   cache:
       enabled: true
       ttl: 3600
+  context_cache:
+    enabled: true
+    url: "http://cache:8080"
   rate_limiting:
       enabled: true
       max: 100
@@ -19,11 +22,12 @@ settings:
   usage_logging:
       enabled: true
   rule_server:
-       url: "http://ruleserver:8000"
+       url: "http://rule:8000"
 
 providers:
   openai:
     enabled: true
+    base_url: "https://api.openai.com/v1"
   huggingface:
     enabled: true
 
