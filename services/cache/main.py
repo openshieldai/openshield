@@ -54,25 +54,21 @@ def openshield_check_hit_func(cur_session_id, cache_session_ids, cache_questions
 async def put_cache(cache_data: CacheData) -> str:
     session = Session(name=cache_data.product_id, check_hit_func=openshield_check_hit_func)
     put(cache_data.prompt, cache_data.answer, session=session)
-    logger.info(f"Setting cache data: {cache_data.prompt}")
+    logger.info(f"Setting cache data: %s", cache_data.prompt)
     return "successfully update the cache"
 
 
 @app.post("/get")
 async def get_cache(cache_data: CacheData) -> CacheData:
     session = Session(name=cache_data.product_id, check_hit_func=openshield_check_hit_func)
-    logger.info(f"Getting cache data: {cache_data.prompt}")
-    print(f"Prompt: {cache_data.prompt}")
-    print(f"Session Name: {session.name}")
-
+    logger.info(f"Getting cache data: %s", cache_data.prompt)
     result = get(cache_data.prompt, session=session)
-    print(f"Result from get: {result}")
 
     if result is None:
-        logger.info(f"Cache miss for prompt: {cache_data.prompt}")
+        logger.info(f"Cache miss for prompt: %s", cache_data.prompt)
         raise HTTPException(status_code=404, detail="Cache miss")
     else:
-        logger.info(f"Cache hit for prompt: {cache_data.prompt}")
+        logger.info(f"Cache hit for prompt: %s", cache_data.prompt)
     return CacheData(prompt=cache_data.prompt, answer=result, product_id=cache_data.product_id)
 
 
