@@ -43,7 +43,7 @@ ENV HF_HOME="/app/transformers_cache/"
 ################################
 FROM python-base AS builder-base
 RUN apt-get update && \
-    apt-get install -y apt-transport-https \
+    apt-get install --no-install-recommends -y apt-transport-https \
     build-essential \
     ca-certificates \
     curl \
@@ -54,7 +54,7 @@ RUN apt-get update && \
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 # The --mount will mount the buildx cache directory to where
 # Poetry and Pip store their cache so that they can re-use it
-RUN curl -sSL https://install.python-poetry.org | python -
+RUN curl --tlsv1.2 -sSf -L https://install.python-poetry.org | python -
 
 # used to init dependencies
 WORKDIR /app
@@ -81,10 +81,11 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
 WORKDIR /app
 USER nobody:nogroup
 # copy in our built poetry + venv
-COPY --from=builder-base --chown=nobody:nogroup $POETRY_HOME $POETRY_HOME
-COPY --from=builder-base --chown=nobody:nogroup $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $POETRY_HOME $POETRY_HOME
+COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $VIRTUAL_ENV $VIRTUAL_ENV
 
-COPY --chown=nobody:nogroup . .
+COPY --chmod=755 --chown=nobody:nogroup poetry.lock pyproject.toml ./
+COPY --chmod=755 --chown=nobody:nogroup main.py ./
 
 EXPOSE 8080
 CMD ["python","main.py"]

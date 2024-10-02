@@ -7,7 +7,7 @@ COPY go.sum /build
 COPY ./docker/docker-entrypoint.sh /build/docker-entrypoint.sh
 RUN go mod download \
     && apt-get update  \
-    && apt-get install -y dumb-init  \
+    && apt-get install --no-install-recommends -y dumb-init  \
     && chmod +x /build/docker-entrypoint.sh
 
 COPY . .
