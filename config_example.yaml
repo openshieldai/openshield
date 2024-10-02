@@ -83,6 +83,8 @@ settings:
     enabled: true
     ttl: 3600
     prefix: openshield
+  context_cache:
+    enabled: true
   database:
     auto_migration: true
     uri: postgresql://

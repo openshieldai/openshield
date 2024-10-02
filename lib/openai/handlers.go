@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strconv"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/provider"
-	"github.com/openshieldai/openshield/rules"
-	"io"
-	"log"
-	"net/http"
-	"strconv"
+	"github.com/openshieldai/openshield/lib/rules"
 )
 
 const OSCacheStatusHeader = "OS-Cache-Status"

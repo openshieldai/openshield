@@ -3,11 +3,12 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/openshieldai/openshield/lib/anthropic"
 	"github.com/openshieldai/openshield/lib/nvidia"
 	"github.com/openshieldai/openshield/lib/openai"
-	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

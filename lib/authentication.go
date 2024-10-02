@@ -27,7 +27,7 @@ func AuthOpenShieldMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		key := splitToken[1]
 
-		var apiKey = models.ApiKeys{ApiKey: key, Status: models.Active}
+		apiKey := models.ApiKeys{ApiKey: key, Status: models.Active}
 		result := DB().Where(&apiKey).First(&apiKey)
 		if result.Error != nil {
 			log.Println("Error: ", result.Error)

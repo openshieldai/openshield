@@ -20,10 +20,28 @@ services:
       postgres:
         condition: service_healthy
 
-  ruleserver:
+  rule:
     build:
-      context: ../rules/rule-service
+      context: ../services/rule
       dockerfile: Dockerfile
+    environment:
+      - HF_HOME=/opt/cache
+    volumes:
+      - ./volumes/rule:/app/cache
+
+  cache:
+    build:
+      context: ../services/cache
+      dockerfile: Dockerfile
+    environment:
+      - HF_HOME=/opt/cache
+    volumes:
+      - ./cache_config.yaml:/app/config.yaml
+      - ./volumes/cache:/opt/cache
+      - ./volumes/gptcache_data:/app/gptcache_data
+    ports:
+      - "8082:8080"
+
 
   redis:
     image: "valkey/valkey:8.0.0-alpine"
@@ -32,10 +50,12 @@ services:
       - "6381:6379"
 
   postgres:
-    image: postgres
+    image: postgres:16
     restart: always
     environment:
       POSTGRES_PASSWORD: openshield
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     healthcheck:

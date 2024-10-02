@@ -57,6 +57,7 @@ type Setting struct {
 	Redis               *RedisConfig    `mapstructure:"redis"`
 	Database            *DatabaseConfig `mapstructure:"database"`
 	Cache               *CacheConfig    `mapstructure:"cache"`
+	ContextCache        *ContextCache   `mapstructure:"context_cache"`
 	AuditLogging        *FeatureToggle  `mapstructure:"audit_logging,default=false"`
 	UsageLogging        *FeatureToggle  `mapstructure:"usage_logging,default=false"`
 	Network             *Network        `mapstructure:"network"`
@@ -65,10 +66,18 @@ type Setting struct {
 	EnglishDetectionURL string          `mapstructure:"english_detection_url"`
 }
 
+// ContextCache holds configuration for the context cache
+type ContextCache struct {
+	Enabled bool   `mapstructure:"enabled,default=false"`
+	URL     string `mapstructure:"url,default=http://localhost:8001"`
+}
+
+// RuleServer holds configuration for the rule server
 type RuleServer struct {
 	Url string `mapstructure:"url,default=http://localhost:8000"`
 }
 
+// RateLimiting holds configuration for rate limiting settings
 type RateLimiting struct {
 	*FeatureToggle
 	Window int `mapstructure:"window"`
@@ -124,6 +133,7 @@ type Config struct {
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
 }
 
+// ActionType defines the type of action to take
 type ActionType string
 
 // Action defines what actions are associated with filters
@@ -131,6 +141,7 @@ type Action struct {
 	Type ActionType `mapstructure:"type"`
 }
 
+// AppConfig ActionType constants
 var AppConfig Configuration
 
 func init() {
@@ -189,15 +200,16 @@ func init() {
 			fmt.Println(err)
 		}
 	})
-
 }
 
 func GetConfig() Configuration {
 	return AppConfig
 }
+
 func SetConfig(config Configuration) {
 	AppConfig = config
 }
+
 func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
