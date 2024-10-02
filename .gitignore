@@ -31,3 +31,6 @@ dist
 package-lock.json
 !docker/config.yaml
 openshield
+demo/cache_config.yaml
+demo/config.yaml
+.vscode

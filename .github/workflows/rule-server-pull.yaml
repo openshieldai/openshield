@@ -6,7 +6,7 @@ on:
      branches:
         - main
      paths:
-        - rules/rule-service/**
+        - services/rule-service/**
         - .github/workflows/rule-server-pull.yaml
 
 jobs:
@@ -64,7 +64,7 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          cd rules/rule-service
+          cd service/rule
           poetry install
       - name: Run unit tests
         run: |
@@ -106,7 +106,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/openshieldai/openshield/rule-service
+            ghcr.io/openshieldai/openshield/rule
           tags: |
             type=sha
             type=raw,value=latest
@@ -114,7 +114,7 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v6
         with:
-          context: rules/rule-service
+          context: services/rule
           platforms: linux/arm64,linux/amd64
           push: false
           tags: ${{ steps.api.outputs.tags }}

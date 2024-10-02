@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "cache"
+version = "0.1.0"
+description = ""
+authors = ["krichard1212 <richard.kohegyi@openshield.ai>", "pigri <david@openshield.ai>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.112.2"
+uvicorn = "^0.30.6"
+gptcache = "^0.1.44"
+pydantic = "^2.8.2"
+onnxruntime = "^1.17.0"
+numpy = "^1.26.4"
+torch = "^2.4.0"
+flax = "^0.9.0"
+sqlalchemy = "^2.0.35"
+openai = "^1.45.1"
+psycopg2-binary = "^2.9.9"
+redis-om = "^0.3.2"
+tensorflow = "^2.17.0"
+ruamel-yaml = "^0.18.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
