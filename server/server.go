@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/openshieldai/openshield/lib/anthropic"
+	"github.com/openshieldai/openshield/lib/nvidia"
 	"github.com/openshieldai/openshield/lib/openai"
 	"net/http"
 	"time"
@@ -131,6 +132,9 @@ func setupOpenAIRoutes(r chi.Router) {
 	})
 	r.Route("/anthropic/v1", func(r chi.Router) {
 		r.Post("/messages", lib.AuthOpenShieldMiddleware(anthropic.CreateMessageHandler))
+	})
+	r.Route("/nvidia/v1", func(r chi.Router) {
+		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(nvidia.ChatCompletionHandler))
 	})
 }
 
