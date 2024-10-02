@@ -24,7 +24,10 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_CREATE=false \
     \
     # this is where our requirements + virtual environment will live
-    VIRTUAL_ENV="/venv"
+    VIRTUAL_ENV="/venv" \
+    \
+    # Node.js major version. Remove if you don't need.
+    NODE_MAJOR=20
 
 # prepend poetry and venv to path
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
@@ -36,7 +39,9 @@ RUN python -m venv $VIRTUAL_ENV
 WORKDIR /app
 ENV PYTHONPATH="/app"
 
-ENV HF_HOME="/app/transformers_cache/"
+# pretrained models cache path. Remove if you don't need.
+# ref: https://huggingface.co/docs/transformers/installation?highlight=transformers_cache#caching-models
+ENV TRANSFORMERS_CACHE="/opt/transformers_cache/"
 
 ################################
 # BUILDER-BASE
@@ -44,7 +49,7 @@ ENV HF_HOME="/app/transformers_cache/"
 ################################
 FROM python-base AS builder-base
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y \
+    apt-get install -y \
     apt-transport-https \
     build-essential \
     ca-certificates \
@@ -56,7 +61,8 @@ RUN apt-get update && \
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 # The --mount will mount the buildx cache directory to where
 # Poetry and Pip store their cache so that they can re-use it
-RUN curl --proto "=https" --tlsv1.2 -sSf -L https://install.python-poetry.org | python -
+RUN --mount=type=cache,target=/root/.cache \
+    curl -sSL https://install.python-poetry.org | python -
 
 # used to init dependencies
 WORKDIR /app
@@ -64,6 +70,33 @@ COPY poetry.lock pyproject.toml ./
 # install runtime deps to $VIRTUAL_ENV
 RUN poetry export -f requirements.txt > requirements.txt && \
     python -m pip install -r requirements.txt
+
+#COPY scripts scripts/
+COPY rule_service/ rule_service/
+
+# populate Huggingface model cache. Remove if you don't need.
+#RUN poetry run python scripts/bootstrap.py
+
+# build C dependencies. Remove if you don't need.
+#RUN --mount=type=cache,target=/app/scripts/vendor \
+#    poetry run python scripts/build-c-denpendencies.py && \
+#    cp scripts/lib/*.so /usr/lib
+
+#################################
+## DEVELOPMENT
+## Image used during development / testing
+#################################
+#FROM builder-base AS development
+#
+#WORKDIR /app
+#
+## quicker install AS runtime deps are already installed
+#RUN --mount=type=cache,target=/root/.cache \
+#    poetry install --no-root --with test,lint
+#
+#EXPOSE 8080
+#CMD ["bash"]
+
 
 ################################
 # PRODUCTION
@@ -74,21 +107,19 @@ FROM python-base AS production
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates && \
-    apt-get clean && \
-    rm -rf /app && \
-    usermod -d /app -m nobody && \
-    mkdir -p /app && \
-    chown nobody:nogroup /app
-
-WORKDIR /app
-USER nobody:nogroup
+    apt-get clean
 
 # copy in our built poetry + venv
-COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $POETRY_HOME $POETRY_HOME
-COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=builder-base $POETRY_HOME $POETRY_HOME
+COPY --from=builder-base $VIRTUAL_ENV $VIRTUAL_ENV
+# copy in our C dependencies. Remove if you don't need.
+#COPY --from=builder-base /app/scripts/lib/*.so /usr/lib
+# copy in pre-populated transformer cache. Remove if you don't need.
+#COPY --from=builder-base $TRANSFORMERS_CACHE $TRANSFORMERS_CACHE
 
-COPY --chmod=755 --chown=nobody:nogroup poetry.lock pyproject.toml ./
-COPY --chmod=755 --chown=nobody:nogroup src/ ./
+WORKDIR /app
+COPY poetry.lock pyproject.toml ./
+COPY rule_service/ rule_service/
 
-EXPOSE 8080
-CMD ["python", "main.py"]
+EXPOSE 8000
+CMD ["python", "/app/rule_service/main.py"]
