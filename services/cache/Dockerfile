@@ -54,7 +54,7 @@ RUN apt-get update && \
 # install poetry - respects $POETRY_VERSION & $POETRY_HOME
 # The --mount will mount the buildx cache directory to where
 # Poetry and Pip store their cache so that they can re-use it
-RUN curl --tlsv1.2 -sSf -L https://install.python-poetry.org | python -
+RUN curl --proto "=https" --tlsv1.2 -sSf -L https://install.python-poetry.org | python -
 
 # used to init dependencies
 WORKDIR /app
