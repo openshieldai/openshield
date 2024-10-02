@@ -25,7 +25,7 @@ services:
       context: ../services/rule
       dockerfile: Dockerfile
     environment:
-      - HF_HOME=/opt/cache
+      - HF_HOME=/app/hf_cache
     volumes:
       - ./volumes/rule:/app/cache
 
@@ -34,10 +34,10 @@ services:
       context: ../services/cache
       dockerfile: Dockerfile
     environment:
-      - HF_HOME=/opt/cache
+      - HF_HOME=/app/hf_cache
     volumes:
       - ./cache_config.yaml:/app/config.yaml
-      - ./volumes/cache:/opt/cache
+      - ./volumes/cache:/app/hf_cache
       - ./volumes/gptcache_data:/app/gptcache_data
     ports:
       - "8082:8080"
