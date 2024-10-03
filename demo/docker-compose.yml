@@ -44,7 +44,7 @@ services:
 
 
   redis:
-    image: "valkey/valkey:8.0.0-alpine"
+    image: "valkey/valkey:8.0.1-alpine"
     restart: always
     ports:
       - "6381:6379"
