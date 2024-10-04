@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/openshieldai/go-openai"
+	"github.com/openshieldai/openshield/lib/provider"
 	"io"
 	"log"
 	"net/http"
@@ -53,7 +55,6 @@ var inputTypes = InputTypes{
 
 func sendRequest(data Rule) (RuleResult, error) {
 	jsonify, err := json.Marshal(data)
-	log.Printf("Sending request to rule server: %s", jsonify)
 	if err != nil {
 		return RuleResult{}, fmt.Errorf("failed to marshal request: %v", err)
 	}
@@ -89,49 +90,6 @@ func sendRequest(data Rule) (RuleResult, error) {
 
 	return rule, nil
 }
-
-// func sendMultipleRuleRequests(data Rule) ([]RuleResult, error) {
-// 	ruleServers := []string{
-// 		lib.GetConfig().Settings.RuleServer.Url,
-// 		lib.GetConfig().Settings.ContextCache.URL,
-// 		// Add more rule server URLs as needed
-// 	}
-
-// 	var (
-// 		wg         sync.WaitGroup
-// 		mu         sync.Mutex
-// 		results    []RuleResult
-// 		firstError error
-// 	)
-
-// 	for _, url := range ruleServers {
-// 		wg.Add(1)
-// 		go func(serverURL string) {
-// 			defer wg.Done()
-// 			data.Config.URL = serverURL // Assuming Rule struct has a URL field
-// 			result, err := sendRequest(data)
-// 			if err != nil {
-// 				mu.Lock()
-// 				if firstError == nil {
-// 					firstError = err
-// 				}
-// 				mu.Unlock()
-// 				return
-// 			}
-// 			mu.Lock()
-// 			results = append(results, result)
-// 			mu.Unlock()
-// 		}(url)
-// 	}
-
-// 	wg.Wait()
-
-// 	if firstError != nil {
-// 		return nil, firstError
-// 	}
-
-// 	return results, nil
-// }
 
 func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
 	if rule.Match {
@@ -250,8 +208,8 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 							}
 			mu.Unlock()
 			}
-		}(inputConfig)
-	}
+}(inputConfig)
+}
 
 	wg.Wait()
 
@@ -322,7 +280,6 @@ func extractUserPromptFromCreateThreadAndRun(request openai.CreateThreadAndRunRe
 	}
 	return "", -1, nil
 }
-
 func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, messages interface{}, userMessageIndex int) (bool, string, error) {
 	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
 
@@ -383,7 +340,6 @@ func extractUserPromptFromThread(messages []openai.ThreadMessage) (string, int, 
 	concatenatedMessages := strings.Join(userMessages, " ")
 	return concatenatedMessages, firstUserMessageIndex, nil
 }
-
 func extractUserPromptFromMessage(message openai.MessageRequest) (string, int, error) {
 	if message.Role == "user" {
 		return message.Content, 0, nil
