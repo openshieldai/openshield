@@ -482,7 +482,7 @@ func (h *Handler) handleCachedChatCompletion(w http.ResponseWriter, r *http.Requ
 
 	sessionId := h.getSessionId(r, req)
 	cache, err := lib.GetContextCache(prompt, sessionId)
-	if err != nil {
+	if err == nil {
 		var cachedData struct {
 			Prompt    string `json:"prompt"`
 			Answer    string `json:"answer"`

@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshieldai/openshield/lib"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/openshieldai/openshield/lib"
 
 	"github.com/google/uuid"
 )

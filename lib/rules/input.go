@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openshieldai/go-openai"
-	"github.com/openshieldai/openshield/lib/provider"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/openshieldai/go-openai"
+	"github.com/openshieldai/openshield/lib/provider"
 
 	"github.com/openshieldai/openshield/lib"
 )
@@ -175,13 +174,13 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 		return true, "Invalid request type", fmt.Errorf("unsupported request type")
 	}
 
-    var (
-        wg        sync.WaitGroup
-        mu        sync.Mutex
-        blocked   bool
-        message   string
-        firstErr  error
-    )
+	var (
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		blocked  bool
+		message  string
+		firstErr error
+	)
 
 	for _, inputConfig := range config.Rules.Input {
 		log.Printf("Processing input rule: %s (Order: %d)", inputConfig.Type, inputConfig.OrderNumber)
@@ -192,24 +191,25 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 		}
 
 		blocked, message, err := handleRule(inputConfig, messages, model, maxTokens, inputConfig.Type)
+
 		if blocked {
 			return blocked, message, err
 		}
-			wg.Add(1)
-			go func(ic lib.Rule) {
-					defer wg.Done()
-					blk, msg, err := handleRule(ic, request, ic.Type)
-					if blk {
-							mu.Lock()
-							if !blocked { // Capture the first block
-									blocked = true
-									message = msg
-									firstErr = err
-							}
-			mu.Unlock()
+		wg.Add(1)
+		go func(ic lib.Rule) {
+			defer wg.Done()
+			blk, msg, err := handleRule(ic, messages, model, maxTokens, ic.Type)
+			if blk {
+				mu.Lock()
+				if !blocked { // Capture the first block
+					blocked = true
+					message = msg
+					firstErr = err
+				}
+				mu.Unlock()
 			}
-}(inputConfig)
-}
+		}(inputConfig)
+	}
 
 	wg.Wait()
 

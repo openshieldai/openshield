@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/provider"
-	"github.com/openshieldai/openshield/rules"
+	"github.com/openshieldai/openshield/lib/rules"
 )
 
 var anthropicProvider provider.Provider
