@@ -156,16 +156,16 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 		return config.Rules.Input[i].OrderNumber < config.Rules.Input[j].OrderNumber
 	})
 
-	var messages []lib.Message
+	var messages []provider.Message
 	var model string
 	var maxTokens int
 
 	switch req := request.(type) {
 	case struct {
-		Model     string        `json:"model"`
-		Messages  []lib.Message `json:"messages"`
-		MaxTokens int           `json:"max_tokens"`
-		Stream    bool          `json:"stream"`
+		Model     string             `json:"model"`
+		Messages  []provider.Message `json:"messages"`
+		MaxTokens int                `json:"max_tokens"`
+		Stream    bool               `json:"stream"`
 	}:
 		messages = req.Messages
 		model = req.Model
@@ -221,7 +221,7 @@ func Input(r *http.Request, request interface{}) (bool, string, error) {
 	return false, `{"status": "non_blocked", "rule_type": "input"}`, nil
 }
 
-func handleRule(inputConfig lib.Rule, messages []lib.Message, model string, maxTokens int, ruleType string) (bool, string, error) {
+func handleRule(inputConfig lib.Rule, messages []provider.Message, model string, maxTokens int, ruleType string) (bool, string, error) {
 	log.Printf("%s check enabled (Order: %d)", ruleType, inputConfig.OrderNumber)
 
 	extractedPrompt, userMessageIndex, err := extractUserPromptFromMessages(messages)
@@ -233,9 +233,9 @@ func handleRule(inputConfig lib.Rule, messages []lib.Message, model string, maxT
 
 	data := Rule{
 		Prompt: struct {
-			Messages  []lib.Message `json:"messages"`
-			Model     string        `json:"model"`
-			MaxTokens int           `json:"max_tokens"`
+			Messages  []provider.Message `json:"messages"`
+			Model     string             `json:"model"`
+			MaxTokens int                `json:"max_tokens"`
 		}{
 			Messages:  messages,
 			Model:     model,
@@ -253,7 +253,7 @@ func handleRule(inputConfig lib.Rule, messages []lib.Message, model string, maxT
 	return handleRuleAction(inputConfig, rule, ruleType, messages, userMessageIndex)
 }
 
-func extractUserPromptFromMessages(messages []lib.Message) (string, int, error) {
+func extractUserPromptFromMessages(messages []provider.Message) (string, int, error) {
 	var userMessages []string
 	var firstUserMessageIndex int = -1
 
