@@ -84,7 +84,7 @@ func TestChatCompletion(t *testing.T) {
 	}
 	var logBuffer bytes.Buffer
 	log.SetOutput(&logBuffer)
-	defer log.SetOutput(nil)
+	defer log.SetOutput(os.Stderr)
 
 	db, mock, err := setupMockDB()
 	if err != nil {
@@ -92,23 +92,20 @@ func TestChatCompletion(t *testing.T) {
 	}
 	lib.SetDB(db)
 
-	router := setupTestServer()
-	if router == nil {
-		t.Fatal("setupTestServer returned nil")
-	}
-
-	// Create a test server
-	ts := httptest.NewServer(router)
-	defer ts.Close()
-
-	// Generate a test API key ID
+	// Generate a test API key ID and product ID
 	apiKeyID := uuid.New()
+	productID := uuid.New()
 
 	// Mock the database query for API key validation
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "api_keys" WHERE ("api_keys"."api_key" = $1 AND "api_keys"."status" = $2) AND "api_keys"."deleted_at" IS NULL ORDER BY "api_keys"."id" LIMIT $3`)).
 		WithArgs(APIKey, "active", 1).
-		WillReturnRows(mock.NewRows([]string{"id", "api_key", "status", "active"}).
-			AddRow(apiKeyID, APIKey, "active", true))
+		WillReturnRows(mock.NewRows([]string{"id", "api_key", "status", "active", "product_id"}).
+			AddRow(apiKeyID, APIKey, "active", true, productID))
+
+	// Mock the database query for product_id
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT "product_id" FROM "api_keys" WHERE id = $1`)).
+		WithArgs(apiKeyID).
+		WillReturnRows(mock.NewRows([]string{"product_id"}).AddRow(productID))
 
 	// Mock the database operations for input audit log
 	mock.ExpectBegin()
@@ -124,6 +121,15 @@ func TestChatCompletion(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(uuid.New(), time.Now(), time.Now()))
 	mock.ExpectCommit()
 
+	router := setupTestServer()
+	if router == nil {
+		t.Fatal("setupTestServer returned nil")
+	}
+
+	// Create a test server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
 	// Create the request body
 	reqBody := bytes.NewBufferString(`{"model":"gpt-4","messages":[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the meaning of life?"}]}`)
 
@@ -135,7 +141,9 @@ func TestChatCompletion(t *testing.T) {
 	req.Header.Set("X-Request-ID", requestID)
 
 	// Perform the request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to send request: %v", err)
