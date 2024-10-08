@@ -38,7 +38,7 @@ jobs:
             poetry install
         - name: Run unit tests
           run: |
-            cd tests
+            cd services/rule/src/tests
             poetry run python -m unittest test_api.py
   rule-server-unit-test-arm:
     if: github.event.review.state == 'approved'
@@ -68,7 +68,7 @@ jobs:
           poetry install
       - name: Run unit tests
         run: |
-          cd tests
+          cd services/rule/src/tests
           poetry run python -m unittest test_api.py
 
   rule-service-docker-build:
