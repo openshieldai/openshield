@@ -6,7 +6,7 @@ on:
      branches:
         - main
      paths:
-        - services/rule-service/**
+        - services/rule/**
         - .github/workflows/rule-server-pull.yaml
 
 jobs:
