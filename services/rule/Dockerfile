@@ -72,7 +72,7 @@ RUN poetry export -f requirements.txt > requirements.txt && \
     python -m pip install -r requirements.txt
 
 #COPY scripts scripts/
-COPY rule_service/ rule_service/
+#COPY src rule
 
 # populate Huggingface model cache. Remove if you don't need.
 #RUN poetry run python scripts/bootstrap.py
@@ -119,7 +119,7 @@ COPY --from=builder-base $VIRTUAL_ENV $VIRTUAL_ENV
 
 WORKDIR /app
 COPY poetry.lock pyproject.toml ./
-COPY rule_service/ rule_service/
+COPY src rule
 
 EXPOSE 8000
 CMD ["python", "/app/rule_service/main.py"]
