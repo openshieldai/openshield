@@ -6,7 +6,7 @@ on:
      branches:
         - main
      paths:
-        - services/rule-service/**
+        - services/rule/**
         - .github/workflows/rule-server-pull.yaml
 
 jobs:
@@ -34,11 +34,11 @@ jobs:
             poetry-version: ${{ matrix.poetry-version }}
         - name: Install dependencies
           run: |
-            cd rules/rule-service
+            cd services/rule
             poetry install
         - name: Run unit tests
           run: |
-            cd rules/rule-service/rule_service/tests
+            cd services/rule/src/tests
             poetry run python -m unittest test_api.py
   rule-server-unit-test-arm:
     if: github.event.review.state == 'approved'
@@ -64,11 +64,11 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          cd service/rule
+          cd services/rule
           poetry install
       - name: Run unit tests
         run: |
-          cd rules/rule-service/rule_service/tests
+          cd services/rule/src/tests
           poetry run python -m unittest test_api.py
 
   rule-service-docker-build:
