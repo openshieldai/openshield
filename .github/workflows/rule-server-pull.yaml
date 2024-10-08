@@ -64,11 +64,11 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          cd service/rule
+          cd services/rule
           poetry install
       - name: Run unit tests
         run: |
-          cd rules/rule-service/rule_service/tests
+          cd tests
           poetry run python -m unittest test_api.py
 
   rule-service-docker-build:
