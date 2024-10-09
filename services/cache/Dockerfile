@@ -84,13 +84,8 @@ USER nobody:nogroup
 COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $POETRY_HOME $POETRY_HOME
 COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $VIRTUAL_ENV $VIRTUAL_ENV
 
-<<<<<<<< HEAD:services/rule/Dockerfile
-EXPOSE 8000
-CMD ["python", "/app/rule_service/main.py"]
-========
 COPY --chmod=755 --chown=nobody:nogroup poetry.lock pyproject.toml ./
 COPY --chmod=755 --chown=nobody:nogroup main.py ./
 
 EXPOSE 8080
 CMD ["python","main.py"]
->>>>>>>> refs/heads/main:services/cache/Dockerfile
