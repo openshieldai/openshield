@@ -12,7 +12,6 @@ import (
 	"github.com/openshieldai/openshield/lib"
 
 	"github.com/google/uuid"
-	"crypto/sha256"
 )
 
 type Message struct {
@@ -178,14 +177,12 @@ func GetProductIDFromAPIKey(ctx context.Context, apiKeyId uuid.UUID) (uuid.UUID,
 	return productID, nil
 }
 
-
 func PerformAuditLogging(r *http.Request, logType string, messageType string, body []byte) {
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
 
 	productID, err := GetProductIDFromAPIKey(r.Context(), apiKeyId)
 	if err != nil {
-		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", hashUUID(apiKeyId), err)
-		return
+
 	}
 
 	lib.AuditLogs(string(body), logType, apiKeyId, messageType, productID, r)
@@ -195,7 +192,6 @@ func PerformResponseAuditLogging(r *http.Request, resp *ChatCompletionResponse) 
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
 	productID, err := GetProductIDFromAPIKey(r.Context(), apiKeyId)
 	if err != nil {
-		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", hashUUID(apiKeyId), err)
 		return
 	}
 
