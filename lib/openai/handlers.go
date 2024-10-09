@@ -781,7 +781,6 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 	provider.PerformAuditLogging(r, "openai_chat_completion", "input", body)
 
-	// Create the exact struct type expected by the Input function
 	inputRequest := struct {
 		Model     string             `json:"model"`
 		Messages  []provider.Message `json:"messages"`
@@ -808,12 +807,68 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Input processing completed successfully")
 
-	// Pass the parsed request to HandleChatCompletion
-	err = provider.HandleChatCompletion(w, r, openaiProvider, req)
-	if err != nil {
-		log.Printf("Error handling chat completion: %v", err)
-		handleError(w, fmt.Errorf("error handling chat completion: %v", err), http.StatusInternalServerError)
+	apiKeyID, ok := r.Context().Value("apiKeyId").(uuid.UUID)
+	if !ok {
+		handleError(w, fmt.Errorf("apiKeyId not found in context"), http.StatusInternalServerError)
 		return
+	}
+
+	productID, err := provider.GetProductIDFromAPIKey(r.Context(), apiKeyID)
+	if err != nil {
+		handleError(w, fmt.Errorf("error getting productID: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new context with the productID
+	ctx := context.WithValue(r.Context(), "productID", productID)
+
+	// Check context cache
+	cachedResponse, cacheHit, err := provider.HandleContextCache(ctx, req, productID)
+	if err != nil {
+		log.Printf("Error handling context cache: %v", err)
+	}
+
+	var resp *provider.ChatCompletionResponse
+
+	if cacheHit {
+		log.Println("Cache hit, using cached response")
+
+		resp, err = provider.CreateChatCompletionResponseFromCache(cachedResponse, req.Model)
+		if err != nil {
+			log.Printf("Error creating response from cache: %v", err)
+		}
+
+		// Send the response
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			log.Printf("Error encoding response: %v", err)
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		log.Println("Cache miss, making API call to OpenAI")
+		// Make the API call using the context with productID
+		resp, err = openaiProvider.CreateChatCompletion(ctx, req)
+		if err != nil {
+			handleError(w, fmt.Errorf("error creating chat completion: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Send the API response to the client
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			log.Printf("Error encoding API response: %v", err)
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+			return
+		}
+
+		// Cache the response only if it wasn't a cache hit
+		if err := provider.SetContextCacheResponse(ctx, req, resp, productID); err != nil {
+			log.Printf("Error setting context cache: %v", err)
+		}
+
+		// Perform response audit logging only for direct API calls
+		provider.PerformResponseAuditLogging(r, resp)
 	}
 
 	log.Println("ChatCompletionHandler completed successfully")

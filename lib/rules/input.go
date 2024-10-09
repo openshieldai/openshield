@@ -132,6 +132,8 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages inter
 			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
 		case []openai.ThreadMessage:
 			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
+		case []provider.Message:
+			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
 		default:
 			return true, "Invalid message type", fmt.Errorf("unsupported message type")
 		}

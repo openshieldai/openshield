@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -45,6 +47,23 @@ func NewAnthropicProvider(apiKey, baseURL string) provider.Provider {
 }
 
 func (a *AnthropicProvider) CreateChatCompletion(ctx context.Context, req provider.ChatCompletionRequest) (*provider.ChatCompletionResponse, error) {
+	productID, ok := ctx.Value("productID").(uuid.UUID)
+	if !ok {
+		return nil, fmt.Errorf("productID not found in context")
+	}
+
+	cachedResponse, cacheHit, err := provider.HandleContextCache(ctx, req, productID)
+	if err != nil {
+		log.Printf("Error handling context cache: %v", err)
+	}
+	if cacheHit {
+		var resp provider.ChatCompletionResponse
+		err = json.Unmarshal([]byte(cachedResponse), &resp)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
+		}
+		return &resp, nil
+	}
 	url := fmt.Sprintf("%s/messages", a.BaseURL)
 
 	requestBody := map[string]interface{}{
@@ -85,7 +104,15 @@ func (a *AnthropicProvider) CreateChatCompletion(ctx context.Context, req provid
 		return nil, fmt.Errorf("error unmarshaling response: %v", err)
 	}
 
-	return convertAnthropicResponse(&anthropicResp), nil
+	providerResp := convertAnthropicResponse(&anthropicResp)
+
+	// Set the context cache
+	err = provider.SetContextCacheResponse(ctx, req, providerResp, productID)
+	if err != nil {
+		log.Printf("Error setting context cache: %v", err)
+	}
+
+	return providerResp, nil
 }
 
 func (a *AnthropicProvider) CreateChatCompletionStream(ctx context.Context, req provider.ChatCompletionRequest) (provider.Stream, error) {

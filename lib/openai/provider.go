@@ -2,11 +2,12 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"log"
-
+	"github.com/google/uuid"
 	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib/provider"
+	"log"
 )
 
 type OpenAIProvider struct {
@@ -21,18 +22,44 @@ func NewOpenAIProvider(apiKey, baseURL string) provider.Provider {
 }
 
 func (o *OpenAIProvider) CreateChatCompletion(ctx context.Context, req provider.ChatCompletionRequest) (*provider.ChatCompletionResponse, error) {
+	productID, ok := ctx.Value("productID").(uuid.UUID)
+	if !ok {
+		return nil, fmt.Errorf("productID not found in context")
+	}
+
+	cachedResponse, cacheHit, err := provider.HandleContextCache(ctx, req, productID)
+	if err != nil {
+		log.Printf("Error handling context cache: %v", err)
+	}
+	if cacheHit {
+		var resp provider.ChatCompletionResponse
+		err = json.Unmarshal([]byte(cachedResponse), &resp)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
+		}
+		return &resp, nil
+	}
+
 	openAIReq := openai.ChatCompletionRequest{
 		Model:     req.Model,
 		Messages:  convertMessages(req.Messages),
 		MaxTokens: req.MaxTokens,
 	}
 
-	resp, err := o.client.CreateChatCompletion(ctx, openAIReq)
+	openAIResp, err := o.client.CreateChatCompletion(ctx, openAIReq)
 	if err != nil {
 		return nil, fmt.Errorf("error creating chat completion: %v", err)
 	}
 
-	return convertResponse(resp), nil
+	providerResp := convertResponse(openAIResp)
+
+	// Set the context cache
+	err = provider.SetContextCacheResponse(ctx, req, providerResp, productID)
+	if err != nil {
+		log.Printf("Error setting context cache: %v", err)
+	}
+
+	return providerResp, nil
 }
 
 func (o *OpenAIProvider) CreateChatCompletionStream(ctx context.Context, req provider.ChatCompletionRequest) (provider.Stream, error) {

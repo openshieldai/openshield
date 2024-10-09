@@ -24,15 +24,24 @@ type Configuration struct {
 	Providers Providers `mapstructure:"providers"`
 }
 
-type ProviderOpenAI struct {
-	Enabled bool   `mapstructure:"enabled"`
-	BaseUrl string `mapstructure:"base_url"`
+type Providers struct {
+	OpenAI    *ProviderOpenAI    `mapstructure:"openai"`
+	Anthropic *ProviderAnthropic `mapstructure:"anthropic"`
+	Nvidia    *ProviderNvidia    `mapstructure:"nvidia"`
 }
 
-// Providers section contains all the providers
-type Providers struct {
-	OpenAI      *ProviderOpenAI `mapstructure:"openai"`
-	HuggingFace *FeatureToggle  `mapstructure:"huggingface"`
+type ProviderOpenAI struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+
+type ProviderAnthropic struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+type ProviderNvidia struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
 }
 
 // Secrets section contains all the secrets
@@ -124,7 +133,6 @@ type Config struct {
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
 }
 
-// ActionType defines the type of action to take
 type ActionType string
 
 // Action defines what actions are associated with filters
@@ -132,7 +140,6 @@ type Action struct {
 	Type ActionType `mapstructure:"type"`
 }
 
-// AppConfig ActionType constants
 var AppConfig Configuration
 
 func init() {
@@ -191,16 +198,15 @@ func init() {
 			fmt.Println(err)
 		}
 	})
+
 }
 
 func GetConfig() Configuration {
 	return AppConfig
 }
-
 func SetConfig(config Configuration) {
 	AppConfig = config
 }
-
 func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {

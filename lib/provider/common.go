@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/openshieldai/openshield/lib"
 
@@ -220,4 +221,83 @@ func PerformResponseAuditLogging(r *http.Request, resp *ChatCompletionResponse) 
 		productID,
 		auditLog.Id,
 	)
+}
+func HandleContextCache(ctx context.Context, req ChatCompletionRequest, productID uuid.UUID) (string, bool, error) {
+	config := lib.GetConfig()
+	if !config.Settings.ContextCache.Enabled {
+		return "", false, nil
+	}
+
+	prompt := lastUserMessage(req.Messages)
+	sessionID := fmt.Sprintf("%s-%s", productID.String(), req.Model)
+
+	cachedResponse, err := lib.GetContextCache(prompt, sessionID)
+	if err != nil {
+		if err.Error() == "cache hit" {
+			return cachedResponse, true, nil
+		}
+		if err.Error() == "cache miss" {
+			return cachedResponse, false, err
+		}
+		// Log the error for debugging purposes
+		log.Printf("Error getting context cache: %v", err)
+		return "", false, nil
+	}
+
+	return "", false, nil
+}
+
+func SetContextCacheResponse(ctx context.Context, req ChatCompletionRequest, resp *ChatCompletionResponse, productID uuid.UUID) error {
+	config := lib.GetConfig()
+	if !config.Settings.ContextCache.Enabled {
+		return nil
+	}
+
+	prompt := lastUserMessage(req.Messages)
+	sessionID := fmt.Sprintf("%s-%s", productID.String(), req.Model)
+	answer := resp.Choices[0].Message.Content
+
+	return lib.SetContextCache(prompt, answer, sessionID)
+}
+
+func lastUserMessage(messages []Message) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == "user" {
+			return messages[i].Content
+		}
+	}
+	return ""
+}
+func CreateChatCompletionResponseFromCache(cachedResponse string, model string) (*ChatCompletionResponse, error) {
+	var cachedResp struct {
+		Prompt    string `json:"prompt"`
+		Answer    string `json:"answer"`
+		ProductID string `json:"product_id"`
+	}
+	err := json.Unmarshal([]byte(cachedResponse), &cachedResp)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
+	}
+
+	return &ChatCompletionResponse{
+		ID:      "cached_" + cachedResp.ProductID,
+		Object:  "chat.completion",
+		Created: time.Now().Unix(),
+		Model:   model,
+		Choices: []Choice{
+			{
+				Index: 0,
+				Message: Message{
+					Role:    "assistant",
+					Content: cachedResp.Answer,
+				},
+				FinishReason: "stop",
+			},
+		},
+		Usage: Usage{
+			PromptTokens:     0,
+			CompletionTokens: 0,
+			TotalTokens:      0,
+		},
+	}, nil
 }
