@@ -45,7 +45,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/openshieldai/edge/cache
+            ghcr.io/openshieldai/openshield/cache
           tags: |
             type=sha
             type=raw,value=latest
@@ -53,7 +53,7 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v6
         with:
-          context: ./cache
+          context: services/cache
           platforms: linux/arm64,linux/amd64
           push: false
           tags: ${{ steps.cache.outputs.tags }}

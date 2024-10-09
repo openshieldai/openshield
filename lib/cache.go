@@ -19,40 +19,40 @@ import (
 )
 
 var (
-	redisClient *redis.Client
-	once        sync.Once
+    redisClient *redis.Client
+    once        sync.Once
 )
 
 func InitRedisClient(config *Configuration) {
-	once.Do(func() {
-		var redisTlsCfg *tls.Config
-		if config.Settings.Redis.SSL {
-			redisTlsCfg = &tls.Config{
-				MinVersion:       tls.VersionTLS12,
-				CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-				CipherSuites: []uint16{
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-					tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-				},
-			}
-		}
+    once.Do(func() {
+        var redisTlsCfg *tls.Config
+        if config.Settings.Redis.SSL {
+            redisTlsCfg = &tls.Config{
+                MinVersion:       tls.VersionTLS12,
+                CurvePreferences: []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+                CipherSuites: []uint16{
+                    tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                    tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+                    tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+                    tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+                },
+            }
+        }
 
-		opt, err := redis.ParseURL(config.Settings.Redis.URI)
-		if err != nil {
-			log.Fatalf("Failed to parse Redis URL: %v", err)
-		}
+        opt, err := redis.ParseURL(config.Settings.Redis.URI)
+        if err != nil {
+            log.Fatalf("Failed to parse Redis URL: %v", err)
+        }
 
-		opt.TLSConfig = redisTlsCfg
+        opt.TLSConfig = redisTlsCfg
 
-		redisClient = redis.NewClient(opt)
-	})
+        redisClient = redis.NewClient(opt)
+    })
 }
 
 func GetCache(key string) ([]byte, bool, error) {
-	config := GetConfig()
-	InitRedisClient(&config)
+    config := GetConfig()
+    InitRedisClient(&config)
 
 	if redisClient == nil {
 		InitRedisClient(&config)
@@ -79,8 +79,8 @@ func GetCache(key string) ([]byte, bool, error) {
 }
 
 func SetCache(key string, value interface{}) error {
-	config := GetConfig()
-	InitRedisClient(&config)
+    config := GetConfig()
+    InitRedisClient(&config)
 
 	if redisClient == nil {
 		InitRedisClient(&config)

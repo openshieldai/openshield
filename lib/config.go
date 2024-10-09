@@ -133,6 +133,7 @@ type Config struct {
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
 }
 
+// ActionType defines the type of action to take
 type ActionType string
 
 // Action defines what actions are associated with filters
@@ -140,6 +141,7 @@ type Action struct {
 	Type ActionType `mapstructure:"type"`
 }
 
+// AppConfig ActionType constants
 var AppConfig Configuration
 
 func init() {
@@ -198,15 +200,16 @@ func init() {
 			fmt.Println(err)
 		}
 	})
-
 }
 
 func GetConfig() Configuration {
 	return AppConfig
 }
+
 func SetConfig(config Configuration) {
 	AppConfig = config
 }
+
 func findConfigPath() (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {

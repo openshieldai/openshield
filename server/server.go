@@ -15,10 +15,9 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 	httprateredis "github.com/go-chi/httprate-redis"
-	_ "github.com/openshieldai/openshield/docs"
 	"github.com/openshieldai/openshield/lib"
 	"github.com/redis/go-redis/v9"
-	"github.com/swaggo/http-swagger"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -100,36 +99,36 @@ func setupOpenAIRoutes(r chi.Router) {
 		setupRoute(r, routeSettings)
 	}
 	r.Route("/openai/v1", func(r chi.Router) {
-		r.Get("/models", lib.AuthOpenShieldMiddleware(openai.ListModelsHandler))
-		r.Get("/models/{model}", lib.AuthOpenShieldMiddleware(openai.GetModelHandler))
-		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(openai.ChatCompletionHandler))
-		r.Post("/threads", lib.AuthOpenShieldMiddleware(openai.CreateThreadHandler))
-		r.Get("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.GetThreadHandler))
-		r.Post("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.ModifyThreadHandler))
-		r.Delete("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.DeleteThreadHandler))
-		r.Post("/threads/{thread_id}/messages", lib.AuthOpenShieldMiddleware(openai.CreateMessageHandler))
-		r.Get("/threads/{thread_id}/messages", lib.AuthOpenShieldMiddleware(openai.ListMessagesHandler))
-		r.Get("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveMessageHandler))
-		r.Post("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.ModifyMessageHandler))
-		r.Delete("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.DeleteMessageHandler))
-		r.Post("/assistants", lib.AuthOpenShieldMiddleware(openai.CreateAssistantHandler))
-		r.Get("/assistants", lib.AuthOpenShieldMiddleware(openai.ListAssistantsHandler))
-		r.Get("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveAssistantHandler))
-		r.Post("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.ModifyAssistantHandler))
-		r.Delete("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.DeleteAssistantHandler))
+		r.Get("/models", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ListModelsHandler))
+		r.Get("/models/{model}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).GetModelHandler))
+		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ChatCompletionHandler))
+		r.Post("/threads", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).CreateThreadHandler))
+		r.Get("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).GetThreadHandler))
+		r.Post("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ModifyThreadHandler))
+		r.Delete("/threads/{thread_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).DeleteThreadHandler))
+		r.Post("/threads/{thread_id}/messages", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).CreateMessageHandler))
+		r.Get("/threads/{thread_id}/messages", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ListMessagesHandler))
+		r.Get("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).RetrieveMessageHandler))
+		r.Post("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ModifyMessageHandler))
+		r.Delete("/threads/{thread_id}/messages/{message_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).DeleteMessageHandler))
+		r.Post("/assistants", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).CreateAssistantHandler))
+		r.Get("/assistants", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ListAssistantsHandler))
+		r.Get("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).RetrieveAssistantHandler))
+		r.Post("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ModifyAssistantHandler))
+		r.Delete("/assistants/{assistant_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).DeleteAssistantHandler))
 
 		// Run routes
-		r.Post("/threads/{thread_id}/runs", lib.AuthOpenShieldMiddleware(openai.CreateRunHandler))
-		r.Get("/threads/{thread_id}/runs", lib.AuthOpenShieldMiddleware(openai.ListRunsHandler))
-		r.Get("/threads/{thread_id}/runs/{run_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveRunHandler))
-		r.Post("/threads/{thread_id}/runs/{run_id}", lib.AuthOpenShieldMiddleware(openai.ModifyRunHandler))
-		r.Post("/threads/{thread_id}/runs/{run_id}/cancel", lib.AuthOpenShieldMiddleware(openai.CancelRunHandler))
-		r.Post("/threads/{thread_id}/runs/{run_id}/submit_tool_outputs", lib.AuthOpenShieldMiddleware(openai.SubmitToolOutputsHandler))
-		r.Post("/threads/runs", lib.AuthOpenShieldMiddleware(openai.CreateThreadAndRunHandler))
+		r.Post("/threads/{thread_id}/runs", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).CreateRunHandler))
+		r.Get("/threads/{thread_id}/runs", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ListRunsHandler))
+		r.Get("/threads/{thread_id}/runs/{run_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).RetrieveRunHandler))
+		r.Post("/threads/{thread_id}/runs/{run_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ModifyRunHandler))
+		r.Post("/threads/{thread_id}/runs/{run_id}/cancel", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).CancelRunHandler))
+		r.Post("/threads/{thread_id}/runs/{run_id}/submit_tool_outputs", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).SubmitToolOutputsHandler))
+		r.Post("/threads/runs", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).CreateThreadAndRunHandler))
 
 		// Run Step routes
-		r.Get("/threads/{thread_id}/runs/{run_id}/steps", lib.AuthOpenShieldMiddleware(openai.ListRunStepsHandler))
-		r.Get("/threads/{thread_id}/runs/{run_id}/steps/{step_id}", lib.AuthOpenShieldMiddleware(openai.RetrieveRunStepHandler))
+		r.Get("/threads/{thread_id}/runs/{run_id}/steps", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).ListRunStepsHandler))
+		r.Get("/threads/{thread_id}/runs/{run_id}/steps/{step_id}", lib.AuthOpenShieldMiddleware(openai.NewHandler(lib.GetConfig()).RetrieveRunStepHandler))
 	})
 	r.Route("/anthropic/v1", func(r chi.Router) {
 		r.Post("/messages", lib.AuthOpenShieldMiddleware(anthropic.CreateMessageHandler))
@@ -142,7 +141,6 @@ func setupOpenAIRoutes(r chi.Router) {
 var redisClient *redis.Client
 
 func setupRoute(r chi.Router, routeSettings lib.RouteSettings) {
-
 	config := lib.GetConfig()
 
 	if redisClient == nil {
@@ -152,6 +150,10 @@ func setupRoute(r chi.Router, routeSettings lib.RouteSettings) {
 	r.Use(httprate.Limit(
 		routeSettings.RateLimit.Max,
 		time.Duration(routeSettings.RateLimit.Window),
+		httprate.WithKeyByRealIP(),
+		httprate.WithLimitHandler(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+		}),
 		lib.WithKeyByRealIP(),
 		httprateredis.WithRedisLimitCounter(&httprateredis.Config{
 			Client: redisClient,
