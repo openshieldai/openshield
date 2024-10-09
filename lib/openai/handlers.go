@@ -882,7 +882,8 @@ func performAuditLogging(r *http.Request, logType string, messageType string, bo
 
 	productID, err := getProductIDFromAPIKey(apiKeyId)
 	if err != nil {
-		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
+		hashedApiKeyId := sha256.Sum256([]byte(apiKeyId.String()))
+		log.Printf("Failed to retrieve ProductID for apiKeyId %x: %v", hashedApiKeyId, err)
 		return
 	}
 	lib.AuditLogs(string(body), logType, apiKeyId, messageType, productID, r)
@@ -907,7 +908,8 @@ func performResponseAuditLogging(r *http.Request, resp openai.ChatCompletionResp
 	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
 	productID, err := getProductIDFromAPIKey(apiKeyId)
 	if err != nil {
-		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
+		hashedApiKeyId := sha256.Sum256([]byte(apiKeyId.String()))
+		log.Printf("Failed to retrieve ProductID for apiKeyId %x: %v", hashedApiKeyId, err)
 		return
 	}
 
