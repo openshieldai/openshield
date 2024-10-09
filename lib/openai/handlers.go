@@ -195,7 +195,8 @@ func performThreadAuditLogging(r *http.Request, resp openai.Thread) {
 	productID, err := getProductIDFromAPIKey(apiKeyId)
 	responseJSON, _ := json.Marshal(resp)
 	if err != nil {
-		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", apiKeyId, err)
+		hashedApiKeyId := sha256.Sum256([]byte(apiKeyId.String()))
+		log.Printf("Failed to retrieve ProductID for apiKeyId %s: %v", hex.EncodeToString(hashedApiKeyId[:]), err)
 		return
 	}
 
