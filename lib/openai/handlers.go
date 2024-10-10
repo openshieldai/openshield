@@ -768,8 +768,9 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		InitOpenAIProvider()
 	}
 
-	req, ctx, productID, err := provider.HandleCommonRequestLogic(w, r, "openai")
-	if err != nil {
+	req, ctx, productID, ok := provider.HandleCommonRequestLogic(w, r, "openai")
+	if !ok {
+		log.Println("Request blocked or error occurred, skipping API call")
 		return
 	}
 

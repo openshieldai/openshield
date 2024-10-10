@@ -358,17 +358,17 @@ func HandleError(w http.ResponseWriter, err error, statusCode int) {
 	log.Printf("Error: %v", err)
 	http.Error(w, err.Error(), statusCode)
 }
-func HandleCommonRequestLogic(w http.ResponseWriter, r *http.Request, providerName string) (ChatCompletionRequest, context.Context, uuid.UUID, error) {
+func HandleCommonRequestLogic(w http.ResponseWriter, r *http.Request, providerName string) (ChatCompletionRequest, context.Context, uuid.UUID, bool) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		HandleError(w, fmt.Errorf("error reading request body: %v", err), http.StatusBadRequest)
-		return ChatCompletionRequest{}, nil, uuid.Nil, err
+		return ChatCompletionRequest{}, nil, uuid.Nil, false
 	}
 
 	var req ChatCompletionRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		HandleError(w, fmt.Errorf("error decoding request body: %v", err), http.StatusBadRequest)
-		return ChatCompletionRequest{}, nil, uuid.Nil, err
+		return ChatCompletionRequest{}, nil, uuid.Nil, false
 	}
 
 	log.Printf("Received request: %+v", req)
@@ -377,24 +377,25 @@ func HandleCommonRequestLogic(w http.ResponseWriter, r *http.Request, providerNa
 
 	filtered, err := ProcessInput(w, r, req)
 	if err != nil || filtered {
-		return ChatCompletionRequest{}, nil, uuid.Nil, err
+		log.Printf("Request filtered or error occurred: %v", err)
+		return ChatCompletionRequest{}, nil, uuid.Nil, false
 	}
 
 	apiKeyID, ok := r.Context().Value("apiKeyId").(uuid.UUID)
 	if !ok {
 		HandleError(w, fmt.Errorf("apiKeyId not found in context"), http.StatusInternalServerError)
-		return ChatCompletionRequest{}, nil, uuid.Nil, fmt.Errorf("apiKeyId not found in context")
+		return ChatCompletionRequest{}, nil, uuid.Nil, false
 	}
 
 	productID, err := GetProductIDFromAPIKey(r.Context(), apiKeyID)
 	if err != nil {
 		HandleError(w, fmt.Errorf("error getting productID: %v", err), http.StatusInternalServerError)
-		return ChatCompletionRequest{}, nil, uuid.Nil, err
+		return ChatCompletionRequest{}, nil, uuid.Nil, false
 	}
 
 	ctx := context.WithValue(r.Context(), "productID", productID)
 
-	return req, ctx, productID, nil
+	return req, ctx, productID, true
 }
 
 func HandleCacheLogic(ctx context.Context, req ChatCompletionRequest, productID uuid.UUID) (*ChatCompletionResponse, bool, error) {
