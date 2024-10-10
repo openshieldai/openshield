@@ -2,7 +2,6 @@ package openai
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/openshieldai/go-openai"
@@ -23,22 +22,12 @@ func NewOpenAIProvider(apiKey, baseURL string) provider.Provider {
 }
 
 func (o *OpenAIProvider) CreateChatCompletion(ctx context.Context, req provider.ChatCompletionRequest) (*provider.ChatCompletionResponse, error) {
-	productID, ok := ctx.Value("productID").(uuid.UUID)
-	if !ok {
-		return nil, fmt.Errorf("productID not found in context")
-	}
-
-	cachedResponse, cacheHit, err := provider.HandleContextCache(ctx, req, productID)
+	resp, err := provider.HandleChatCompletionRequest(ctx, req)
 	if err != nil {
-		log.Printf("Error handling context cache: %v", err)
+		return nil, err
 	}
-	if cacheHit {
-		var resp provider.ChatCompletionResponse
-		err = json.Unmarshal([]byte(cachedResponse), &resp)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
-		}
-		return &resp, nil
+	if resp != nil {
+		return resp, nil
 	}
 
 	openAIReq := openai.ChatCompletionRequest{
@@ -54,7 +43,7 @@ func (o *OpenAIProvider) CreateChatCompletion(ctx context.Context, req provider.
 
 	providerResp := convertResponse(openAIResp)
 
-	// Set the context cache
+	productID := ctx.Value("productID").(uuid.UUID)
 	err = provider.SetContextCacheResponse(ctx, req, providerResp, productID)
 	if err != nil {
 		log.Printf("Error setting context cache: %v", err)

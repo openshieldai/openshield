@@ -318,20 +318,43 @@ func HandleChatCompletionRequest(ctx context.Context, req ChatCompletionRequest)
 	return nil, nil
 }
 
-func ValidateAndFilterRequest(r *http.Request, req interface{}) (bool, string, error) {
-	filtered, message, errorMessage := rules.Input(r, req)
+type InputRequest struct {
+	Model     string          `json:"model"`
+	Messages  []types.Message `json:"messages"`
+	MaxTokens int             `json:"max_tokens"`
+	Stream    bool            `json:"stream"`
+}
+
+func ProcessInput(w http.ResponseWriter, r *http.Request, req ChatCompletionRequest) (bool, error) {
+	inputRequest := struct {
+		Model     string          `json:"model"`
+		Messages  []types.Message `json:"messages"`
+		MaxTokens int             `json:"max_tokens"`
+		Stream    bool            `json:"stream"`
+	}{
+		Model:     req.Model,
+		Messages:  req.Messages,
+		MaxTokens: req.MaxTokens,
+		Stream:    req.Stream,
+	}
+
+	filtered, message, errorMessage := rules.Input(r, inputRequest)
 	if errorMessage != nil {
-		return false, "", fmt.Errorf("error processing input: %v", errorMessage)
+		HandleError(w, fmt.Errorf("error processing input: %v", errorMessage), http.StatusBadRequest)
+		return false, errorMessage
 	}
 
 	if filtered {
-		logMessage, err := json.Marshal(message)
-		if err != nil {
-			return false, "", fmt.Errorf("error marshalling message: %v", err)
-		}
-		PerformAuditLogging(r, "rule", "filtered", logMessage)
-		return true, message, nil
+		PerformAuditLogging(r, "rule", "filtered", []byte(message))
+		HandleError(w, fmt.Errorf("%v", message), http.StatusBadRequest)
+		return true, nil
 	}
 
-	return false, "", nil
+	log.Println("Input processing completed successfully")
+	return false, nil
+}
+
+func HandleError(w http.ResponseWriter, err error, statusCode int) {
+	log.Printf("Error: %v", err)
+	http.Error(w, err.Error(), statusCode)
 }
