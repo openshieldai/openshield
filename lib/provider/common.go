@@ -358,3 +358,56 @@ func HandleError(w http.ResponseWriter, err error, statusCode int) {
 	log.Printf("Error: %v", err)
 	http.Error(w, err.Error(), statusCode)
 }
+func HandleCommonRequestLogic(w http.ResponseWriter, r *http.Request, providerName string) (ChatCompletionRequest, context.Context, uuid.UUID, error) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		HandleError(w, fmt.Errorf("error reading request body: %v", err), http.StatusBadRequest)
+		return ChatCompletionRequest{}, nil, uuid.Nil, err
+	}
+
+	var req ChatCompletionRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		HandleError(w, fmt.Errorf("error decoding request body: %v", err), http.StatusBadRequest)
+		return ChatCompletionRequest{}, nil, uuid.Nil, err
+	}
+
+	log.Printf("Received request: %+v", req)
+
+	PerformAuditLogging(r, providerName+"_create_message", "input", body)
+
+	filtered, err := ProcessInput(w, r, req)
+	if err != nil || filtered {
+		return ChatCompletionRequest{}, nil, uuid.Nil, err
+	}
+
+	apiKeyID, ok := r.Context().Value("apiKeyId").(uuid.UUID)
+	if !ok {
+		HandleError(w, fmt.Errorf("apiKeyId not found in context"), http.StatusInternalServerError)
+		return ChatCompletionRequest{}, nil, uuid.Nil, fmt.Errorf("apiKeyId not found in context")
+	}
+
+	productID, err := GetProductIDFromAPIKey(r.Context(), apiKeyID)
+	if err != nil {
+		HandleError(w, fmt.Errorf("error getting productID: %v", err), http.StatusInternalServerError)
+		return ChatCompletionRequest{}, nil, uuid.Nil, err
+	}
+
+	ctx := context.WithValue(r.Context(), "productID", productID)
+
+	return req, ctx, productID, nil
+}
+
+func HandleCacheLogic(ctx context.Context, req ChatCompletionRequest, productID uuid.UUID) (*ChatCompletionResponse, bool, error) {
+	cachedResponse, cacheHit, err := HandleContextCache(ctx, req, productID)
+	if err != nil {
+		log.Printf("Error handling context cache: %v", err)
+	}
+
+	if cacheHit {
+		log.Println("Cache hit, using cached response")
+		resp, err := CreateChatCompletionResponseFromCache(cachedResponse, req.Model)
+		return resp, true, err
+	}
+
+	return nil, false, nil
+}
