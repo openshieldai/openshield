@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	"sync"
 
 	"github.com/openshieldai/go-openai"
-
 	"github.com/openshieldai/openshield/lib"
 )
 
@@ -53,7 +53,6 @@ var inputTypes = InputTypes{
 
 func sendRequest(data Rule) (RuleResult, error) {
 	jsonify, err := json.Marshal(data)
-	log.Printf("Sending request to rule server: %s", jsonify)
 	if err != nil {
 		return RuleResult{}, fmt.Errorf("failed to marshal request: %v", err)
 	}
@@ -89,49 +88,6 @@ func sendRequest(data Rule) (RuleResult, error) {
 
 	return rule, nil
 }
-
-// func sendMultipleRuleRequests(data Rule) ([]RuleResult, error) {
-// 	ruleServers := []string{
-// 		lib.GetConfig().Settings.RuleServer.Url,
-// 		lib.GetConfig().Settings.ContextCache.URL,
-// 		// Add more rule server URLs as needed
-// 	}
-
-// 	var (
-// 		wg         sync.WaitGroup
-// 		mu         sync.Mutex
-// 		results    []RuleResult
-// 		firstError error
-// 	)
-
-// 	for _, url := range ruleServers {
-// 		wg.Add(1)
-// 		go func(serverURL string) {
-// 			defer wg.Done()
-// 			data.Config.URL = serverURL // Assuming Rule struct has a URL field
-// 			result, err := sendRequest(data)
-// 			if err != nil {
-// 				mu.Lock()
-// 				if firstError == nil {
-// 					firstError = err
-// 				}
-// 				mu.Unlock()
-// 				return
-// 			}
-// 			mu.Lock()
-// 			results = append(results, result)
-// 			mu.Unlock()
-// 		}(url)
-// 	}
-
-// 	wg.Wait()
-
-// 	if firstError != nil {
-// 		return nil, firstError
-// 	}
-
-// 	return results, nil
-// }
 
 func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
 	if rule.Match {
@@ -175,6 +131,8 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages inter
 			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
 		case []openai.ThreadMessage:
 			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
+		case []types.Message:
+			msg[userMessageIndex].Content = rule.Inspection.AnonymizedContent
 		default:
 			return true, "Invalid message type", fmt.Errorf("unsupported message type")
 		}
@@ -190,43 +148,69 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages inter
 	return false, `{"status": "non_blocked", "rule_type": "pii_filter"}`, nil
 }
 
-func Input(_ *http.Request, request interface{}) (bool, string, error) {
-    config := lib.GetConfig()
-    log.Println("Starting Input function")
+func Input(r *http.Request, request interface{}) (bool, string, error) {
+	config := lib.GetConfig()
 
-    sort.Slice(config.Rules.Input, func(i, j int) bool {
-        return config.Rules.Input[i].OrderNumber < config.Rules.Input[j].OrderNumber
-    })
+	log.Println("Starting Input function")
 
-    var (
-        wg        sync.WaitGroup
-        mu        sync.Mutex
-        blocked   bool
-        message   string
-        firstErr  error
-    )
+	sort.Slice(config.Rules.Input, func(i, j int) bool {
+		return config.Rules.Input[i].OrderNumber < config.Rules.Input[j].OrderNumber
+	})
+
+	var messages []types.Message
+	var model string
+	var maxTokens int
+
+	switch req := request.(type) {
+	case struct {
+		Model     string          `json:"model"`
+		Messages  []types.Message `json:"messages"`
+		MaxTokens int             `json:"max_tokens"`
+		Stream    bool            `json:"stream"`
+	}:
+		messages = req.Messages
+		model = req.Model
+		maxTokens = req.MaxTokens
+	default:
+		return true, "Invalid request type", fmt.Errorf("unsupported request type")
+	}
+
+	var (
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		blocked  bool
+		message  string
+		firstErr error
+	)
 
 	for _, inputConfig := range config.Rules.Input {
-			if !inputConfig.Enabled {
-					log.Printf("Rule %s is disabled, skipping", inputConfig.Type)
-					continue
-			}
+		log.Printf("Processing input rule: %s (Order: %d)", inputConfig.Type, inputConfig.OrderNumber)
 
-			wg.Add(1)
-			go func(ic lib.Rule) {
-					defer wg.Done()
-					blk, msg, err := handleRule(ic, request, ic.Type)
-					if blk {
-							mu.Lock()
-							if !blocked { // Capture the first block
-									blocked = true
-									message = msg
-									firstErr = err
-							}
-			mu.Unlock()
+		if !inputConfig.Enabled {
+			log.Printf("Rule %s is disabled, skipping", inputConfig.Type)
+			continue
+		}
+
+		blocked, message, err := handleRule(inputConfig, messages, model, maxTokens, inputConfig.Type)
+
+		if blocked {
+			return blocked, message, err
+		}
+		wg.Add(1)
+		go func(ic lib.Rule) {
+			defer wg.Done()
+			blk, msg, err := handleRule(ic, messages, model, maxTokens, ic.Type)
+			if blk {
+				mu.Lock()
+				if !blocked { // Capture the first block
+					blocked = true
+					message = msg
+					firstErr = err
+				}
+				mu.Unlock()
 			}
-}(inputConfig)
-}
+		}(inputConfig)
+	}
 
 	wg.Wait()
 
@@ -238,46 +222,28 @@ func Input(_ *http.Request, request interface{}) (bool, string, error) {
 	return false, `{"status": "non_blocked", "rule_type": "input"}`, nil
 }
 
-func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (bool, string, error) {
+func handleRule(inputConfig lib.Rule, messages []types.Message, model string, maxTokens int, ruleType string) (bool, string, error) {
 	log.Printf("%s check enabled (Order: %d)", ruleType, inputConfig.OrderNumber)
 
-	var extractedPrompt string
-	var userMessageIndex int
-	var err error
-	var messages interface{}
-
-	switch req := request.(type) {
-	case openai.ChatCompletionRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromChat(req.Messages)
-		messages = req.Messages
-	case openai.ThreadRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromThread(req.Messages)
-		if extractedPrompt == "" {
-			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
-			return false, "", nil
-		}
-		messages = req.Messages
-	case openai.MessageRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromMessage(req)
-		messages = req
-	case openai.CreateThreadAndRunRequest:
-		extractedPrompt, userMessageIndex, err = extractUserPromptFromCreateThreadAndRun(req)
-		if extractedPrompt == "" {
-			log.Println("No user message found in the ThreadRequest, skipping rule checking.")
-			return false, "", nil
-		}
-		messages = req.Thread.Messages
-	default:
-		return true, "Invalid request type", fmt.Errorf("unsupported request type")
-	}
+	extractedPrompt, userMessageIndex, err := extractUserPromptFromMessages(messages)
 	if err != nil {
 		log.Println(err)
 		return true, err.Error(), err
 	}
 	log.Printf("Extracted prompt for %s: %s", ruleType, extractedPrompt)
 
-	// **Change is here: Pass extractedPrompt instead of the entire request**
-	data := Rule{Prompt: request, Config: inputConfig.Config}
+	data := Rule{
+		Prompt: struct {
+			Messages  []types.Message `json:"messages"`
+			Model     string          `json:"model"`
+			MaxTokens int             `json:"max_tokens"`
+		}{
+			Messages:  messages,
+			Model:     model,
+			MaxTokens: maxTokens,
+		},
+		Config: inputConfig.Config,
+	}
 	rule, err := sendRequest(data)
 	if err != nil {
 		return true, err.Error(), err
@@ -288,13 +254,33 @@ func handleRule(inputConfig lib.Rule, request interface{}, ruleType string) (boo
 	return handleRuleAction(inputConfig, rule, ruleType, messages, userMessageIndex)
 }
 
+func extractUserPromptFromMessages(messages []types.Message) (string, int, error) {
+	var userMessages []string
+	var firstUserMessageIndex int = -1
+
+	for i, message := range messages {
+		if message.Role == "user" {
+			if firstUserMessageIndex == -1 {
+				firstUserMessageIndex = i
+			}
+			userMessages = append(userMessages, message.Content)
+		}
+	}
+
+	if firstUserMessageIndex == -1 {
+		return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
+	}
+
+	concatenatedMessages := strings.Join(userMessages, " ")
+	return concatenatedMessages, firstUserMessageIndex, nil
+}
+
 func extractUserPromptFromCreateThreadAndRun(request openai.CreateThreadAndRunRequest) (string, int, error) {
 	if len(request.Thread.Messages) > 0 {
 		return extractUserPromptFromThread(request.Thread.Messages)
 	}
 	return "", -1, nil
 }
-
 func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, messages interface{}, userMessageIndex int) (bool, string, error) {
 	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
 
@@ -355,7 +341,6 @@ func extractUserPromptFromThread(messages []openai.ThreadMessage) (string, int, 
 	concatenatedMessages := strings.Join(userMessages, " ")
 	return concatenatedMessages, firstUserMessageIndex, nil
 }
-
 func extractUserPromptFromMessage(message openai.MessageRequest) (string, int, error) {
 	if message.Role == "user" {
 		return message.Content, 0, nil
