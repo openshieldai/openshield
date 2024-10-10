@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib/provider"
+	"github.com/openshieldai/openshield/lib/types"
 	"log"
 )
 
@@ -133,7 +134,7 @@ func (r *OpenAIStreamResponse) GetModel() string {
 	return model
 }
 
-func convertMessages(messages []provider.Message) []openai.ChatCompletionMessage {
+func convertMessages(messages []types.Message) []openai.ChatCompletionMessage {
 	openAIMessages := make([]openai.ChatCompletionMessage, len(messages))
 	for i, msg := range messages {
 		openAIMessages[i] = openai.ChatCompletionMessage{
@@ -149,7 +150,7 @@ func convertResponse(resp openai.ChatCompletionResponse) *provider.ChatCompletio
 	for i, choice := range resp.Choices {
 		choices[i] = provider.Choice{
 			Index: choice.Index,
-			Message: provider.Message{
+			Message: types.Message{
 				Role:    choice.Message.Role,
 				Content: choice.Message.Content,
 			},

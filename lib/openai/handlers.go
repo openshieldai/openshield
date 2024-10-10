@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
@@ -785,10 +786,10 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 	provider.PerformAuditLogging(r, "openai_chat_completion", "input", body)
 
 	inputRequest := struct {
-		Model     string             `json:"model"`
-		Messages  []provider.Message `json:"messages"`
-		MaxTokens int                `json:"max_tokens"`
-		Stream    bool               `json:"stream"`
+		Model     string          `json:"model"`
+		Messages  []types.Message `json:"messages"`
+		MaxTokens int             `json:"max_tokens"`
+		Stream    bool            `json:"stream"`
 	}{
 		Model:     req.Model,
 		Messages:  req.Messages,

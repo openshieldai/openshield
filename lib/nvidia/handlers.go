@@ -3,6 +3,7 @@ package nvidia
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
@@ -51,10 +52,10 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create the exact struct type expected by the Input function
 	inputRequest := struct {
-		Model     string             `json:"model"`
-		Messages  []provider.Message `json:"messages"`
-		MaxTokens int                `json:"max_tokens"`
-		Stream    bool               `json:"stream"`
+		Model     string          `json:"model"`
+		Messages  []types.Message `json:"messages"`
+		MaxTokens int             `json:"max_tokens"`
+		Stream    bool            `json:"stream"`
 	}{
 		Model:     req.Model,
 		Messages:  req.Messages,

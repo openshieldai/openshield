@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/openshieldai/openshield/lib/rules"
+	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
@@ -14,16 +16,11 @@ import (
 	"github.com/google/uuid"
 )
 
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
 type ChatCompletionRequest struct {
-	Model     string    `json:"model"`
-	Messages  []Message `json:"messages"`
-	MaxTokens int       `json:"max_tokens"`
-	Stream    bool      `json:"stream"`
+	Model     string          `json:"model"`
+	Messages  []types.Message `json:"messages"`
+	MaxTokens int             `json:"max_tokens"`
+	Stream    bool            `json:"stream"`
 }
 
 type ChatCompletionResponse struct {
@@ -36,9 +33,9 @@ type ChatCompletionResponse struct {
 }
 
 type Choice struct {
-	Index        int     `json:"index"`
-	Message      Message `json:"message"`
-	FinishReason string  `json:"finish_reason"`
+	Index        int           `json:"index"`
+	Message      types.Message `json:"message"`
+	FinishReason string        `json:"finish_reason"`
 }
 
 type Usage struct {
@@ -258,7 +255,7 @@ func SetContextCacheResponse(ctx context.Context, req ChatCompletionRequest, res
 	return lib.SetContextCache(prompt, answer, sessionID)
 }
 
-func lastUserMessage(messages []Message) string {
+func lastUserMessage(messages []types.Message) string {
 	for i := len(messages) - 1; i >= 0; i-- {
 		if messages[i].Role == "user" {
 			return messages[i].Content
@@ -285,7 +282,7 @@ func CreateChatCompletionResponseFromCache(cachedResponse string, model string) 
 		Choices: []Choice{
 			{
 				Index: 0,
-				Message: Message{
+				Message: types.Message{
 					Role:    "assistant",
 					Content: cachedResp.Answer,
 				},
@@ -298,4 +295,43 @@ func CreateChatCompletionResponseFromCache(cachedResponse string, model string) 
 			TotalTokens:      0,
 		},
 	}, nil
+}
+func HandleChatCompletionRequest(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error) {
+	productID, ok := ctx.Value("productID").(uuid.UUID)
+	if !ok {
+		return nil, fmt.Errorf("productID not found in context")
+	}
+
+	cachedResponse, cacheHit, err := HandleContextCache(ctx, req, productID)
+	if err != nil {
+		log.Printf("Error handling context cache: %v", err)
+	}
+	if cacheHit {
+		var resp ChatCompletionResponse
+		err = json.Unmarshal([]byte(cachedResponse), &resp)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
+		}
+		return &resp, nil
+	}
+
+	return nil, nil
+}
+
+func ValidateAndFilterRequest(r *http.Request, req interface{}) (bool, string, error) {
+	filtered, message, errorMessage := rules.Input(r, req)
+	if errorMessage != nil {
+		return false, "", fmt.Errorf("error processing input: %v", errorMessage)
+	}
+
+	if filtered {
+		logMessage, err := json.Marshal(message)
+		if err != nil {
+			return false, "", fmt.Errorf("error marshalling message: %v", err)
+		}
+		PerformAuditLogging(r, "rule", "filtered", logMessage)
+		return true, message, nil
+	}
+
+	return false, "", nil
 }

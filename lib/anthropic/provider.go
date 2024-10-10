@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
@@ -47,23 +48,19 @@ func NewAnthropicProvider(apiKey, baseURL string) provider.Provider {
 }
 
 func (a *AnthropicProvider) CreateChatCompletion(ctx context.Context, req provider.ChatCompletionRequest) (*provider.ChatCompletionResponse, error) {
+	cachedResp, err := provider.HandleChatCompletionRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if cachedResp != nil {
+		return cachedResp, nil
+	}
+
 	productID, ok := ctx.Value("productID").(uuid.UUID)
 	if !ok {
 		return nil, fmt.Errorf("productID not found in context")
 	}
 
-	cachedResponse, cacheHit, err := provider.HandleContextCache(ctx, req, productID)
-	if err != nil {
-		log.Printf("Error handling context cache: %v", err)
-	}
-	if cacheHit {
-		var resp provider.ChatCompletionResponse
-		err = json.Unmarshal([]byte(cachedResponse), &resp)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
-		}
-		return &resp, nil
-	}
 	url := fmt.Sprintf("%s/messages", a.BaseURL)
 
 	requestBody := map[string]interface{}{
@@ -87,16 +84,16 @@ func (a *AnthropicProvider) CreateChatCompletion(ctx context.Context, req provid
 	httpReq.Header.Set("anthropic-version", "2023-06-01")
 
 	client := &http.Client{}
-	resp, err := client.Do(httpReq)
+	httpResp, err := client.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer httpResp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(httpResp.Body)
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	var anthropicResp AnthropicResponse
@@ -223,7 +220,7 @@ func (s *AnthropicStream) Recv() (provider.StreamResponse, error) {
 				Choices: []provider.Choice{
 					{
 						Index: resp.Index,
-						Message: provider.Message{
+						Message: types.Message{
 							Content: resp.Delta.Text,
 						},
 						FinishReason: "",
@@ -248,7 +245,7 @@ func (s *AnthropicStream) Recv() (provider.StreamResponse, error) {
 				Choices: []provider.Choice{
 					{
 						Index:        0,
-						Message:      provider.Message{},
+						Message:      types.Message{},
 						FinishReason: resp.Delta.StopReason,
 					},
 				},
@@ -262,7 +259,7 @@ func (s *AnthropicStream) Recv() (provider.StreamResponse, error) {
 				Choices: []provider.Choice{
 					{
 						Index:        0,
-						Message:      provider.Message{},
+						Message:      types.Message{},
 						FinishReason: "stop",
 					},
 				},
@@ -323,7 +320,7 @@ func convertAnthropicResponse(resp *AnthropicResponse) *provider.ChatCompletionR
 		Choices: []provider.Choice{
 			{
 				Index: 0,
-				Message: provider.Message{
+				Message: types.Message{
 					Role:    resp.Role,
 					Content: content,
 				},

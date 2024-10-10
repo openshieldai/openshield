@@ -8,6 +8,7 @@ import (
 	"github.com/openshieldai/openshield/lib"
 	"github.com/openshieldai/openshield/lib/provider"
 	"github.com/openshieldai/openshield/lib/rules"
+	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
@@ -48,10 +49,10 @@ func CreateMessageHandler(w http.ResponseWriter, r *http.Request) {
 	provider.PerformAuditLogging(r, "anthropic_create_message", "input", body)
 
 	inputRequest := struct {
-		Model     string             `json:"model"`
-		Messages  []provider.Message `json:"messages"`
-		MaxTokens int                `json:"max_tokens"`
-		Stream    bool               `json:"stream"`
+		Model     string          `json:"model"`
+		Messages  []types.Message `json:"messages"`
+		MaxTokens int             `json:"max_tokens"`
+		Stream    bool            `json:"stream"`
 	}{
 		Model:     req.Model,
 		Messages:  req.Messages,
