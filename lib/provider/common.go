@@ -411,3 +411,32 @@ func HandleCacheLogic(ctx context.Context, req ChatCompletionRequest, productID 
 
 	return nil, false, nil
 }
+
+func HandleAPICallAndResponse(w http.ResponseWriter, r *http.Request, ctx context.Context, req ChatCompletionRequest, productID uuid.UUID, provider Provider) {
+	resp, cacheHit, err := HandleCacheLogic(ctx, req, productID)
+	if err != nil {
+		log.Printf("Error handling cache logic: %v", err)
+	}
+
+	if !cacheHit {
+		log.Printf("Cache miss, making API call to provider")
+		resp, err = provider.CreateChatCompletion(ctx, req)
+		if err != nil {
+			HandleError(w, fmt.Errorf("error creating chat completion: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		if err := SetContextCacheResponse(ctx, req, resp, productID); err != nil {
+			log.Printf("Error setting context cache: %v", err)
+		}
+
+		PerformResponseAuditLogging(r, resp)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
