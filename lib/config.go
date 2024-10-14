@@ -24,21 +24,37 @@ type Configuration struct {
 	Providers Providers `mapstructure:"providers"`
 }
 
-type ProviderOpenAI struct {
-	Enabled bool   `mapstructure:"enabled"`
-	BaseUrl string `mapstructure:"base_url"`
+type Providers struct {
+	OpenAI      *ProviderOpenAI      `mapstructure:"openai"`
+	Anthropic   *ProviderAnthropic   `mapstructure:"anthropic"`
+	Nvidia      *ProviderNvidia      `mapstructure:"nvidia"`
+	HuggingFace *ProviderHuggingFace `mapstructure:"huggingface"`
 }
 
-// Providers section contains all the providers
-type Providers struct {
-	OpenAI      *ProviderOpenAI `mapstructure:"openai"`
-	HuggingFace *FeatureToggle  `mapstructure:"huggingface"`
+type ProviderOpenAI struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+
+type ProviderAnthropic struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+type ProviderNvidia struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+type ProviderHuggingFace struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
 }
 
 // Secrets section contains all the secrets
 type Secrets struct {
 	OpenAIApiKey      string `mapstructure:"openai_api_key"`
-	HuggingFaceAPIKey string `mapstructure:"huggingface_api_key"`
+	HuggingFaceApiKey string `mapstructure:"huggingface_api_key"`
+	AnthropicApiKey   string `mapstructure:"anthropic_api_key"`
+	NvidiaApiKey      string `mapstructure:"nvidia_api_key"`
 }
 
 // Setting can include various configurations like database, cache, and different logging types
