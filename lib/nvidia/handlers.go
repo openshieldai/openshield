@@ -35,8 +35,6 @@ func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Nvidia request stream parameter: %v", req.Stream)
-
 	provider.HandleAPICallAndResponse(w, r, ctx, req, productID, nvidiaProvider)
 
 	log.Println("Nvidia ChatCompletionHandler completed successfully")

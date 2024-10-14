@@ -4,37 +4,38 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/lib/openai"
 	"github.com/openshieldai/openshield/lib/provider"
+
+	"github.com/openshieldai/openshield/lib"
 )
 
-var huggingFaceProvider provider.Provider
+const OSCacheStatusHeader = "OS-Cache-Status"
+
+var HuggingFaceProvider provider.Provider
 
 func InitHuggingFaceProvider() {
 	config := lib.GetConfig()
-	huggingFaceProvider = NewHuggingFaceProvider(
+	HuggingFaceProvider = openai.NewOpenAIProvider(
 		config.Secrets.HuggingFaceApiKey,
 		config.Providers.HuggingFace.BaseUrl,
 	)
-	log.Printf("HuggingFace Provider initialized")
 }
 
 func ChatCompletionHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Starting HuggingFace ChatCompletionHandler")
+	log.Println("Starting Huggingface ChatCompletionHandler")
 
-	if huggingFaceProvider == nil {
+	if HuggingFaceProvider == nil {
 		InitHuggingFaceProvider()
 	}
 
-	req, ctx, productID, ok := provider.HandleCommonRequestLogic(w, r, "huggingface")
+	req, ctx, productID, ok := provider.HandleCommonRequestLogic(w, r, "nvidia")
 	if !ok {
 		log.Println("Request blocked or error occurred, skipping API call")
 		return
 	}
 
-	log.Printf("HuggingFace request stream parameter: %v", req.Stream)
+	provider.HandleAPICallAndResponse(w, r, ctx, req, productID, HuggingFaceProvider)
 
-	provider.HandleAPICallAndResponse(w, r, ctx, req, productID, huggingFaceProvider)
-
-	log.Println("HuggingFace ChatCompletionHandler completed successfully")
+	log.Println("Huggingface ChatCompletionHandler completed successfully")
 }
