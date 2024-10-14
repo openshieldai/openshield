@@ -61,14 +61,6 @@ type StreamResponse interface {
 	GetModel() string
 }
 
-func HandleChatCompletion(w http.ResponseWriter, r *http.Request, provider Provider, req ChatCompletionRequest) error {
-	if req.Stream {
-		return handleStreamingRequest(w, r, provider, req)
-	} else {
-		return handleNonStreamingRequest(w, r, provider, req)
-	}
-}
-
 func handleStreamingRequest(w http.ResponseWriter, r *http.Request, provider Provider, req ChatCompletionRequest) error {
 	stream, err := provider.CreateChatCompletionStream(r.Context(), req)
 	if err != nil {
