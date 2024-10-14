@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/openshieldai/openshield/lib/huggingface"
 	"net/http"
 	"time"
 
@@ -88,12 +89,13 @@ func StartServer() error {
 func setupOpenAIRoutes(r chi.Router) {
 	routeSettings, _ := lib.GetRouteSettings()
 	routes := map[string]lib.RouteSettings{
-		"/openai/v1/models":              routeSettings,
-		"/openai/v1/models/{model}":      routeSettings,
-		"/openai/v1/chat/completions":    routeSettings,
-		"/openai/v1/threads":             routeSettings,
-		"/openai/v1/threads/{thread_id}": routeSettings,
-		"/anthropic/v1/messages":         routeSettings,
+		"/openai/v1/models":                routeSettings,
+		"/openai/v1/models/{model}":        routeSettings,
+		"/openai/v1/chat/completions":      routeSettings,
+		"/openai/v1/threads":               routeSettings,
+		"/openai/v1/threads/{thread_id}":   routeSettings,
+		"/anthropic/v1/messages":           routeSettings,
+		"/huggingface/v1/chat/completions": routeSettings,
 	}
 
 	for _, routeSettings := range routes {
@@ -136,6 +138,9 @@ func setupOpenAIRoutes(r chi.Router) {
 	})
 	r.Route("/nvidia/v1", func(r chi.Router) {
 		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(nvidia.ChatCompletionHandler))
+	})
+	r.Route("/huggingface/v1", func(r chi.Router) {
+		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(huggingface.ChatCompletionHandler))
 	})
 }
 
