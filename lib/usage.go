@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func Usage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string, productID uuid.UUID, auditLogID uuid.UUID) {
+func LogUsage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string, productID uuid.UUID, auditLogID uuid.UUID) {
 	config := GetConfig()
 
 	if config.Settings.UsageLogging.Enabled {
