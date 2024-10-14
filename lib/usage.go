@@ -1,9 +1,10 @@
 package lib
 
 import (
+	"log"
+
 	"github.com/google/uuid"
 	"github.com/openshieldai/openshield/models"
-	"log"
 )
 
 func LogUsage(modelName string, predictedTokensCount int, promptTokensCount int, completionTokens int, totalTokens int, finishReason string, requestType string, productID uuid.UUID, auditLogID uuid.UUID) {

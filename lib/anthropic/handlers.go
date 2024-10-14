@@ -1,10 +1,11 @@
 package anthropic
 
 import (
-	"github.com/openshieldai/openshield/lib"
-	"github.com/openshieldai/openshield/lib/provider"
 	"log"
 	"net/http"
+
+	"github.com/openshieldai/openshield/lib"
+	"github.com/openshieldai/openshield/lib/provider"
 )
 
 var anthropicProvider provider.Provider
