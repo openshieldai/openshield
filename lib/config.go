@@ -165,7 +165,7 @@ func init() {
 		viperCfg.AddConfigPath(configDir)
 	}
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viperCfg.SetDefault("providers.openai.base_url", "https://api.openai.com/v1")
+	viperCfg.SetDefault("providers.openai.url", "https://api.openai.com/v1")
 	if strings.ToLower(os.Getenv("NONVIPER_CONFIG")) != "true" {
 		err := viperCfg.ReadInConfig()
 		if err != nil {
