@@ -1,9 +1,29 @@
+"""
+This module provides functionality for detecting and anonymizing Personally Identifiable Information (PII) in text using the Presidio library.
+
+The `initialize_engines` function sets up the necessary engines for PII detection and anonymization based on the provided configuration.
+It supports both rule-based and large language model (LLM) methods for PII detection.
+
+The `anonymize_text` function takes a text input and uses the initialized engines to detect and anonymize PII.
+It returns the anonymized text and a list of identified PII entities.
+
+The `handler` function serves as the main entry point, orchestrating the initialization of engines and the anonymization process.
+It returns a result indicating whether the PII score exceeds a given threshold, along with the anonymized content and identified PII entities.
+
+Functions:
+- initialize_engines: Initializes the PII detection and anonymization engines based on the configuration.
+- anonymize_text: Detects and anonymizes PII in the given text.
+- handler: Main function to handle the PII detection and anonymization process.
+
+Dependencies:
+- logging: Provides a way to configure and use loggers.
+- presidio_analyzer: Presidio library for PII detection.
+- presidio_anonymizer: Presidio library for PII anonymization.
+"""
+
 import logging
-
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
-
 from presidio_anonymizer import AnonymizerEngine
-
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 logging.basicConfig(level=logging.DEBUG)
@@ -16,7 +36,7 @@ def initialize_engines(config):
 
         def create_nlp_engine_with_transformers():
 
-            provider = NlpEngineProvider(conf=config)
+            provider = NlpEngineProvider()
 
             return provider.create_engine()
 
