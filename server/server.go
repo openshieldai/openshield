@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/openshieldai/openshield/lib/huggingface"
 	"net/http"
 	"time"
+
+	"github.com/openshieldai/openshield/lib/huggingface"
 
 	"github.com/openshieldai/openshield/lib/anthropic"
 	"github.com/openshieldai/openshield/lib/nvidia"

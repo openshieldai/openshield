@@ -1,3 +1,22 @@
+"""
+This module provides a handler for detecting invisible characters in a given text.
+
+The `InvisibleText` class checks for characters that belong to specific Unicode categories (Cf, Co, Cn) which are considered invisible or non-printable.
+
+The `handler` function uses the `InvisibleText` class to check if the text contains any invisible characters and returns a result indicating the presence of such characters along with a score.
+
+Classes:
+- InvisibleText: Checks for invisible characters in the text based on Unicode categories.
+
+Functions:
+- contains_unicode: Checks if the text contains any Unicode characters.
+- handler: Uses `InvisibleText` to check for invisible characters and returns the result.
+
+Dependencies:
+- unicodedata: Provides access to the Unicode Character Database.
+- logging: Provides a way to configure and use loggers.
+"""
+
 import unicodedata
 import logging
 

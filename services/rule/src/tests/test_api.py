@@ -55,6 +55,7 @@ class TestAPIEndpoint(unittest.TestCase):
             "config": {
                 "PluginName": "detect_english",
                 "Threshold": 0.5,
+                "Relation": "<",
                 "api_key": API_KEY,
                 "url": "https://api-inference.huggingface.co/models/papluca/xlm-roberta-base-language-detection"
             }
@@ -92,7 +93,8 @@ class TestAPIEndpoint(unittest.TestCase):
             },
             "config": {
                 "PluginName": "prompt_injection_llm",
-                "Threshold": 0.5
+                "Threshold": 0.5,
+                "Relation": ">",
             }
         }
         response = requests.post(API_URL, json=payload)
@@ -119,6 +121,7 @@ class TestAPIEndpoint(unittest.TestCase):
             "config": {
                 "PluginName": "pii",
                 "Threshold": 0,
+                "Relation": ">",
                 "PIIService": {
                     "debug": False,
                     "models": [{"langcode": "en",
@@ -154,7 +157,8 @@ class TestAPIEndpoint(unittest.TestCase):
             },
             "config": {
                 "PluginName": "invisible_chars",
-                "Threshold": 0
+                "Threshold": 0,
+                "Relation": ">",
             }
         }
         response = requests.post(API_URL, json=payload)

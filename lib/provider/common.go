@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshieldai/openshield/lib/rules"
-	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/openshieldai/openshield/lib/rules"
+	"github.com/openshieldai/openshield/lib/types"
 
 	"github.com/openshieldai/openshield/lib"
 

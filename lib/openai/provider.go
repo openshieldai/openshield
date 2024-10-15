@@ -3,11 +3,12 @@ package openai
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/google/uuid"
 	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib/provider"
 	"github.com/openshieldai/openshield/lib/types"
-	"log"
 )
 
 type OpenAIProvider struct {

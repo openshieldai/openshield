@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/openshieldai/openshield/lib/types"
 
 	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib"
@@ -21,6 +22,7 @@ type InputTypes struct {
 	PromptInjection   string
 	PIIFilter         string
 	InvisibleChars    string
+	Moderation        string
 }
 
 type Rule struct {
@@ -49,6 +51,7 @@ var inputTypes = InputTypes{
 	PromptInjection:   "prompt_injection",
 	PIIFilter:         "pii_filter",
 	InvisibleChars:    "invisible_chars",
+	Moderation:        "moderation",
 }
 
 func sendRequest(data Rule) (RuleResult, error) {
@@ -89,37 +92,18 @@ func sendRequest(data Rule) (RuleResult, error) {
 	return rule, nil
 }
 
-func handleInvisibleCharsAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
+func genericHandler(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
+	log.Printf("%s detection result: Match=%v, Score=%f", inputConfig.Type, rule.Match, rule.Inspection.Score)
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to invalid characters detection.")
-			return true, `{"status": "blocked", "rule_type": "invisible_chars"}`, nil
+			return true, fmt.Sprintf(`{"status": "blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 		}
 		log.Println("Monitoring request due to invalid characters detection.")
+		return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 	}
 	log.Println("Invalid Characters Rule Not Matched")
-	return false, `{"status": "non_blocked", "rule_type": "invisible_chars"}`, nil
-}
-
-func handleLanguageDetectionAction(rule RuleResult) (bool, string, error) {
-	if rule.Match { // Invert the condition to block when a match is found
-		log.Printf("English probability: %.4f", rule.Inspection.Score)
-		return true, `{"status": "blocked", "rule_type": "language_detection"}`, nil
-	}
-	log.Printf("Language Detection: English probability above threshold (%.4f)", rule.Inspection.Score)
-	return false, `{"status": "non_blocked", "rule_type": "language_detection"}`, nil
-}
-
-func handlePromptInjectionAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
-	if rule.Match {
-		if inputConfig.Action.Type == "block" {
-			log.Println("Blocking request due to prompt injection detection.")
-			return true, `{"status": "blocked", "rule_type": "prompt_injection"}`, nil
-		}
-		log.Println("Monitoring request due to prompt injection detection.")
-	}
-	log.Println("Prompt Injection Rule Not Matched")
-	return false, `{"status": "non_blocked", "rule_type": "prompt_injection"}`, nil
+	return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 }
 
 func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages interface{}, userMessageIndex int) (bool, string, error) {
@@ -142,13 +126,12 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages inter
 			return true, `{"status": "blocked", "rule_type": "pii_filter"}`, nil
 		}
 		log.Println("Monitoring request due to PII detection.")
-	} else {
-		log.Println("No PII detected")
 	}
+	log.Println("PII Rule Not Matched")
 	return false, `{"status": "non_blocked", "rule_type": "pii_filter"}`, nil
 }
 
-func Input(r *http.Request, request interface{}) (bool, string, error) {
+func Input(_ *http.Request, request interface{}) (bool, string, error) {
 	config := lib.GetConfig()
 
 	log.Println("Starting Input function")
@@ -256,7 +239,7 @@ func handleRule(inputConfig lib.Rule, messages []types.Message, model string, ma
 
 func extractUserPromptFromMessages(messages []types.Message) (string, int, error) {
 	var userMessages []string
-	var firstUserMessageIndex int = -1
+	var firstUserMessageIndex = -1
 
 	for i, message := range messages {
 		if message.Role == "user" {
@@ -275,75 +258,22 @@ func extractUserPromptFromMessages(messages []types.Message) (string, int, error
 	return concatenatedMessages, firstUserMessageIndex, nil
 }
 
-func extractUserPromptFromCreateThreadAndRun(request openai.CreateThreadAndRunRequest) (string, int, error) {
-	if len(request.Thread.Messages) > 0 {
-		return extractUserPromptFromThread(request.Thread.Messages)
-	}
-	return "", -1, nil
-}
 func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, messages interface{}, userMessageIndex int) (bool, string, error) {
 	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
 
 	switch ruleType {
 	case inputTypes.InvisibleChars:
-		return handleInvisibleCharsAction(inputConfig, rule)
+		return genericHandler(inputConfig, rule)
 	case inputTypes.LanguageDetection:
-		return handleLanguageDetectionAction(rule)
+		return genericHandler(inputConfig, rule)
 	case inputTypes.PIIFilter:
 		return handlePIIFilterAction(inputConfig, rule, messages, userMessageIndex)
 	case inputTypes.PromptInjection:
-		return handlePromptInjectionAction(inputConfig, rule)
+		return genericHandler(inputConfig, rule)
+	case inputTypes.Moderation:
+		return genericHandler(inputConfig, rule)
 	default:
 		log.Printf("%s Rule Not Matched", ruleType)
 		return false, "", nil
 	}
-}
-
-func extractUserPromptFromChat(messages []openai.ChatCompletionMessage) (string, int, error) {
-	var userMessages []string
-	var firstUserMessageIndex int = -1
-
-	for i, message := range messages {
-		if message.Role == "user" {
-			if firstUserMessageIndex == -1 {
-				firstUserMessageIndex = i
-			}
-			userMessages = append(userMessages, message.Content)
-		}
-	}
-
-	if firstUserMessageIndex == -1 {
-		return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
-	}
-
-	concatenatedMessages := strings.Join(userMessages, " ")
-	return concatenatedMessages, firstUserMessageIndex, nil
-}
-
-func extractUserPromptFromThread(messages []openai.ThreadMessage) (string, int, error) {
-	var userMessages []string
-	var firstUserMessageIndex int = -1
-
-	for i, message := range messages {
-		if message.Role == "user" {
-			if firstUserMessageIndex == -1 {
-				firstUserMessageIndex = i
-			}
-			userMessages = append(userMessages, message.Content)
-		}
-	}
-
-	if firstUserMessageIndex == -1 {
-		log.Println("No user message found in the ThreadRequest, continuing processing other rules.")
-		return "", -1, nil
-	}
-
-	concatenatedMessages := strings.Join(userMessages, " ")
-	return concatenatedMessages, firstUserMessageIndex, nil
-}
-func extractUserPromptFromMessage(message openai.MessageRequest) (string, int, error) {
-	if message.Role == "user" {
-		return message.Content, 0, nil
-	}
-	return "", -1, fmt.Errorf(`{"message": "no user message found in the request"}`)
 }

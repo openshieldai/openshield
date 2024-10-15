@@ -51,6 +51,10 @@ func TestInput(t *testing.T) {
 				Config: lib.Config{
 					PluginName: "detect_english",
 					Threshold:  50,
+					Relation:   `>`,
+				},
+				Action: lib.Action{
+					Type: "block",
 				},
 			},
 			expectedBlock: false,
@@ -78,6 +82,10 @@ func TestInput(t *testing.T) {
 				Config: lib.Config{
 					PluginName: "detect_english",
 					Threshold:  50,
+					Relation:   `>`,
+				},
+				Action: lib.Action{
+					Type: "block",
 				},
 			},
 			expectedBlock: true,

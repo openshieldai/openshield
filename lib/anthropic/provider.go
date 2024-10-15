@@ -6,13 +6,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/openshieldai/openshield/lib/types"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/openshieldai/openshield/lib/types"
 
 	"github.com/openshieldai/openshield/lib/provider"
 )

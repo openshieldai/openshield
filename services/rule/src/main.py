@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from typing import List, Optional, Union
+from typing import List, Optional
 import importlib
 import rule_engine
 import logging
@@ -10,6 +10,8 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Define plugin_name at the module level
+plugin_name = ""
 
 class Message(BaseModel):
     role: str
@@ -32,6 +34,7 @@ class Prompt(BaseModel):
 class Config(BaseModel):
     PluginName: str
     Threshold: float
+    Relation: str
 
     # Allow any additional fields
     class Config:
@@ -55,6 +58,7 @@ async def log_request(request: Request, call_next):
 
 @app.post("/rule/execute")
 async def execute_plugin(rule: Rule):
+    global plugin_name
     try:
         logger.debug(f"Received rule: {rule}")
         plugin_name = rule.config.PluginName.lower()
@@ -121,7 +125,8 @@ async def execute_plugin(rule: Rule):
     logger.debug(f"Rule engine data: {data}")
 
     # Create and evaluate the rule
-    rule_obj = rule_engine.Rule('score > threshold', context=context)
+    relation = rule.config.Relation
+    rule_obj = rule_engine.Rule(f"score {relation} threshold", context=context)
     match = rule_obj.matches(data)
     logger.debug(f"Rule engine result: match={match}")
 

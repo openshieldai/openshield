@@ -132,6 +132,7 @@ type Rule struct {
 // Config holds the configuration specifics of a filter
 type Config struct {
 	PluginName string      `mapstructure:"plugin_name"`
+	Relation   string      `mapstructure:"relation,default=>"`
 	Threshold  float64     `mapstructure:"threshold,omitempty,default=0.5"`
 	Url        string      `mapstructure:"url,omitempty"`
 	ApiKey     string      `mapstructure:"api_key,omitempty"`
@@ -165,7 +166,7 @@ func init() {
 		viperCfg.AddConfigPath(configDir)
 	}
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viperCfg.SetDefault("providers.openai.base_url", "https://api.openai.com/v1")
+	viperCfg.SetDefault("providers.openai.url", "https://api.openai.com/v1")
 	if strings.ToLower(os.Getenv("NONVIPER_CONFIG")) != "true" {
 		err := viperCfg.ReadInConfig()
 		if err != nil {

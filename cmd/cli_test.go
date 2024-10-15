@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"github.com/google/uuid"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/openshieldai/openshield/lib"
 	"github.com/spf13/cobra"
