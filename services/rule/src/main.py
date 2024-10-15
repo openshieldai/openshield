@@ -34,6 +34,7 @@ class Prompt(BaseModel):
 class Config(BaseModel):
     PluginName: str
     Threshold: float
+    Relation: str
 
     # Allow any additional fields
     class Config:
@@ -124,7 +125,8 @@ async def execute_plugin(rule: Rule):
     logger.debug(f"Rule engine data: {data}")
 
     # Create and evaluate the rule
-    rule_obj = rule_engine.Rule('score > threshold', context=context)
+    relation = rule.config.Relation
+    rule_obj = rule_engine.Rule(f"score {relation} threshold", context=context)
     match = rule_obj.matches(data)
     logger.debug(f"Rule engine result: match={match}")
 

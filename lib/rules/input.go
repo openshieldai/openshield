@@ -93,12 +93,14 @@ func sendRequest(data Rule) (RuleResult, error) {
 }
 
 func genericHandler(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
+	log.Printf("%s detection result: Match=%v, Score=%f", inputConfig.Type, rule.Match, rule.Inspection.Score)
 	if rule.Match {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to invalid characters detection.")
 			return true, fmt.Sprintf(`{"status": "blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 		}
 		log.Println("Monitoring request due to invalid characters detection.")
+		return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 	}
 	log.Println("Invalid Characters Rule Not Matched")
 	return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
