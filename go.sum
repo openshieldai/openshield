@@ -95,6 +95,8 @@ github.com/openshieldai/go-openai v1.30.3-stream h1:gt5EoAH7jL6MZVx7zYI2UtQ9hkYo
 github.com/openshieldai/go-openai v1.30.3-stream/go.mod h1:eWSk17Eq8yg0xc6F5SvL7Kx8l0zsP9gMzdQuLKgWC/I=
 github.com/openshieldai/go-openai v1.30.3-stream.0.20240921150027-4b14f11c5d6d h1:Si17iCeCEXAla/228Q9f/iZOfbX0uXUneq14cFWPIZQ=
 github.com/openshieldai/go-openai v1.30.3-stream.0.20240921150027-4b14f11c5d6d/go.mod h1:eWSk17Eq8yg0xc6F5SvL7Kx8l0zsP9gMzdQuLKgWC/I=
+github.com/openshieldai/go-openai v1.32.1-stream h1:V5qtSK08pT7du9FkTQtFGkqs4RZa/QQcvt5oX49UIP0=
+github.com/openshieldai/go-openai v1.32.1-stream/go.mod h1:eWSk17Eq8yg0xc6F5SvL7Kx8l0zsP9gMzdQuLKgWC/I=
 github.com/pelletier/go-toml/v2 v2.2.3 h1:YmeHyLY8mFWbdkNWwpr+qIL2bEqT0o95WSdkNHvL12M=
 github.com/pelletier/go-toml/v2 v2.2.3/go.mod h1:MfCQTFTvCcUyyvvwm1+G6H/jORL20Xlb6rzQu9GuUkc=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
