@@ -13,8 +13,8 @@ importers:
         version: 4.67.3
     devDependencies:
       '@types/node':
-        specifier: 20.16.12
-        version: 20.16.12
+        specifier: 20.16.13
+        version: 20.16.13
       typescript:
         specifier: 5.6.3
         version: 5.6.3
@@ -27,8 +27,8 @@ packages:
   '@types/node@18.19.42':
     resolution: {integrity: sha512-d2ZFc/3lnK2YCYhos8iaNIYu9Vfhr92nHiyJHRltXWjXUBjEE+A4I58Tdbnw4VhggSW+2j5y5gTrLs4biNnubg==}
 
-  '@types/node@20.16.12':
-    resolution: {integrity: sha512-LfPFB0zOeCeCNQV3i+67rcoVvoN5n0NVuR2vLG0O5ySQMgchuZlC4lgz546ZOJyDtj5KIgOxy+lacOimfqZAIA==}
+  '@types/node@20.16.13':
+    resolution: {integrity: sha512-GjQ7im10B0labo8ZGXDGROUl9k0BNyDgzfGpb4g/cl+4yYDWVKcozANF4FGr4/p0O/rAkQClM6Wiwkije++1Tg==}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -128,14 +128,14 @@ snapshots:
 
   '@types/node-fetch@2.6.11':
     dependencies:
-      '@types/node': 20.16.12
+      '@types/node': 20.16.13
       form-data: 4.0.0
 
   '@types/node@18.19.42':
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@20.16.12':
+  '@types/node@20.16.13':
     dependencies:
       undici-types: 6.19.6
 
