@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/uuid"
 	"github.com/openshieldai/go-openai"
 	"github.com/openshieldai/openshield/lib/provider"
 	"github.com/openshieldai/openshield/lib/types"
@@ -23,13 +22,6 @@ func NewOpenAIProvider(apiKey, baseURL string) provider.Provider {
 }
 
 func (o *OpenAIProvider) CreateChatCompletion(ctx context.Context, req provider.ChatCompletionRequest) (*provider.ChatCompletionResponse, error) {
-	resp, err := provider.HandleChatCompletionRequest(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	if resp != nil {
-		return resp, nil
-	}
 
 	openAIReq := openai.ChatCompletionRequest{
 		Model:     req.Model,
@@ -43,12 +35,6 @@ func (o *OpenAIProvider) CreateChatCompletion(ctx context.Context, req provider.
 	}
 
 	providerResp := convertResponse(openAIResp)
-
-	productID := ctx.Value("productID").(uuid.UUID)
-	err = provider.SetContextCacheResponse(ctx, req, providerResp, productID)
-	if err != nil {
-		log.Printf("Error setting context cache: %v", err)
-	}
 
 	return providerResp, nil
 }

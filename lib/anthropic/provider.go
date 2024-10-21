@@ -7,12 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/openshieldai/openshield/lib/types"
 
 	"github.com/openshieldai/openshield/lib/provider"
@@ -49,18 +47,6 @@ func NewAnthropicProvider(apiKey, baseURL string) provider.Provider {
 }
 
 func (a *AnthropicProvider) CreateChatCompletion(ctx context.Context, req provider.ChatCompletionRequest) (*provider.ChatCompletionResponse, error) {
-	cachedResp, err := provider.HandleChatCompletionRequest(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	if cachedResp != nil {
-		return cachedResp, nil
-	}
-
-	productID, ok := ctx.Value("productID").(uuid.UUID)
-	if !ok {
-		return nil, fmt.Errorf("productID not found in context")
-	}
 
 	url := fmt.Sprintf("%s/messages", a.BaseURL)
 
@@ -103,12 +89,6 @@ func (a *AnthropicProvider) CreateChatCompletion(ctx context.Context, req provid
 	}
 
 	providerResp := convertAnthropicResponse(&anthropicResp)
-
-	// Set the context cache
-	err = provider.SetContextCacheResponse(ctx, req, providerResp, productID)
-	if err != nil {
-		log.Printf("Error setting context cache: %v", err)
-	}
 
 	return providerResp, nil
 }
