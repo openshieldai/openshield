@@ -1,3 +1,43 @@
+"""
+This module provides a content safety checking system that analyzes text for inappropriate or harmful content.
+
+The module uses a multi-tiered classification system to detect and categorize potentially problematic content
+across different severity levels (mild, moderate, severe) and categories (profanity, hate speech, etc.).
+
+The `ContentCategories` class defines comprehensive word lists for different types of inappropriate content,
+organized by severity level and category.
+
+Classes:
+- ContentCategories: Contains categorized word lists organized by content type and severity level.
+    Categories include:
+    - PROFANITY_VULGAR: Common swear words and vulgar language
+    - HATE_SPEECH: Discriminatory and hateful content
+    - SEXUAL_EXPLICIT: Adult and sexually explicit content
+    - VIOLENCE_HARMFUL: Violent and self-harm related content
+    - POLITICAL: Politically sensitive or extreme content
+
+Functions:
+- calculate_severity_score: Calculates a severity score based on matched content and its category.
+- check_content: Analyzes text against all content categories and returns detailed results.
+- handler: Main entry point that processes text and returns content safety analysis results.
+
+Returns:
+    dict: {
+        "check_result": bool,  # Whether content exceeds safety threshold
+        "score": float,        # Severity score (0.0 to 1.0)
+        "details": dict        # Detailed breakdown of matches by category and severity
+    }
+
+Severity Scoring:
+- Mild violations: 0.3
+- Moderate violations: 0.6
+- Severe violations: 1.0
+
+Dependencies:
+- re: Python's regular expression module
+- logging: Python's logging facility
+"""
+
 import re
 import logging
 
