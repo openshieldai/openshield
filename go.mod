@@ -19,7 +19,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/swaggo/http-swagger v1.3.4
-	github.com/swaggo/swag v1.16.3
+	github.com/swaggo/swag v1.16.4
 	github.com/tiktoken-go/tokenizer v0.2.0
 	golang.org/x/sync v0.8.0
 	gopkg.in/yaml.v3 v3.0.1
