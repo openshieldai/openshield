@@ -2256,13 +2256,13 @@ ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"
 
 [[package]]
 name = "redis-om"
-version = "0.3.2"
+version = "0.3.3"
 description = "Object mappings, and more, for Redis."
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "redis_om-0.3.2-py3-none-any.whl", hash = "sha256:37c2075f150509ef3f9274903000d0eeca710af2aa11877dac0da0c7456d70b8"},
-    {file = "redis_om-0.3.2.tar.gz", hash = "sha256:28e69e1228ec1c2c3ff4fd051788cd391cc673c7187f82159816e70f5dcf7d2e"},
+    {file = "redis_om-0.3.3-py3-none-any.whl", hash = "sha256:094fc5ae1bd0edd5e722edc1df13e97281e756356f4bc22ee39bb4a94fc8a66b"},
+    {file = "redis_om-0.3.3.tar.gz", hash = "sha256:7cafd8ca2117f12ff276acf547f2c58261ce3b5dab4fa19b8a1569dbf0d97d28"},
 ]
 
 [package.dependencies]
@@ -2272,7 +2272,7 @@ more-itertools = ">=8.14,<11.0"
 pydantic = ">=1.10.2,<3.0.0"
 python-ulid = ">=1.0.3,<2.0.0"
 redis = ">=3.5.3,<6.0.0"
-setuptools = {version = ">=70.0,<73.0", markers = "python_version >= \"3.12\""}
+setuptools = {version = ">=70.0,<76.0", markers = "python_version >= \"3.12\""}
 types-redis = ">=3.5.9,<5.0.0"
 typing-extensions = ">=4.4.0,<5.0.0"
 
