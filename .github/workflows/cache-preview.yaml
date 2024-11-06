@@ -1,4 +1,4 @@
-name: Cache service preview
+name: cache-preview
 
 on:
   pull_request:
@@ -7,16 +7,32 @@ on:
       - main
     paths:
       - services/cache/**
-      - .github/workflows/cache-pull.yaml
+      - .github/workflows/cache-preview.yaml
   pull_request_review:
     types: [submitted]
+  issue_comment:
+    types: [created]
 
 jobs:
   image-build:
     runs-on: ubicloud-standard-2
-    if: github.event.review.state == 'approved'
+    if: |
+      (github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, 'test') &&
+      github.event.issue.pull_request != null &&
+      github.event.pull_request.changed_files > 0) ||
+      (github.event_name == 'pull_request_review' &&
+      github.event.review.state == 'approved' &&
+      github.event.pull_request.changed_files > 0)
     steps:
+      - name: Check for path changes
+        id: path-check
+        run: |
+          echo "Checking for changes in specified paths..."
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E 'services/cache/|.github/workflows/cache-pull.yaml' || echo "no-changes"
+
       - name: Login to Github Packages
+        if: steps.path-check.outputs.result != 'no-changes'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -24,6 +40,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
+        if: steps.path-check.outputs.result != 'no-changes'
         id: qemu
         uses: docker/setup-qemu-action@v3
         with:
@@ -31,18 +48,22 @@ jobs:
           platforms: all
 
       - name: 🏗 Setup repo
+        if: steps.path-check.outputs.result != 'no-changes'
         uses: actions/checkout@v4
 
       - name: Set up Docker Context for Buildx
+        if: steps.path-check.outputs.result != 'no-changes'
         run: docker context create builders
 
       - name: Set up Docker Buildx
+        if: steps.path-check.outputs.result != 'no-changes'
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
           endpoint: builders
 
       - name: Docker meta
+        if: steps.path-check.outputs.result != 'no-changes'
         id: cache
         uses: docker/metadata-action@v5
         with:
@@ -53,6 +74,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build
+        if: steps.path-check.outputs.result != 'no-changes'
         uses: docker/build-push-action@v6
         with:
           context: services/cache
