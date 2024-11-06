@@ -289,27 +289,6 @@ func CreateChatCompletionResponseFromCache(cachedResponse string, model string) 
 		},
 	}, nil
 }
-func HandleChatCompletionRequest(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error) {
-	productID, ok := ctx.Value("productID").(uuid.UUID)
-	if !ok {
-		return nil, fmt.Errorf("productID not found in context")
-	}
-
-	cachedResponse, cacheHit, err := HandleContextCache(ctx, req, productID)
-	if err != nil {
-		log.Printf("Error handling context cache: %v", err)
-	}
-	if cacheHit {
-		var resp ChatCompletionResponse
-		err = json.Unmarshal([]byte(cachedResponse), &resp)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling cached response: %v", err)
-		}
-		return &resp, nil
-	}
-
-	return nil, nil
-}
 
 type InputRequest struct {
 	Model     string          `json:"model"`
