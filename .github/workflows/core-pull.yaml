@@ -1,8 +1,8 @@
 name: core-unit-test
 
 on:
-  pull_request_review:
-    types: [submitted]
+  pull_request:
+    types: [opened, synchronize]
     branches:
       - main
     paths:
@@ -10,7 +10,8 @@ on:
       - 'go.mod'
       - 'go.sum'
       - .github/workflows/core-pull.yaml
-
+  pull_request_review:
+    types: [submitted]
 jobs:
   core-unit-test:
     if: github.event.review.state == 'approved'

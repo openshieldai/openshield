@@ -1,13 +1,15 @@
 name: Cache service preview
 
 on:
-  pull_request_review:
-    types: [submitted]
+  pull_request:
+    types: [opened, synchronize]
     branches:
       - main
     paths:
       - services/cache/**
       - .github/workflows/cache-pull.yaml
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   image-build:
