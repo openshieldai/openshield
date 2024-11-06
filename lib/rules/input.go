@@ -227,9 +227,11 @@ func handleRule(inputConfig lib.Rule, messages []types.Message, model string, ma
 		},
 		Config: inputConfig.Config,
 	}
+	data.Config.SetDefaults()
 	rule, err := sendRequest(data)
 	if err != nil {
-		return true, err.Error(), err
+		log.Printf("Something went wrong with rule type %s: %s", inputConfig.Type, inputConfig.Name)
+		return false, "", nil
 	}
 
 	log.Printf("Rule result for %s: %+v", ruleType, rule)

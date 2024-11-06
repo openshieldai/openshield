@@ -84,6 +84,8 @@ USER nobody:nogroup
 COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $POETRY_HOME $POETRY_HOME
 COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $VIRTUAL_ENV $VIRTUAL_ENV
 
-COPY --chmod=755 --chown=nobody:nogroup poetry.lock pyproject.toml src/main.py src/plugins ./
+COPY --chmod=755 --chown=nobody:nogroup poetry.lock pyproject.toml ./
+COPY --chmod=755 --chown=nobody:nogroup src/main.py ./src/main.py
+COPY --chmod=755 --chown=nobody:nogroup src/plugins ./src/plugins
 EXPOSE 8080
 CMD ["python","src/main.py"]
