@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import json
 from typing import Optional, Dict
 from urllib.parse import urlparse
 
@@ -21,8 +22,26 @@ from fastapi import FastAPI, HTTPException
 import uvicorn
 from pydantic import BaseModel
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "name": record.name,
+            "filename": record.filename,
+            "lineno": record.lineno,
+        }
+        return json.dumps(log_record)
+
+# Set up JSON logging
+json_formatter = JSONFormatter()
+handler = logging.StreamHandler()
+handler.setFormatter(json_formatter)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
 app = FastAPI()
 openai_caches: Dict[str, Cache] = {}
 redis_url = os.getenv("REDIS_URL")
@@ -54,21 +73,21 @@ def openshield_check_hit_func(cur_session_id, cache_session_ids, cache_questions
 async def put_cache(cache_data: CacheData) -> str:
     session = Session(name=cache_data.product_id, check_hit_func=openshield_check_hit_func)
     put(cache_data.prompt, cache_data.answer, session=session)
-    logger.info(f"Setting cache data: %s", cache_data.prompt)
+    logger.info(f"Setting cache data: {cache_data.prompt}")
     return "successfully update the cache"
 
 
 @app.post("/get")
 async def get_cache(cache_data: CacheData) -> CacheData:
     session = Session(name=cache_data.product_id, check_hit_func=openshield_check_hit_func)
-    logger.info(f"Getting cache data: %s", cache_data.prompt)
+    logger.info(f"Getting cache data: {cache_data.prompt}")
     result = get(cache_data.prompt, session=session)
 
     if result is None:
-        logger.info(f"Cache miss for prompt: %s", cache_data.prompt)
+        logger.info(f"Cache miss for prompt: {cache_data.prompt}")
         raise HTTPException(status_code=404, detail="Cache miss")
     else:
-        logger.info(f"Cache hit for prompt: %s", cache_data.prompt)
+        logger.info(f"Cache hit for prompt: {cache_data.prompt}")
     return CacheData(prompt=cache_data.prompt, answer=result, product_id=cache_data.product_id)
 
 

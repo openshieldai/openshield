@@ -5,9 +5,42 @@ from typing import List, Optional
 import importlib
 import rule_engine
 import logging
+import os
+import json
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "name": record.name,
+            "filename": record.filename,
+            "lineno": record.lineno,
+        }
+        return json.dumps(log_record)
+
+def setup_logging():
+    # Get the log level from the environment variable, default to 'INFO'
+    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+
+    # Validate and set the log level
+    numeric_level = getattr(logging, log_level, None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f'Invalid log level: {log_level}')
+
+    # Configure the logging
+    json_formatter = JSONFormatter()
+    handler = logging.StreamHandler()
+    handler.setFormatter(json_formatter)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(numeric_level)
+    logger.addHandler(handler)
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+setup_logging()
+
+# Example usage of logging
 logger = logging.getLogger(__name__)
 
 # Define plugin_name at the module level
@@ -17,10 +50,8 @@ class Message(BaseModel):
     role: str
     content: str
 
-
 class Thread(BaseModel):
     messages: List[Message]
-
 
 class Prompt(BaseModel):
     model: Optional[str] = None
@@ -29,7 +60,6 @@ class Prompt(BaseModel):
     messages: Optional[List[Message]] = None
     role: Optional[str] = None
     content: Optional[str] = None
-
 
 class Config(BaseModel):
     PluginName: str
@@ -40,13 +70,12 @@ class Config(BaseModel):
     class Config:
         extra = "allow"
 
-
 class Rule(BaseModel):
     prompt: Prompt
     config: Config
 
-
 app = FastAPI()
+
 @app.middleware("http")
 async def log_request(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
@@ -55,6 +84,9 @@ async def log_request(request: Request, call_next):
     response = await call_next(request)
     return response
 
+@app.get("/status/healthz")
+async def health_check():
+    return {"status": "healthy"}
 
 @app.post("/rule/execute")
 async def execute_plugin(rule: Rule):
@@ -126,15 +158,28 @@ async def execute_plugin(rule: Rule):
 
     # Create and evaluate the rule
     relation = rule.config.Relation
-    rule_obj = rule_engine.Rule(f"score {relation} threshold", context=context)
-    match = rule_obj.matches(data)
-    logger.debug(f"Rule engine result: match={match}")
+    if relation is None:
+        raise ValueError("The 'relation' variable is undefined in the context.")
 
-    response = {"match": match, "inspection": plugin_result}
-    logger.debug(f"Plugin Name: {plugin_name} API response: {response}")
+    try:
+        rule_obj = rule_engine.Rule(f"score {relation} threshold", context=context)
+        match = rule_obj.matches(data)
+        logger.debug(f"Rule engine result: match={match}")
+        response = {"match": match, "inspection": plugin_result}
+        logger.debug(f"Plugin Name: {plugin_name} API response: {response}")
 
-    return response
+        return response
+    except Exception as e:
+        logger.error(f"Error executing rule engine: {e}")
+        raise HTTPException(status_code=500, detail="Error executing rule engine")
 
+def main():
+    # Get host and port from environment variables, with defaults
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', 8000))
+
+    logger.info(f"Starting server on {host}:{port}")
+    uvicorn.run(app, host=host, port=port)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    main()
