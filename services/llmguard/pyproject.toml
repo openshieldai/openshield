@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "llamaguard-service"
+version = "0.1.0"
+description = "Content safety analysis service using Llama Guard"
+authors = ["Openshield"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.109.0"
+uvicorn = "^0.27.0"
+torch = "^2.1.0"
+transformers = "^4.43.2"
+pydantic = "^2.5.0"
+huggingface-hub = "^0.23.2"
+python-dotenv = "^1.0.0"
+accelerate = "^1.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
