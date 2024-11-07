@@ -21,7 +21,7 @@ require (
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4
 	github.com/tiktoken-go/tokenizer v0.2.0
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.9.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.12
