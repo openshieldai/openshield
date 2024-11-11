@@ -33,7 +33,7 @@ class AnalyzeResponse(BaseModel):
 
 class LlamaGuard:
     def __init__(self):
-        self.token = os.getenv("HUGGIGNFACE_API_KEY")
+        self.token = os.getenv("HUGGINGFACE_API_KEY")
         if not self.token:
             raise ValueError("HuggingFace API token not set")
 
@@ -70,6 +70,14 @@ class LlamaGuard:
     def clean_analysis_output(self, text: str) -> str:
 
         text = text.replace("<|eot_id|>", "").replace("<|endoftext|>", "")
+
+        text = text.replace("\n", " ")
+
+        text = " ".join(text.split())
+        text = text.strip()
+
+        if text.startswith("unsafe"):
+            text = text.replace("unsafe ", "unsafe,")
         return text.strip()
 
     def analyze_content(
@@ -93,11 +101,9 @@ class LlamaGuard:
                 }
             ]
 
-
             kwargs = {"return_tensors": "pt"}
 
             if categories:
-
                 cats_dict = {cat: cat for cat in categories}
                 kwargs["categories"] = cats_dict
 
@@ -117,7 +123,12 @@ class LlamaGuard:
                     pad_token_id=0,
                 )
 
-            analysis = self.tokenizer.decode(output[0][prompt_len:], skip_special_tokens=True)
+
+            analysis = self.tokenizer.decode(
+                output[0][prompt_len:],
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=True
+            )
             clean_analysis = self.clean_analysis_output(analysis)
 
             logger.info(f"Analysis completed. Result: {clean_analysis}")
