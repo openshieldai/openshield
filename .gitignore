@@ -34,3 +34,5 @@ openshield
 demo/cache_config.yaml
 demo/config.yaml
 .vscode
+**/node_modules/
+**/dist/

@@ -1,0 +1,166 @@
+name: Rule Server Service Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+    paths:
+      - services/rule/**
+      - .github/workflows/rule-server-preview.yaml
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  rule-server-unit-test-x86:
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    name: Rule server unit tests
+    runs-on: ubicloud-standard-2
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+        poetry-version: ["1.8.3"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for path changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rule:
+              - 'services/rule/**'
+              - '.github/workflows/rule-server-preview.yaml'
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: steps.changes.outputs.rule == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run poetry action
+        if: steps.changes.outputs.rule == 'true'
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+
+      - name: Install dependencies
+        if: steps.changes.outputs.rule == 'true'
+        run: |
+          cd services/rule
+          poetry install
+
+      - name: Run unit tests
+        if: steps.changes.outputs.rule == 'true'
+        run: |
+          cd services/rule/src/tests
+          poetry run python -m unittest test_api.py
+
+  rule-server-unit-test-arm:
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    name: Rule server unit tests
+    runs-on: ubicloud-standard-2-arm
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+        poetry-version: ["1.8.3"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for path changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rule:
+              - 'services/rule/**'
+              - '.github/workflows/rule-server-preview.yaml'
+
+      - name: Set up Python ${{ matrix.python-version }}
+        if: steps.changes.outputs.rule == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run poetry action
+        if: steps.changes.outputs.rule == 'true'
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+
+      - name: Install dependencies
+        if: steps.changes.outputs.rule == 'true'
+        run: |
+          cd services/rule
+          poetry install
+
+      - name: Run unit tests
+        if: steps.changes.outputs.rule == 'true'
+        run: |
+          cd services/rule/src/tests
+          poetry run python -m unittest test_api.py
+
+  rule-service-docker-build:
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+    runs-on: ubicloud-standard-2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for path changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rule:
+              - 'services/rule/**'
+              - '.github/workflows/rule-server-preview.yaml'
+
+      - name: Login to Github Packages
+        if: steps.changes.outputs.rule == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        if: steps.changes.outputs.rule == 'true'
+        id: qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+
+      - name: Set up Docker Context for Buildx
+        if: steps.changes.outputs.rule == 'true'
+        run: docker context create builders
+
+      - name: Set up Docker Buildx
+        if: steps.changes.outputs.rule == 'true'
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+          endpoint: builders
+
+      - name: Docker meta
+        if: steps.changes.outputs.rule == 'true'
+        id: rule-service
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/openshieldai/openshield/rule
+          tags: |
+            type=sha
+            type=raw,value=latest
+
+      - name: Build
+        if: steps.changes.outputs.rule == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: services/rule
+          platforms: linux/arm64,linux/amd64
+          push: false
+          tags: ${{ steps.rule-service.outputs.tags }}
+          labels: ${{ steps.rule-service.outputs.labels }}

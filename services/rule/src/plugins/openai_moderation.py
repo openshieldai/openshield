@@ -31,7 +31,6 @@ def handler(text: str, threshold: float, _: dict) -> dict:
 
 
     for result in moderation_result.results:
-        print(result.categories)
         for key, value in result.categories:
             if value:
                 return {

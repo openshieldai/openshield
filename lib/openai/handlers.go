@@ -95,6 +95,31 @@ func CreateThreadHandler(w http.ResponseWriter, r *http.Request) {
 
 	performAuditLogging(r, "openai_create_thread", "input", body)
 
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
+
+	resp, err := client.CreateThread(r.Context(), req)
+	if err != nil {
+		handleError(w, fmt.Errorf("failed to create thread: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if config.Settings.ContextCache.Enabled {
+		w.Header().Set(OSCacheStatusHeader, "MISS")
+		resJson, err := json.Marshal(resp)
+		if err != nil {
+			log.Printf("Error marshalling response to JSON: %v", err)
+		} else {
+			err = lib.SetCache(string(body), resJson)
+			if err != nil {
+				log.Printf("Error setting cache: %v", err)
+			}
+		}
+	} else {
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
+	}
+
 	filtered, message, errorMessage := rules.Input(r, req)
 	if errorMessage != nil {
 		handleError(w, fmt.Errorf("error processing input: %v", errorMessage), http.StatusBadRequest)
@@ -111,31 +136,6 @@ func CreateThreadHandler(w http.ResponseWriter, r *http.Request) {
 		performAuditLogging(r, "rule", "filtered", logMessage)
 		handleError(w, fmt.Errorf(message), http.StatusBadRequest)
 		return
-	}
-
-	c := openai.DefaultConfig(openAIAPIKey)
-	c.BaseURL = openAIBaseURL
-	client := openai.NewClientWithConfig(c)
-
-	resp, err := client.CreateThread(r.Context(), req)
-	if err != nil {
-		handleError(w, fmt.Errorf("failed to create thread: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	if config.Settings.Cache.Enabled {
-		w.Header().Set(OSCacheStatusHeader, "MISS")
-		resJson, err := json.Marshal(resp)
-		if err != nil {
-			log.Printf("Error marshalling response to JSON: %v", err)
-		} else {
-			err = lib.SetCache(string(body), resJson)
-			if err != nil {
-				log.Printf("Error setting cache: %v", err)
-			}
-		}
-	} else {
-		w.Header().Set(OSCacheStatusHeader, "BYPASS")
 	}
 
 	performThreadAuditLogging(r, resp)
@@ -242,7 +242,31 @@ func CreateMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Perform input validation and filtering
+	c := openai.DefaultConfig(openAIAPIKey)
+	c.BaseURL = openAIBaseURL
+	client := openai.NewClientWithConfig(c)
+
+	resp, err := client.CreateMessage(r.Context(), threadID, req)
+	if err != nil {
+		handleError(w, fmt.Errorf("failed to create message: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if config.Settings.ContextCache.Enabled {
+		w.Header().Set(OSCacheStatusHeader, "MISS")
+		resJson, err := json.Marshal(resp)
+		if err != nil {
+			log.Printf("Error marshalling response to JSON: %v", err)
+		} else {
+			err = lib.SetCache(string(body), resJson)
+			if err != nil {
+				log.Printf("Error setting cache: %v", err)
+			}
+		}
+	} else {
+		w.Header().Set(OSCacheStatusHeader, "BYPASS")
+	}
+
 	filtered, message, errorMessage := rules.Input(r, req)
 	if errorMessage != nil {
 		handleError(w, fmt.Errorf("error processing input: %v", errorMessage), http.StatusBadRequest)
@@ -258,16 +282,6 @@ func CreateMessageHandler(w http.ResponseWriter, r *http.Request) {
 	if filtered {
 		performAuditLogging(r, "rule", "filtered", logMessage)
 		handleError(w, fmt.Errorf(message), http.StatusBadRequest)
-		return
-	}
-
-	c := openai.DefaultConfig(openAIAPIKey)
-	c.BaseURL = openAIBaseURL
-	client := openai.NewClientWithConfig(c)
-
-	resp, err := client.CreateMessage(r.Context(), threadID, req)
-	if err != nil {
-		handleError(w, fmt.Errorf("failed to create message: %v", err), http.StatusInternalServerError)
 		return
 	}
 

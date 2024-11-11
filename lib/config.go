@@ -140,11 +140,21 @@ type Rule struct {
 // Config holds the configuration specifics of a filter
 type Config struct {
 	PluginName string      `mapstructure:"plugin_name"`
-	Relation   string      `mapstructure:"relation,default=>"`
-	Threshold  float64     `mapstructure:"threshold,omitempty,default=0.5"`
+	Relation   string      `mapstructure:"relation,omitempty"`
+	Threshold  float64     `mapstructure:"threshold,omitempty"`
 	Url        string      `mapstructure:"url,omitempty"`
 	ApiKey     string      `mapstructure:"api_key,omitempty"`
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
+}
+
+// Add this function to set default values
+func (c *Config) SetDefaults() {
+	if c.Relation == "" {
+		c.Relation = ">"
+	}
+	if c.Threshold == 0 {
+		c.Threshold = 0.5
+	}
 }
 
 // ActionType defines the type of action to take
