@@ -22,6 +22,7 @@ type Configuration struct {
 	Rules     Rules     `mapstructure:"rules"`
 	Secrets   Secrets   `mapstructure:"secrets"`
 	Providers Providers `mapstructure:"providers"`
+	Services  Services  `mapstructure:"services"`
 }
 
 type Providers struct {
@@ -31,6 +32,13 @@ type Providers struct {
 	HuggingFace *ProviderHuggingFace `mapstructure:"huggingface"`
 }
 
+type Services struct {
+	PromptGuard *ServicePromptGuard `mapstructure:"promptguard"`
+}
+type ServicePromptGuard struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
 type ProviderOpenAI struct {
 	Enabled bool   `mapstructure:"enabled"`
 	BaseUrl string `mapstructure:"url"`
