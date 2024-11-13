@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "promptguard-service"
+version = "0.1.0"
+description = "PromptGuard analysis service for OpenShield"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.104.1"
+uvicorn = "^0.24.0"
+transformers = "^4.35.2"
+torch = "^2.1.1"
+python-multipart = "^0.0.6"
+pydantic = "^2.5.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.4.3"
+black = "^24.0.0"
+isort = "^5.12.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
