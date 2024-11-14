@@ -33,6 +33,9 @@ type Providers struct {
 }
 
 type Services struct {
+	LlamaGuard *ServiceLlamaGuard `mapstructure:"llamaguard"`
+}
+type ServiceLlamaGuard struct {
 	PromptGuard *ServicePromptGuard `mapstructure:"promptguard"`
 }
 type ServicePromptGuard struct {
