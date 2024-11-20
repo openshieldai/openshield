@@ -33,10 +33,17 @@ type Providers struct {
 }
 
 type Services struct {
-	LlamaGuard *ServiceLlamaGuard `mapstructure:"llamaguard"`
+	LlamaGuard  *ServiceLlamaGuard  `mapstructure:"llamaguard"`
+	PromptGuard *ServicePromptGuard `mapstructure:"promptguard"`
+	Vigil       *ServiceVigilLLM    `mapstructure:"vigil"`
 }
 type ServiceLlamaGuard struct {
-	PromptGuard *ServicePromptGuard `mapstructure:"promptguard"`
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+type ServiceVigilLLM struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
 }
 type ServicePromptGuard struct {
 	Enabled bool   `mapstructure:"enabled"`
