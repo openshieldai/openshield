@@ -3,12 +3,10 @@ package promptguard
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -45,16 +43,11 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	performAuditLogging(r, "promptguard_analyze", "input", []byte(req.Text))
-
 	resp, err := callPromptGuardService(r.Context(), req)
 	if err != nil {
 		lib.ErrorResponse(w, fmt.Errorf("error calling PromptGuard service: %v", err))
 		return
 	}
-
-	respBytes, _ := json.Marshal(resp)
-	performAuditLogging(r, "promptguard_analyze", "output", respBytes)
 
 	json.NewEncoder(w).Encode(resp)
 }
@@ -92,19 +85,6 @@ func callPromptGuardService(ctx context.Context, req AnalyzeRequest) (*AnalyzeRe
 	}
 
 	return &result, nil
-}
-
-func performAuditLogging(r *http.Request, logType string, messageType string, body []byte) {
-	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
-
-	productID, err := getProductIDFromAPIKey(apiKeyId)
-	if err != nil {
-		hashedApiKeyId := sha256.Sum256([]byte(apiKeyId.String()))
-		log.Printf("Failed to retrieve ProductID for apiKeyId %x: %v", hashedApiKeyId, err)
-		return
-	}
-
-	lib.AuditLogs(string(body), logType, apiKeyId, messageType, productID, r)
 }
 
 func getProductIDFromAPIKey(apiKeyId uuid.UUID) (uuid.UUID, error) {

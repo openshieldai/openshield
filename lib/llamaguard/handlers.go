@@ -3,12 +3,11 @@ package llamaguard
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"log"
+	"github.com/openshieldai/openshield/lib/provider"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -47,7 +46,7 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	performAuditLogging(r, "llamaguard_analyze", "input", []byte(req.Text))
+	provider.LogProviderInput(r, "llamaguard", req.Text)
 
 	resp, err := callLlamaGuardService(r.Context(), req)
 	if err != nil {
@@ -56,7 +55,7 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respBytes, _ := json.Marshal(resp)
-	performAuditLogging(r, "llamaguard_analyze", "output", respBytes)
+	provider.LogProviderOutput(r, "llamaguard", respBytes)
 
 	json.NewEncoder(w).Encode(resp)
 }
@@ -117,16 +116,7 @@ func parseLlamaGuardResponse(response string) *AnalyzeResponse {
 }
 
 func performAuditLogging(r *http.Request, logType string, messageType string, body []byte) {
-	apiKeyId := r.Context().Value("apiKeyId").(uuid.UUID)
-
-	productID, err := getProductIDFromAPIKey(apiKeyId)
-	if err != nil {
-		hashedApiKeyId := sha256.Sum256([]byte(apiKeyId.String()))
-		log.Printf("Failed to retrieve ProductID for apiKeyId %x: %v", hashedApiKeyId, err)
-		return
-	}
-
-	lib.AuditLogs(string(body), logType, apiKeyId, messageType, productID, r)
+	provider.LogProviderInput(r, "llamaguard", body)
 }
 
 func getProductIDFromAPIKey(apiKeyId uuid.UUID) (uuid.UUID, error) {
