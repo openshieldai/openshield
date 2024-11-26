@@ -28,6 +28,8 @@ services:
       - HF_HOME=/app/hf_cache
     volumes:
       - ./volumes/rule:/app/cache
+    ports:
+      - "8000:8000"
 
   cache:
     build:

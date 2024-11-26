@@ -158,11 +158,17 @@ async def execute_plugin(rule: Rule):
 
     # Create and evaluate the rule
     relation = rule.config.Relation
-    if relation is None:
-        raise ValueError("The 'relation' variable is undefined in the context.")
-
+    if not relation or not relation.strip():
+        logger.warning("No relation specified, defaulting to '>'")
+        relation = '>'  # Default to greater than if no relation is specified
+    
+    # Ensure there's exactly one space between components
+    rule_expression = f"score {relation.strip()} {threshold}".strip()
+    logger.debug(f"Rule expression: {rule_expression}")
+    logger.debug(f"Data for rule engine: {data}")
+    
     try:
-        rule_obj = rule_engine.Rule(f"score {relation} threshold", context=context)
+        rule_obj = rule_engine.Rule(rule_expression, context=context)
         match = rule_obj.matches(data)
         logger.debug(f"Rule engine result: match={match}")
         response = {"match": match, "inspection": plugin_result}
@@ -170,8 +176,8 @@ async def execute_plugin(rule: Rule):
 
         return response
     except Exception as e:
-        logger.error(f"Error executing rule engine: {e}")
-        raise HTTPException(status_code=500, detail="Error executing rule engine")
+        logger.error(f"Error executing rule engine: {e}, Expression: score {relation} {threshold}")
+        raise HTTPException(status_code=500, detail=f"Error executing rule engine: {str(e)}")
 
 def main():
     # Get host and port from environment variables, with defaults
