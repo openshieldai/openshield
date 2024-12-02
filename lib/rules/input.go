@@ -109,15 +109,61 @@ func genericHandler(inputConfig lib.Rule, rule RuleResult) (bool, string, error)
 	return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 }
 func handleLlamaGuardAction(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
-	log.Printf("%s detection result: Match=%v, Score=%f", inputConfig.Type, rule.Match, rule.Inspection.Score)
-	if rule.Match {
-		if inputConfig.Action.Type == "block" {
-			log.Println("Blocking request due to LlamaGuard detection.")
-			return true, fmt.Sprintf(`{"status": "blocked", "rule_type": "%s"}`, inputConfig.Type), nil
-		}
-		log.Println("Monitoring request due to LlamaGuard detection.")
-		return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
+	log.Printf("LlamaGuard detection result: Match=%v, Score=%f", rule.Match, rule.Inspection.Score)
+
+	// Log which categories we're checking
+	if len(inputConfig.Config.Categories) > 0 {
+		log.Printf("Checking specific categories: %v", inputConfig.Config.Categories)
+	} else {
+		log.Println("Checking all default categories")
 	}
+
+	if rule.Match {
+		details := rule.Inspection.Details
+		if details != nil {
+			if rawAnalysis, ok := details["raw_analysis"].(string); ok {
+				log.Printf("LlamaGuard analysis: %s", rawAnalysis)
+			}
+
+			if violatedCategories, ok := details["violated_categories"].([]interface{}); ok {
+				categories := make([]string, len(violatedCategories))
+				for i, v := range violatedCategories {
+					categories[i] = v.(string)
+				}
+
+				relevantViolations := []string{}
+				configuredCategories := inputConfig.Config.Categories
+
+				if len(configuredCategories) > 0 {
+
+					for _, violation := range categories {
+						for _, configured := range configuredCategories {
+							if violation == configured {
+								relevantViolations = append(relevantViolations, violation)
+								break
+							}
+						}
+					}
+				} else {
+
+					relevantViolations = categories
+				}
+
+				if len(relevantViolations) > 0 {
+					log.Printf("Violated categories (after filtering): %v", relevantViolations)
+					if inputConfig.Action.Type == "block" {
+						log.Printf("Blocking request due to LlamaGuard detection in categories: %v", relevantViolations)
+						return true, fmt.Sprintf(`{"status": "blocked", "rule_type": "%s", "violated_categories": %v}`,
+							inputConfig.Type, relevantViolations), nil
+					}
+					log.Printf("Monitoring request due to LlamaGuard detection in categories: %v", relevantViolations)
+					return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s", "violated_categories": %v}`,
+						inputConfig.Type, relevantViolations), nil
+				}
+			}
+		}
+	}
+
 	log.Println("LlamaGuard Rule Not Matched")
 	return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 }

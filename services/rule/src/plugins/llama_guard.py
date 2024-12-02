@@ -6,7 +6,6 @@ import os
 import logging
 from typing import Dict, Any, List, Optional
 import torch
-import accelerate
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from huggingface_hub import login, HfApi
 
@@ -17,6 +16,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+DEFAULT_CATEGORIES = ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
+                     "S8", "S9", "S10", "S11", "S12", "S13"]
 
 def get_huggingface_token():
     token = os.getenv("HUGGINGFACE_TOKEN") or os.getenv("HUGGINGFACE_API_KEY")
@@ -24,7 +25,6 @@ def get_huggingface_token():
         logger.error("HUGGINGFACE_TOKEN or HUGGINGFACE_API_KEY environment variable not set")
         return None
     return token
-
 
 class LlamaGuardAnalyzer:
     def __init__(self):
@@ -48,7 +48,6 @@ class LlamaGuardAnalyzer:
             model_id = "meta-llama/Llama-Guard-3-1B"
 
             if torch.cuda.is_available():
-                logger.info("Using GPU for model loading")
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
                     torch_dtype=torch.float16,
@@ -56,7 +55,6 @@ class LlamaGuardAnalyzer:
                     token=self.token
                 )
             else:
-                logger.info("Using CPU for model loading")
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_id,
                     torch_dtype=torch.float32,
@@ -87,8 +85,7 @@ class LlamaGuardAnalyzer:
     def analyze_content(
             self,
             text: str,
-            categories: Optional[List[str]] = None,
-            excluded_categories: Optional[List[str]] = None
+            categories: Optional[List[str]] = None
     ) -> str:
         try:
             logger.info(f"Analyzing text: '{text[:100]}{'...' if len(text) > 100 else ''}'")
@@ -106,11 +103,17 @@ class LlamaGuardAnalyzer:
             ]
 
             kwargs = {"return_tensors": "pt"}
+
             if categories:
+                # Convert categories to the format expected by the model
                 cats_dict = {cat: cat for cat in categories}
                 kwargs["categories"] = cats_dict
-            if excluded_categories:
-                kwargs["excluded_category_keys"] = excluded_categories
+                logger.info(f"Using specified categories: {cats_dict}")
+            else:
+                # Use all default categories if none specified
+                cats_dict = {cat: cat for cat in DEFAULT_CATEGORIES}
+                kwargs["categories"] = cats_dict
+                logger.info("Using all default categories")
 
             input_ids = self.tokenizer.apply_chat_template(
                 conversation,
@@ -138,7 +141,6 @@ class LlamaGuardAnalyzer:
             logger.error(f"Error during analysis: {e}")
             raise
 
-
 analyzer = None
 try:
     logger.info("Initializing LlamaGuard analyzer...")
@@ -147,19 +149,17 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize LlamaGuard analyzer: {str(e)}")
 
-
 def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
     try:
         if analyzer is None:
             raise RuntimeError("LlamaGuard analyzer not initialized")
 
+        # Extract categories from config
         categories = config.get('categories', [])
-        excluded_categories = config.get('excluded_categories', [])
 
         analysis = analyzer.analyze_content(
             text,
-            categories=categories,
-            excluded_categories=excluded_categories
+            categories=categories if categories else None
         )
 
         is_unsafe = not analysis.lower().startswith('safe')
@@ -167,8 +167,9 @@ def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, An
 
         violated_categories = []
         if is_unsafe:
-            for category in ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
-                             "S8", "S9", "S10", "S11", "S12", "S13"]:
+            # Look for category violations in the analysis text
+            check_categories = categories if categories else DEFAULT_CATEGORIES
+            for category in check_categories:
                 if category in analysis:
                     violated_categories.append(category)
 

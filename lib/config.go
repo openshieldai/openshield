@@ -151,6 +151,7 @@ type Config struct {
 	Url        string      `mapstructure:"url,omitempty"`
 	ApiKey     string      `mapstructure:"api_key,omitempty"`
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
+	Categories []string    `mapstructure:"categories,omitempty"`
 }
 
 // Add this function to set default values
