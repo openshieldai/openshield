@@ -21,6 +21,8 @@ numpy = "^1.21.0"
 spacy = "^3.7.5"
 thinc = "^8.0.10"
 openai = "^1.51.2"
+accelerate = ">=0.26.0"
+
 
 [build-system]
 requires = ["poetry-core"]
