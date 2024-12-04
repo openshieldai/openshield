@@ -3,8 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/openshieldai/openshield/lib/llamaguard"
-	"github.com/openshieldai/openshield/lib/promptguard"
 	"net/http"
 	"time"
 
@@ -145,8 +143,6 @@ func setupOpenAIRoutes(r chi.Router) {
 	r.Route("/huggingface/v1", func(r chi.Router) {
 		r.Post("/chat/completions", lib.AuthOpenShieldMiddleware(huggingface.ChatCompletionHandler))
 	})
-	r.Post("/v1/llamaguard/analyze", lib.AuthOpenShieldMiddleware(llamaguard.AnalyzeHandler))
-	r.Post("/v1/promptguard/analyze", lib.AuthOpenShieldMiddleware(promptguard.AnalyzeHandler))
 }
 
 var redisClient *redis.Client

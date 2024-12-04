@@ -1,11 +1,12 @@
-import os
+"""
+PromptGuard plugin for detecting prompt injection attacks using the PromptGuard model.
+"""
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import os
+import logging
+from typing import Dict, Any
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import logging
-from typing import Dict, Optional
 from huggingface_hub import login, HfApi
 
 logging.basicConfig(
@@ -14,39 +15,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="PromptGuard Service")
+def get_huggingface_token():
+    """Get token from environment with proper error handling."""
+    token = os.getenv("HUGGINGFACE_TOKEN") or os.getenv("HUGGINGFACE_API_KEY")
+    if not token:
+        logger.error("HUGGINGFACE_TOKEN or HUGGINGFACE_API_KEY environment variable not set")
+        return None
+    return token
 
-
-class AnalyzeRequest(BaseModel):
-    text: str
-    threshold: float = 0.5
-    temperature: float = 3.0 
-
-
-class AnalyzeResponse(BaseModel):
-    score: float
-    details: Dict[str, float]
-    classification: str
-
-
-class PromptGuard:
+class PromptGuardAnalyzer:
     def __init__(self):
-        self.token = os.getenv("HUGGINGFACE_API_KEY") #NEED TO REQUEST ACCESS FOR THE MODEL!
+        self.token = get_huggingface_token()
         if not self.token:
-            raise ValueError("Token not set")
+            raise ValueError("HuggingFace token not set")
 
         try:
             login(token=self.token, write_permission=True)
-            api = HfApi()
+            self.api = HfApi()
+            logger.info("Successfully logged into HuggingFace")
         except Exception as e:
-            logger.error(f"Authentication error: {str(e)}")
+            logger.error(f"HuggingFace authentication error: {str(e)}")
             raise
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device}")
 
         try:
-            logger.info("Loading model")
+            logger.info("Loading PromptGuard model...")
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 "meta-llama/Prompt-Guard-86M",
                 use_auth_token=self.token,
@@ -59,9 +54,9 @@ class PromptGuard:
             )
             self.model.to(self.device)
             self.model.eval()
-            logger.info("Model loaded successfully")
+            logger.info("PromptGuard model loaded successfully")
         except Exception as e:
-            logger.error(f"Error loading model: {e}")
+            logger.error(f"Error loading PromptGuard model: {str(e)}")
             raise
 
     def get_class_probabilities(self, text: str, temperature: float = 3.0) -> torch.Tensor:
@@ -75,22 +70,14 @@ class PromptGuard:
 
         with torch.no_grad():
             logits = self.model(**inputs).logits
-
             scaled_logits = logits / temperature
-
             probabilities = torch.nn.functional.softmax(scaled_logits, dim=-1)
 
         return probabilities[0]
 
-    def get_indirect_injection_score(self, text: str, temperature: float = 3.0) -> float:
-
-        probabilities = self.get_class_probabilities(text, temperature)
-        return (probabilities[1] + probabilities[2]).item()
-
-    def analyze_text(self, text: str, temperature: float = 3.0) -> Dict[str, any]:
+    def analyze_text(self, text: str, temperature: float = 3.0) -> Dict[str, Any]:
         try:
             probabilities = self.get_class_probabilities(text, temperature)
-
 
             scores = {
                 "benign_probability": probabilities[0].item(),
@@ -98,14 +85,12 @@ class PromptGuard:
                 "jailbreak_probability": probabilities[2].item()
             }
 
-
             if scores["jailbreak_probability"] > scores["injection_probability"]:
                 risk_score = scores["jailbreak_probability"]
                 classification = "jailbreak"
             else:
                 risk_score = scores["injection_probability"]
                 classification = "injection"
-
 
             logger.info(f"\nAnalyzing text: {text[:100]}...")
             logger.info(f"Probabilities: {scores}")
@@ -121,50 +106,52 @@ class PromptGuard:
             logger.error(f"Error during analysis: {e}")
             raise
 
+# Initialize global analyzer
+analyzer = None
+try:
+    logger.info("Initializing PromptGuard analyzer...")
+    analyzer = PromptGuardAnalyzer()
+    logger.info("PromptGuard analyzer initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize PromptGuard analyzer: {str(e)}")
 
-prompt_guard: Optional[PromptGuard] = None
+def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Analyzes text for prompt injection using PromptGuard.
 
+    Args:
+        text: The text to analyze
+        threshold: Score threshold for detecting injection
+        config: Configuration parameters including temperature
 
-@app.on_event("startup")
-async def startup_event():
-    global prompt_guard
+    Returns:
+        dict containing:
+            - check_result: bool if score exceeds threshold
+            - score: risk score from 0-1
+            - details: probabilities and classification details
+    """
     try:
-        prompt_guard = PromptGuard()
-    except Exception as e:
-        logger.error(f"Failed to initialize PromptGuard: {e}")
-        raise
+        if analyzer is None:
+            raise RuntimeError("PromptGuard analyzer not initialized")
 
+        temperature = config.get('temperature', 3.0)
+        results = analyzer.analyze_text(text, temperature)
 
-@app.post("/analyze", response_model=AnalyzeResponse)
-async def analyze_prompt(request: AnalyzeRequest):
-    try:
-        if not prompt_guard:
-            raise HTTPException(status_code=500, detail="PromptGuard not initialized")
-
-        results = prompt_guard.analyze_text(request.text, request.temperature)
-
-        return AnalyzeResponse(
-            score=results["score"],
-            details=results["details"],
-            classification=results["classification"]
-        )
+        return {
+            "check_result": results["score"] > threshold,
+            "score": results["score"],
+            "details": {
+                "benign_probability": results["details"]["benign_probability"],
+                "injection_probability": results["details"]["injection_probability"],
+                "jailbreak_probability": results["details"]["jailbreak_probability"],
+                "classification": results["classification"]
+            }
+        }
 
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error analyzing prompt: {str(e)}"
-        )
-
-
-@app.get("/health")
-async def health_check():
-    if not prompt_guard:
-        raise HTTPException(status_code=503, detail="Service not ready")
-    return {"status": "healthy"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        logger.error(f"Error in PromptGuard analysis: {str(e)}")
+        return {
+            "check_result": False,
+            "score": 0.0,
+            "details": {"error": str(e)}
+        }
