@@ -97,7 +97,7 @@ func sendRequest(data Rule) (RuleResult, error) {
 
 func genericHandler(inputConfig lib.Rule, rule RuleResult) (bool, string, error) {
 	log.Printf("%s detection result: Match=%v, Score=%f", inputConfig.Type, rule.Match, rule.Inspection.Score)
-	if rule.Match {
+	if rule.Inspection.CheckResult {
 		if inputConfig.Action.Type == "block" {
 			log.Println("Blocking request due to invalid characters detection.")
 			return true, fmt.Sprintf(`{"status": "blocked", "rule_type": "%s"}`, inputConfig.Type), nil
@@ -182,8 +182,12 @@ func handlePromptGuardAction(inputConfig lib.Rule, rule RuleResult) (bool, strin
 	return false, fmt.Sprintf(`{"status": "non_blocked", "rule_type": "%s"}`, inputConfig.Type), nil
 }
 func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages interface{}, userMessageIndex int) (bool, string, error) {
-	if rule.Inspection.CheckResult {
-		log.Println("PII detected, anonymizing content")
+	hasPIIReplacements := strings.Contains(rule.Inspection.AnonymizedContent, "<") &&
+		strings.Contains(rule.Inspection.AnonymizedContent, ">")
+
+	if hasPIIReplacements {
+		log.Printf("PII detected with score: %.4f", rule.Inspection.Score)
+		log.Println("Anonymizing content")
 
 		switch msg := messages.(type) {
 		case []openai.ChatCompletionMessage:
@@ -200,7 +204,6 @@ func handlePIIFilterAction(inputConfig lib.Rule, rule RuleResult, messages inter
 			log.Println("Blocking request due to PII detection.")
 			return true, `{"status": "blocked", "rule_type": "pii_filter"}`, nil
 		}
-		log.Println("Monitoring request due to PII detection.")
 	}
 	log.Println("PII Rule Not Matched")
 	return false, `{"status": "non_blocked", "rule_type": "pii_filter"}`, nil
