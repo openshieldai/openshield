@@ -20,6 +20,8 @@ Dependencies:
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import Dict, Any
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 
 class LanguageDetector:

@@ -75,8 +75,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get clean && \
     rm -rf /app && \
     usermod -d /app -m nobody && \
-    mkdir -p /app && \
-    chown nobody:nogroup /app
+    mkdir -p /app/cache && \
+    chown -R nobody:nogroup /app
 
 WORKDIR /app
 USER nobody:nogroup

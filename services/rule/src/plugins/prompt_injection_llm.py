@@ -18,12 +18,18 @@ Dependencies:
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
+
 # Initialize the tokenizer and model once when the module is imported
 tokenizer = AutoTokenizer.from_pretrained("protectai/deberta-v3-base-prompt-injection-v2")
 model = AutoModelForSequenceClassification.from_pretrained("protectai/deberta-v3-base-prompt-injection-v2")
 
 
 def handler(text: str, threshold: float, config: dict) -> dict:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Using device: {device}")
+
     classifier = pipeline(
         "text-classification",
         model=model,
