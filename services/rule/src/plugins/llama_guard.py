@@ -9,12 +9,8 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from huggingface_hub import login, HfApi
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger(__name__)
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 DEFAULT_CATEGORIES = ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
                      "S8", "S9", "S10", "S11", "S12", "S13"]

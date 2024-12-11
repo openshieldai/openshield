@@ -75,8 +75,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     apt-get clean && \
     rm -rf /app && \
     usermod -d /app -m nobody && \
-    mkdir -p /app && \
-    chown nobody:nogroup /app
+    mkdir -p /app/cache && \
+    chown -R nobody:nogroup /app
 
 WORKDIR /app
 USER nobody:nogroup
@@ -87,5 +87,7 @@ COPY --from=builder-base --chmod=755 --chown=nobody:nogroup $VIRTUAL_ENV $VIRTUA
 COPY --chmod=755 --chown=nobody:nogroup poetry.lock pyproject.toml ./
 COPY --chmod=755 --chown=nobody:nogroup src/main.py ./src/main.py
 COPY --chmod=755 --chown=nobody:nogroup src/plugins ./src/plugins
+COPY --chmod=755 --chown=nobody:nogroup src/utils ./src/utils
+
 EXPOSE 8080
 CMD ["python","src/main.py"]

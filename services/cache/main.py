@@ -68,6 +68,9 @@ class CacheData(BaseModel):
 def openshield_check_hit_func(cur_session_id, cache_session_ids, cache_questions, cache_answer):
     return cur_session_id in cache_session_ids
 
+@app.get("/status/healthz")
+async def health_check():
+    return {"status": "healthy"}
 
 @app.post("/put")
 async def put_cache(cache_data: CacheData) -> str:

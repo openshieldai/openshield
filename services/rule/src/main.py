@@ -7,6 +7,9 @@ import rule_engine
 import logging
 import os
 import json
+from utils.logger_config import setup_logger
+
+logger = setup_logger(__name__)
 
 class JSONFormatter(logging.Formatter):
     def format(self, record):
@@ -20,25 +23,6 @@ class JSONFormatter(logging.Formatter):
         }
         return json.dumps(log_record)
 
-def setup_logging():
-    # Get the log level from the environment variable, default to 'INFO'
-    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-
-    # Validate and set the log level
-    numeric_level = getattr(logging, log_level, None)
-    if not isinstance(numeric_level, int):
-        raise ValueError(f'Invalid log level: {log_level}')
-
-    # Configure the logging
-    json_formatter = JSONFormatter()
-    handler = logging.StreamHandler()
-    handler.setFormatter(json_formatter)
-    logger = logging.getLogger(__name__)
-    logger.setLevel(numeric_level)
-    logger.addHandler(handler)
-
-# Configure logging
-setup_logging()
 
 # Example usage of logging
 logger = logging.getLogger(__name__)
@@ -90,6 +74,7 @@ async def health_check():
 
 @app.post("/rule/execute")
 async def execute_plugin(rule: Rule):
+    logger.info(f"Received rule: {rule.model_dump_json()}")
     global plugin_name
     try:
         logger.debug(f"Received rule: {rule}")
@@ -161,12 +146,12 @@ async def execute_plugin(rule: Rule):
     if not relation or not relation.strip():
         logger.warning("No relation specified, defaulting to '>'")
         relation = '>'  # Default to greater than if no relation is specified
-    
+
     # Ensure there's exactly one space between components
     rule_expression = f"score {relation.strip()} {threshold}".strip()
     logger.debug(f"Rule expression: {rule_expression}")
     logger.debug(f"Data for rule engine: {data}")
-    
+
     try:
         rule_obj = rule_engine.Rule(rule_expression, context=context)
         match = rule_obj.matches(data)

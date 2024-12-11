@@ -41,7 +41,8 @@ Dependencies:
 import re
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 class ContentCategories:
     PROFANITY_VULGAR = {

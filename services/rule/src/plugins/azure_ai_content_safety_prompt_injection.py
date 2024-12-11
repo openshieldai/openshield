@@ -19,6 +19,8 @@ import os
 import requests
 
 from srsly import json_dumps
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 key = os.environ["CONTENT_SAFETY_KEY"]
 if not key:

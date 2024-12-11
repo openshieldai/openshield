@@ -9,11 +9,8 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from huggingface_hub import login, HfApi
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 def get_huggingface_token():
     """Get token from environment with proper error handling."""

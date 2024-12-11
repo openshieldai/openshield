@@ -17,6 +17,8 @@ Dependencies:
 
 import os
 from openai import OpenAI
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
