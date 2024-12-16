@@ -27,7 +27,11 @@ API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
 
 def run_server():
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print("Starting server...")
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=8000)
+    except Exception as e:
+        print(f"Error starting server: {e}")
 
 
 class TestAPIEndpoint(unittest.TestCase):
@@ -123,31 +127,105 @@ class TestAPIEndpoint(unittest.TestCase):
                 "Threshold": 0,
                 "Relation": ">",
                 "PIIService": {
-                    "debug": False,
-                    "models": [{"langcode": "en",
-                                "modelname": {"spacy": "en_core_web_sm", "transformers": "dslim/bert-base-NER"}}],
-                    "nermodelconfig": {
-                        "modeltopresidioentitymapping": {
-                            "loc": "LOCATION", "location": "LOCATION", "org": "ORGANIZATION",
-                            "organization": "ORGANIZATION", "per": "PERSON", "person": "PERSON", "phone": "PHONE_NUMBER"
+                    "debug": True,
+                    "Models": {
+                        "LangCode": "en",
+                        "ModelName": {
+                            "spacy": "en_core_web_sm"
                         }
                     },
-                    "nlpenginename": "transformers",
-                    "piimethod": "LLM",
-                    "port": 8080,
-                    "rulebased": {
-                        "piientities": ["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "CREDIT_CARD", "US_SSN",
-                                        "GENERIC_PII"]
-                    }
+                    "PIIMethod": "RuleBased",
+                    "NLPEngineName": "spacy",
+                    "ruleBased": {
+                        "PIIEntities": [
+                            "PERSON",
+                            "EMAIL_ADDRESS",
+                            "PHONE_NUMBER",
+                            "CREDIT_CARD",
+                            "US_SSN",
+                            "GENERIC_PII"
+                        ]
+                    },
+                    "ner_model_config": {},
+                    "port": 8080
                 }
             }
         }
+        
+        # Add detailed logging
+        logger.debug(f"Sending payload: {payload}")
+        logger.debug(f"PIIService config: {payload['config']['PIIService']}")
+        
+        # Print the exact configuration that will be used
+        print("Configuration being sent:", payload['config']['PIIService'])
+        
         response = requests.post(API_URL, json=payload)
-        self.assertEqual(response.status_code, 200)
-        result = response.json()
-        self.assertTrue(result['match'])
-        self.assertGreater(result['inspection']['score'], 0)
-        self.assertIn("John Smith", str(result['inspection']['pii_found']))
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response content: {response.text}")
+        
+        try:
+            self.assertEqual(response.status_code, 200)
+            result = response.json()
+            self.assertTrue(result['match'])
+            self.assertGreater(result['inspection']['score'], 0)
+            self.assertIn("John Smith", str(result['inspection']['pii_found']))
+        except AssertionError as e:
+            print(f"Test failed: {e}")
+            print(f"Response content: {response.text}")
+            raise
+
+    def test_pii_filter_transformers(self):
+        # Test case: With PII using Transformers NLP engine
+        payload = {
+            "prompt": {
+                "model": "",
+                "messages": [{"role": "user", "content": "Hello, my name is John Smith"}]
+            },
+            "config": {
+                "PluginName": "pii",
+                "Threshold": 0,
+                "Relation": ">",
+                "PIIService": {
+                    "debug": True,
+                    "Models": {
+                        "LangCode": "en",
+                        "ModelName": {
+                            "transformers": "dslim/bert-base-NER"
+                        }
+                    },
+                    "PIIMethod": "LLM",
+                    "NLPEngineName": "transformers",
+                    "ruleBased": {
+                        "PIIEntities": [
+                            "PERSON",
+                            "EMAIL_ADDRESS",
+                            "PHONE_NUMBER",
+                            "CREDIT_CARD",
+                            "US_SSN",
+                            "GENERIC_PII"
+                        ]
+                    },
+                    "ner_model_config": {},
+                    "port": 8080
+                }
+            }
+        }
+        
+        logger.debug(f"Sending payload: {payload}")
+        response = requests.post(API_URL, json=payload)
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response content: {response.text}")
+        
+        try:
+            self.assertEqual(response.status_code, 200)
+            result = response.json()
+            self.assertTrue(result['match'])
+            self.assertGreater(result['inspection']['score'], 0)
+            self.assertIn("John Smith", str(result['inspection']['pii_found']))
+        except AssertionError as e:
+            print(f"Test failed: {e}")
+            print(f"Response content: {response.text}")
+            raise
 
     def test_invalid_char(self):
         payload = {
