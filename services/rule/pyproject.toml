@@ -22,7 +22,13 @@ spacy = "^3.7.5"
 thinc = "^8.0.10"
 openai = "^1.51.2"
 accelerate = ">=0.26.0"
+spacy-huggingface-pipelines = "^0.0.4"
 
+
+[[tool.poetry.source]]
+name = "pytorch_cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
 
 [build-system]
 requires = ["poetry-core"]
