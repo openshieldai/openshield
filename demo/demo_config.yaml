@@ -34,11 +34,13 @@ providers:
 
 rules:
   input:
-    - name: "prompt_injection_example"
-      type: "prompt_injection"
+    - name: "VigillLM"
+      type: "vigilllm"
       enabled: true
+      order_number: 2
       config:
-        plugin_name: "prompt_injection_llm"
-        threshold: 0.85
+        plugin_name: "vigilllm"
+        threshold: 0.7
+        relation: ">"
       action:
         type: "block"

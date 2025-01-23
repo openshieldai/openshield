@@ -24,6 +24,7 @@ type InputTypes struct {
 	LlamaGuard        string
 	PromptGuard       string
 	LangKit           string
+	VigilLLM          string
 }
 
 var inputTypes = InputTypes{
@@ -35,6 +36,7 @@ var inputTypes = InputTypes{
 	LlamaGuard:        "llama_guard",
 	PromptGuard:       "prompt_guard",
 	LangKit:           "langkit",
+	VigilLLM:          "vigilllm",
 }
 
 type Rule struct {
@@ -316,6 +318,7 @@ func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, me
 
 	switch ruleType {
 	case inputTypes.LangKit:
+	case inputTypes.VigilLLM:
 		return genericHandler(inputConfig, rule)
 	case inputTypes.InvisibleChars:
 		return genericHandler(inputConfig, rule)
