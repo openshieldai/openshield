@@ -23,6 +23,7 @@ type InputTypes struct {
 	Moderation        string
 	LlamaGuard        string
 	PromptGuard       string
+	LangKit           string
 	VigilLLM          string
 }
 
@@ -34,6 +35,7 @@ var inputTypes = InputTypes{
 	Moderation:        "moderation",
 	LlamaGuard:        "llama_guard",
 	PromptGuard:       "prompt_guard",
+	LangKit:           "langkit",
 	VigilLLM:          "vigilllm",
 }
 
@@ -315,6 +317,7 @@ func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, me
 	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
 
 	switch ruleType {
+	case inputTypes.LangKit:
 	case inputTypes.VigilLLM:
 		return genericHandler(inputConfig, rule)
 	case inputTypes.InvisibleChars:

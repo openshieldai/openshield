@@ -23,6 +23,8 @@ thinc = "^8.0.10"
 openai = "^1.51.2"
 accelerate = ">=0.26.0"
 spacy-huggingface-pipelines = "^0.0.4"
+langkit = {version = "^0.0.35", extras = ["all"]}
+whylogs = "^1.5.0"
 
 
 [[tool.poetry.source]]
