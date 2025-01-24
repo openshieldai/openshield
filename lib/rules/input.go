@@ -16,27 +16,29 @@ import (
 )
 
 type InputTypes struct {
-	LanguageDetection string
-	PromptInjection   string
-	PIIFilter         string
-	InvisibleChars    string
-	Moderation        string
-	LlamaGuard        string
-	PromptGuard       string
-	LangKit           string
-	VigilLLM          string
+	LanguageDetection  string
+	PromptInjection    string
+	PIIFilter          string
+	InvisibleChars     string
+	Moderation         string
+	LlamaGuard         string
+	PromptGuard        string
+	LangKit            string
+	VigilLLM           string
+	NvidiaNimJailbreak string
 }
 
 var inputTypes = InputTypes{
-	LanguageDetection: "language_detection",
-	PromptInjection:   "prompt_injection",
-	PIIFilter:         "pii_filter",
-	InvisibleChars:    "invisible_chars",
-	Moderation:        "moderation",
-	LlamaGuard:        "llama_guard",
-	PromptGuard:       "prompt_guard",
-	LangKit:           "langkit",
-	VigilLLM:          "vigilllm",
+	LanguageDetection:  "language_detection",
+	PromptInjection:    "prompt_injection",
+	PIIFilter:          "pii_filter",
+	InvisibleChars:     "invisible_chars",
+	Moderation:         "moderation",
+	LlamaGuard:         "llama_guard",
+	PromptGuard:        "prompt_guard",
+	LangKit:            "langkit",
+	VigilLLM:           "vigilllm",
+	NvidiaNimJailbreak: "nvidia_nim_jailbreak",
 }
 
 type Rule struct {
@@ -317,7 +319,10 @@ func handleRuleAction(inputConfig lib.Rule, rule RuleResult, ruleType string, me
 	log.Printf("%s detection result: Match=%v, Score=%f", ruleType, rule.Match, rule.Inspection.Score)
 
 	switch ruleType {
+	case inputTypes.NvidiaNimJailbreak:
+		return genericHandler(inputConfig, rule)
 	case inputTypes.LangKit:
+		return genericHandler(inputConfig, rule)
 	case inputTypes.VigilLLM:
 		return genericHandler(inputConfig, rule)
 	case inputTypes.InvisibleChars:
