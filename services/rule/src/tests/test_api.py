@@ -235,7 +235,7 @@ class TestAPIEndpoint(unittest.TestCase):
         )
 
     def test_ppl_detection(self):
-        # Test case 1: Short message with low 
+        # Test case 1: Short message with low score
         payload = {
             "prompt": {
                 "model": "",
