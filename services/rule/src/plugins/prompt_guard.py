@@ -8,6 +8,7 @@ from typing import Dict, Any
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from huggingface_hub import login, HfApi
+from huggingface_hub.utils import GatedRepoError
 
 from utils.logger_config import setup_logger
 logger = setup_logger(__name__)
@@ -27,7 +28,7 @@ class PromptGuardAnalyzer:
             raise ValueError("HuggingFace token not set")
 
         try:
-            login(token=self.token, write_permission=True)
+            login(token=self.token)
             self.api = HfApi()
             logger.info("Successfully logged into HuggingFace")
         except Exception as e:
@@ -41,17 +42,20 @@ class PromptGuardAnalyzer:
             logger.info("Loading PromptGuard model...")
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 "meta-llama/Prompt-Guard-86M",
-                use_auth_token=self.token,
+                token=self.token,
                 trust_remote_code=True
             )
             self.tokenizer = AutoTokenizer.from_pretrained(
                 "meta-llama/Prompt-Guard-86M",
-                use_auth_token=self.token,
+                token=self.token,
                 trust_remote_code=True
             )
             self.model.to(self.device)
             self.model.eval()
             logger.info("PromptGuard model loaded successfully")
+        except GatedRepoError as e:
+            logger.error(f"Not authorized to access the meta-llama/Prompt-Guard-86M model. {str(e)}")
+            raise
         except Exception as e:
             logger.error(f"Error loading PromptGuard model: {str(e)}")
             raise
