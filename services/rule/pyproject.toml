@@ -9,7 +9,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.11"
 fastapi = "^0.115.0"
-transformers = "4.45.1"
+transformers = "4.48.0"
 torch = "^2.3.1"
 rule-engine = "^4.5.0"
 presidio-analyzer = "^2.2.355"
@@ -22,7 +22,15 @@ spacy = "^3.7.5"
 thinc = "^8.0.10"
 openai = "^1.51.2"
 accelerate = ">=0.26.0"
+spacy-huggingface-pipelines = "^0.0.4"
+langkit = {version = "^0.0.35", extras = ["all"]}
+whylogs = "^1.5.0"
 
+
+[[tool.poetry.source]]
+name = "pytorch_cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
 
 [build-system]
 requires = ["poetry-core"]
