@@ -234,7 +234,47 @@ class TestAPIEndpoint(unittest.TestCase):
             lambda match: self.assertTrue(match),
             lambda score: self.assertGreaterEqual(score, 1)
         )
+        
+    def test_detect_code(self):
+        # Test case 1: Python code content
+        payload = {
+            "prompt": {
+                "model": "",
+                "messages": [{"role": "user", "content": "def hello_world():\n    print('Hello, World!')"}]
+            },
+            "config": {
+                "PluginName": "detect_code",
+                "Threshold": 0.85,
+                "Relation": ">",
+            }
+        }
+        self.send_request_and_assert(
+            payload,
+            200,
+            lambda match: self.assertTrue(match),
+            lambda score: self.assertGreaterEqual(score, 0.85)
+        )
 
+        # Test case 2: Go code content
+        payload['prompt']['messages'][0]['content'] = "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello, World!\")\n}"
+
+        self.send_request_and_assert(
+            payload,
+            200,
+            lambda match: self.assertTrue(match),
+            lambda score: self.assertGreaterEqual(score, 0.85)
+        )
+
+        # Test case 3: Non-code content
+        payload['prompt']['messages'][0]['content'] = "This is a regular text message. def"
+
+        self.send_request_and_assert(
+            payload,
+            200,
+            lambda match: self.assertFalse(match),
+            lambda score: self.assertLess(score, 0.85)
+        )
+    
     @unittest.skipIf(not ANTHROPIC_API_KEY, "Anthropic API key not set")
     def test_relevance(self):
         # Test case 1: Test remote model with benign prompt
@@ -282,8 +322,6 @@ class TestAPIEndpoint(unittest.TestCase):
             lambda match: self.assertFalse(match),
             lambda score: self.assertLess(score, 0.5)
         )
-        
-
 
 
 if __name__ == '__main__':
