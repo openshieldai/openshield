@@ -4276,6 +4276,8 @@ version = "4.48.0"
 description = "State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow"
 optional = false
 python-versions = ">=3.9.0"
+groups = ["main"]
+markers = "python_version == \"3.11\" or python_version >= \"3.12\""
 files = [
     {file = "transformers-4.48.0-py3-none-any.whl", hash = "sha256:6d3de6d71cb5f2a10f9775ccc17abce9620195caaf32ec96542bd2a6937f25b0"},
     {file = "transformers-4.48.0.tar.gz", hash = "sha256:03fdfcbfb8b0367fb6c9fbe9d1c9aa54dfd847618be9b52400b2811d22799cb1"},
@@ -5011,4 +5013,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "1e0657be66713bf2a3501ff8cb4f706b035c7c7445387236ff95e2a57cb585f6"
+content-hash = "e0f63a224134b91bb74f8232f4272b452c521e7ca3ce79002732c43757f780f7"
