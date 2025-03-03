@@ -1,5 +1,46 @@
 """
+This module provides a handler for detecting jailbreak prompts through relevance scanning using a pre-trained language model.
 
+The `RemoteModel` class initializes the model using the LiteLLM package and provides a method to generate completions for a given prompt.
+
+The `LocalModel` class initializes the model using the Hugging Face Transformers library and provides a method to generate completions for a given prompt.
+
+The `RelevanceScanner` class initializes the remote or local model based on the configuration and provides a method to analyze a given message for jailbreak prompts and handles the response of the model.
+
+The `handler` function uses the `RelevanceScanner` to analyze the text for jailbreak prompts and returns the result as a JSON object.
+
+Classes:
+- RemoteModel: Initializes the model using the LiteLLM package for remote completion generation.
+- LocalModel: Initializes the model using the Hugging Face Transformers library for local completion generation.
+- RelevanceScanner: Initializes the model based on the configuration and provides a method to analyze a given message for jailbreak prompts.
+
+Functions:
+- handler: Analyzes the text for jailbreak prompts using the `RelevanceScanner` and returns the result as a JSON object.
+
+Dependencies:
+- litellm: LiteLLM package for remote completion generation.
+- torch: PyTorch library for tensor computations.
+- transformers: Hugging Face Transformers library for pre-trained models.
+
+Example configuration for using a remote model:
+{
+    "RelevanceScanner": {
+        "model": "claude-3-7-sonnet-20250219",                      # *Required: LiteLLM model name, claude-3-7-sonnet-20250219 is default
+        "use_remote": true,                                         # *Required: Set to True to use remote model for completion generation
+        "api_key_env_var": "ANTHROPIC_API_KEY",                     # *Required: Name of the environment variable containing API key
+        "api_base": null,                                           #[Optional]: Custom API base URL for LiteLLM
+        "system_prompt": "You are acting as a Relevance Scanner..." #[Optional]: System prompt that dictates how the model will respond. By default the message prompt is between "<~~MESSAGE~~>" tags and the output should be a JSON object with the following structure: {"detected": bool, "abbreviated_chunks": [], "irregular_chunks": []}
+    }
+}
+Example configuration for using a local model:
+{
+    "RelevanceScanner": {
+        "model": "gpt2",                                            # *Required: Hugging Face model name
+        "use_remote": false,                                        # *Required: Set to False to use local model for completion generation
+        "model_arguments": {"max_length": 500},                     #[Optional]: Any additional arguments for the Hugging Face model
+        "system_prompt": "You are acting as a Relevance Scanner..." #[Optional]: System prompt that dictates how the model will respond. By default the message prompt is between "<~~MESSAGE~~>" tags and the output should be a JSON object with the following structure: {"detected": bool, "abbreviated_chunks": [], "irregular_chunks": []}
+    }
+}
 """
 
 import json
@@ -51,12 +92,12 @@ class RemoteModel():
         self.model_name = model_name
         litellm.api_key = api_key
         litellm.api_base = api_base
-        #logger.info(f"Loaded {model_name} through LLM API.")
+        logger.info(f"Loaded {model_name} through LLM API.")
 
     def generate(self, system_prompt: str, prompt: str) -> str:
         # Generate completion
         prompt = "<~~MESSAGE~~>" + prompt + "<~~MESSAGE~~>"
-        
+
         messages = [
             {"content": system_prompt, "role": "system"},
             {"content": prompt, "role": "user"}
@@ -114,7 +155,7 @@ class RelevanceScanner():
     def __init__(self, config: Dict[str, Any]):
         model_name = config.get('model', 'claude-3-7-sonnet-20250219')
 
-        # Check if model is local or remote
+        # Load model based on configuration
         if config.get('use_remote', True):
             self.model = RemoteModel(
                 model_name=model_name,
@@ -137,9 +178,7 @@ class RelevanceScanner():
         return result
 
 def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
-
-    # get model and context from config
-
+    # Get model and context from config
     relevance_scanner_config = config.get('RelevanceScanner', {})
 
     # Initialize RelevanceScanner
