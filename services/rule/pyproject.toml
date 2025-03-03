@@ -25,6 +25,7 @@ accelerate = ">=0.26.0"
 spacy-huggingface-pipelines = "^0.0.4"
 langkit = {version = "^0.0.35", extras = ["all"]}
 whylogs = "^1.5.0"
+litellm = "^1.61.20"
 
 
 [[tool.poetry.source]]
