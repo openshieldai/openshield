@@ -1,15 +1,18 @@
+import importlib
+import json
+import logging
+import os
+from typing import List, Optional
+
+import rule_engine
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from typing import List, Optional
-import importlib
-import rule_engine
-import logging
-import os
-import json
+
 from utils.logger_config import setup_logger
 
 logger = setup_logger(__name__)
+
 
 class JSONFormatter(logging.Formatter):
     def format(self, record):
@@ -30,12 +33,15 @@ logger = logging.getLogger(__name__)
 # Define plugin_name at the module level
 plugin_name = ""
 
+
 class Message(BaseModel):
     role: str
     content: str
 
+
 class Thread(BaseModel):
     messages: List[Message]
+
 
 class Prompt(BaseModel):
     model: Optional[str] = None
@@ -44,6 +50,7 @@ class Prompt(BaseModel):
     messages: Optional[List[Message]] = None
     role: Optional[str] = None
     content: Optional[str] = None
+
 
 class Config(BaseModel):
     PluginName: str
@@ -54,11 +61,14 @@ class Config(BaseModel):
     class Config:
         extra = "allow"
 
+
 class Rule(BaseModel):
     prompt: Prompt
     config: Config
 
+
 app = FastAPI()
+
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
@@ -68,9 +78,11 @@ async def log_request(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 @app.get("/status/healthz")
 async def health_check():
     return {"status": "healthy"}
+
 
 @app.post("/rule/execute")
 async def execute_plugin(rule: Rule):
@@ -164,6 +176,104 @@ async def execute_plugin(rule: Rule):
         logger.error(f"Error executing rule engine: {e}, Expression: score {relation} {threshold}")
         raise HTTPException(status_code=500, detail=f"Error executing rule engine: {str(e)}")
 
+
+from typing import Optional
+
+
+class ScanRule(BaseModel):
+    name: str
+    type: str
+    enabled: bool
+    order_number: int
+    config: dict
+    action: dict
+    threshold: Optional[float] = None
+
+
+class ScanRequest(BaseModel):
+    input: str
+    rules: List[ScanRule]
+
+
+class SimplifiedRuleResult(BaseModel):
+    rule_type: str
+    status: str
+
+
+class ScanResponse(BaseModel):
+    blocked: bool
+    rule_results: List[SimplifiedRuleResult]
+
+
+@app.post("/scan", response_model=ScanResponse)
+async def scan(scan_request: ScanRequest):
+    """
+    Scan endpoint that mimics the Go InputCheck function.
+    It reads the 'input' string and a list of rules (with full config) from the POST request,
+    builds a Rule for each using the provided configuration, and calls execute_plugin for each.
+    """
+    user_input = scan_request.input
+    rules_list = scan_request.rules
+    overall_blocked = False
+    results = []
+
+    # Sort rules by order_number
+    sorted_rules = sorted(rules_list, key=lambda r: r.order_number)
+
+    for rule in sorted_rules:
+        # Skip disabled rules
+        if not rule.enabled:
+            results.append(SimplifiedRuleResult(
+                rule_type=rule.config.get("plugin_name", rule.name),
+                status="skipped"
+            ))
+            continue
+
+        # Prepare config data by copying and mapping keys as needed.
+        config_data = rule.config.copy()
+        # Map 'plugin_name' (from YAML) to 'PluginName' (expected by our Config model)
+        if "plugin_name" in config_data:
+            config_data["PluginName"] = config_data.pop("plugin_name")
+        # Set default Relation if not present
+        if "Relation" not in config_data:
+            config_data["Relation"] = ">="
+        # Override Threshold if provided at the rule level.
+        if rule.threshold is not None:
+            config_data["Threshold"] = rule.threshold
+        # Ensure a Threshold exists; if not, set a default (e.g., 0.5)
+        if "Threshold" not in config_data:
+            config_data["Threshold"] = 0.5
+
+        # Build the Rule object expected by execute_plugin.
+        rule_obj = Rule(
+            prompt=Prompt(role="user", content=user_input),
+            config=Config(**config_data)
+        )
+
+        try:
+            plugin_result = await execute_plugin(rule_obj)
+        except Exception as e:
+            logger.error(f"Error executing rule for {config_data.get('PluginName', rule.name)}: {e}")
+            results.append(SimplifiedRuleResult(
+                rule_type=config_data.get("PluginName", rule.name),
+                status="matched"
+            ))
+            overall_blocked = True
+            continue
+
+        rule_match = plugin_result.get("match", False)
+        status = "passed"
+        # If the rule's action is "block" and the plugin indicates a match, mark as matched.
+        if rule.action.get("type") == "block" and rule_match:
+            status = "matched"
+            overall_blocked = True
+
+        results.append(SimplifiedRuleResult(
+            rule_type=config_data.get("PluginName", rule.name),
+            status=status
+        ))
+
+    return ScanResponse(blocked=overall_blocked, rule_results=results)
 def main():
     # Get host and port from environment variables, with defaults
     host = os.getenv('HOST', '0.0.0.0')
@@ -171,6 +281,7 @@ def main():
 
     logger.info(f"Starting server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
+
 
 if __name__ == "__main__":
     main()
