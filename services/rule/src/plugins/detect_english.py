@@ -1,6 +1,27 @@
+"""
+This module provides a handler for detecting English language content using a pre-trained language detection model.
+
+The `LanguageDetector` class initializes the model and tokenizer from the Hugging Face Transformers library.
+It uses the `xlm-roberta-base-language-detection` model to detect the language of a given text.
+
+The `handler` function uses the `LanguageDetector` to check if the text is in English and returns a result indicating the presence of English content along with a score.
+
+Classes:
+- LanguageDetector: Initializes the language detection model and provides a method to detect the language of a given text.
+
+Functions:
+- handler: Checks the text for English language content using the `LanguageDetector` and returns the result.
+
+Dependencies:
+- torch: PyTorch library for tensor computations.
+- transformers: Hugging Face Transformers library for pre-trained models.
+"""
+
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import Dict, Any
+from utils.logger_config import setup_logger
+logger = setup_logger(__name__)
 
 
 class LanguageDetector:

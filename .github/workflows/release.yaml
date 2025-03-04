@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+
 jobs:
   core-release:
     runs-on: ubicloud-standard-2
@@ -15,24 +16,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-
       - name: 🏗 Setup repo
         uses: actions/checkout@v4
-
-      - name: Set up Docker Context for Buildx
-        run: docker context create builders
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
-          endpoint: builders
 
       - name: Docker meta
         id: openshield
@@ -44,17 +34,17 @@ jobs:
             type=sha
             type=raw,value=latest
 
-      - name: Build
+      - name: Build amd64
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/arm64,linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.openshield.outputs.tags }}
           labels: ${{ steps.openshield.outputs.labels }}
 
   rule-release:
-    runs-on: ubicloud-standard-2
+    runs-on: ubicloud-standard-4
     steps:
       - name: Login to Github Packages
         uses: docker/login-action@v3
@@ -63,24 +53,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-
       - name: 🏗 Setup repo
         uses: actions/checkout@v4
-
-      - name: Set up Docker Context for Buildx
-        run: docker context create builders
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
-          endpoint: builders
 
       - name: Docker meta
         id: rule
@@ -92,17 +71,17 @@ jobs:
             type=sha
             type=raw,value=latest
 
-      - name: Build
+      - name: Build amd64
         uses: docker/build-push-action@v6
         with:
           context: services/rule
-          platforms: linux/arm64,linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.rule.outputs.tags }}
           labels: ${{ steps.rule.outputs.labels }}
 
   cache-release:
-    runs-on: ubicloud-standard-2
+    runs-on: ubicloud-standard-4
     steps:
       - name: Login to Github Packages
         uses: docker/login-action@v3
@@ -111,24 +90,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-
       - name: 🏗 Setup repo
         uses: actions/checkout@v4
-
-      - name: Set up Docker Context for Buildx
-        run: docker context create builders
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
-          endpoint: builders
 
       - name: Docker meta
         id: cache
@@ -140,11 +108,12 @@ jobs:
             type=sha
             type=raw,value=latest
 
-      - name: Build
+      - name: Build amd64
         uses: docker/build-push-action@v6
         with:
           context: services/cache
-          platforms: linux/arm64,linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.cache.outputs.tags }}
           labels: ${{ steps.cache.outputs.labels }}
+

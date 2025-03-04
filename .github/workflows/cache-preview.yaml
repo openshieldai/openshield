@@ -1,20 +1,34 @@
-name: Cache service preview
+name: Cache Service Preview
 
 on:
-  pull_request_review:
-    types: [submitted]
+  pull_request:
+    types: [opened, synchronize]
     branches:
       - main
     paths:
       - services/cache/**
-      - .github/workflows/cache-pull.yaml
+      - .github/workflows/cache-preview.yaml
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   image-build:
     runs-on: ubicloud-standard-2
-    if: github.event.review.state == 'approved'
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for path changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            cache:
+              - 'services/cache/**'
+              - '.github/workflows/cache-preview.yaml'
+
       - name: Login to Github Packages
+        if: steps.changes.outputs.cache == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -22,38 +36,40 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
+        if: steps.changes.outputs.cache == 'true'
         id: qemu
         uses: docker/setup-qemu-action@v3
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
 
-      - name: 🏗 Setup repo
-        uses: actions/checkout@v4
-
       - name: Set up Docker Context for Buildx
+        if: steps.changes.outputs.cache == 'true'
         run: docker context create builders
 
       - name: Set up Docker Buildx
+        if: steps.changes.outputs.cache == 'true'
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
           endpoint: builders
 
       - name: Docker meta
+        if: steps.changes.outputs.cache == 'true'
         id: cache
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/openshieldai/edge/cache
+            ghcr.io/openshieldai/openshield/cache
           tags: |
             type=sha
             type=raw,value=latest
 
       - name: Build
+        if: steps.changes.outputs.cache == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: ./cache
+          context: services/cache
           platforms: linux/arm64,linux/amd64
           push: false
           tags: ${{ steps.cache.outputs.tags }}

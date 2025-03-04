@@ -22,23 +22,53 @@ type Configuration struct {
 	Rules     Rules     `mapstructure:"rules"`
 	Secrets   Secrets   `mapstructure:"secrets"`
 	Providers Providers `mapstructure:"providers"`
+	Services  Services  `mapstructure:"services"`
 }
 
+type Providers struct {
+	OpenAI      *ProviderOpenAI      `mapstructure:"openai"`
+	Anthropic   *ProviderAnthropic   `mapstructure:"anthropic"`
+	Nvidia      *ProviderNvidia      `mapstructure:"nvidia"`
+	HuggingFace *ProviderHuggingFace `mapstructure:"huggingface"`
+}
+
+type Services struct {
+	LlamaGuard  *ServiceLlamaGuard  `mapstructure:"llamaguard"`
+	PromptGuard *ServicePromptGuard `mapstructure:"promptguard"`
+}
+type ServiceLlamaGuard struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+
+type ServicePromptGuard struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
 type ProviderOpenAI struct {
 	Enabled bool   `mapstructure:"enabled"`
-	BaseUrl string `mapstructure:"base_url"`
+	BaseUrl string `mapstructure:"url"`
 }
 
-// Providers section contains all the providers
-type Providers struct {
-	OpenAI      *ProviderOpenAI `mapstructure:"openai"`
-	HuggingFace *FeatureToggle  `mapstructure:"huggingface"`
+type ProviderAnthropic struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+type ProviderNvidia struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
+}
+type ProviderHuggingFace struct {
+	Enabled bool   `mapstructure:"enabled"`
+	BaseUrl string `mapstructure:"url"`
 }
 
 // Secrets section contains all the secrets
 type Secrets struct {
 	OpenAIApiKey      string `mapstructure:"openai_api_key"`
-	HuggingFaceAPIKey string `mapstructure:"huggingface_api_key"`
+	HuggingFaceApiKey string `mapstructure:"huggingface_api_key"`
+	AnthropicApiKey   string `mapstructure:"anthropic_api_key"`
+	NvidiaApiKey      string `mapstructure:"nvidia_api_key"`
 }
 
 // Setting can include various configurations like database, cache, and different logging types
@@ -116,10 +146,22 @@ type Rule struct {
 // Config holds the configuration specifics of a filter
 type Config struct {
 	PluginName string      `mapstructure:"plugin_name"`
-	Threshold  float64     `mapstructure:"threshold,omitempty,default=0.5"`
+	Relation   string      `mapstructure:"relation,omitempty"`
+	Threshold  float64     `mapstructure:"threshold,omitempty"`
 	Url        string      `mapstructure:"url,omitempty"`
 	ApiKey     string      `mapstructure:"api_key,omitempty"`
 	PIIService interface{} `mapstructure:"piiservice,omitempty"`
+	Categories []string    `mapstructure:"categories,omitempty"`
+}
+
+// Add this function to set default values
+func (c *Config) SetDefaults() {
+	if c.Relation == "" {
+		c.Relation = ">"
+	}
+	if c.Threshold == 0 {
+		c.Threshold = 0.5
+	}
 }
 
 // ActionType defines the type of action to take
@@ -149,7 +191,7 @@ func init() {
 		viperCfg.AddConfigPath(configDir)
 	}
 	viperCfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viperCfg.SetDefault("providers.openai.base_url", "https://api.openai.com/v1")
+	viperCfg.SetDefault("providers.openai.url", "https://api.openai.com/v1")
 	if strings.ToLower(os.Getenv("NONVIPER_CONFIG")) != "true" {
 		err := viperCfg.ReadInConfig()
 		if err != nil {

@@ -1,4 +1,8 @@
 rules:
+
+
+
+
   input:
     - name: "language_detection"
       type: "language_detection"
@@ -62,6 +66,31 @@ rules:
       action:
         type: "block"
   #      - type: "monitoring" # logging
+    - name: "llamaguard_check"
+      type: "llama_guard"
+      enabled: true
+      order_number: 4
+      config:
+        plugin_name: "llama_guard"
+        threshold: 0.5
+        relation: ">"
+        # can be left empty, in that case every categgory is included.
+        #categories: ["S1","S7"]
+
+      action:
+        type: "block"
+
+    - name: "PromptGuard Injection Detection"
+      type: "prompt_guard"
+      enabled: true
+      order_number: 5
+      config:
+        plugin_name: "prompt_guard"
+        threshold: 0.7
+        relation: ">"
+        temperature: 3.0
+      action:
+        type: "block"
   output:
     - name: "pii_example"
       type: "pii_filter"

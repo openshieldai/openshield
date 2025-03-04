@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/openshieldai/openshield/lib"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,50 +23,49 @@ import (
 )
 
 func TestCreateMockData(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDB.Close()
 
-	sqlDB, mock, err := sqlmock.New()
-	assert.NoError(t, err)
-	defer func(sqlDB *sql.DB) {
-		err := sqlDB.Close()
-		if err != nil {
-
-		}
-	}(sqlDB)
-
-	dialector := postgres.New(postgres.Config{
-		Conn:       sqlDB,
-		DriverName: "postgres",
-	})
-	db, err := gorm.Open(dialector, &gorm.Config{})
-	assert.NoError(t, err)
-
-	createExpectations := func(tableName string, count int, argCount int) {
-		for i := 0; i < count; i++ {
-			mock.ExpectBegin()
-			args := make([]driver.Value, argCount)
-			for j := range args {
-				args[j] = sqlmock.AnyArg()
-			}
-			mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "` + tableName + `"`)).
-				WithArgs(args...).
-				WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).
-					AddRow(uuid.New(), time.Now(), time.Now()))
-			mock.ExpectCommit()
-		}
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: mockDB,
+	}), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to open gorm DB: %v", err)
 	}
 
-	createExpectations("tags", 10, 6)
-	createExpectations("ai_models", 1, 10)
-	createExpectations("api_keys", 1, 7)
-	createExpectations("audit_logs", 1, 11)
-	createExpectations("products", 1, 7)
-	createExpectations("usages", 1, 10)
-	createExpectations("workspaces", 1, 6)
-	lib.SetDB(db)
+	lib.SetDB(gormDB)
+
+	expectInsertion := func(tableName string, args int) {
+		mock.ExpectBegin()
+		expectArgs := make([]driver.Value, args)
+		for i := range expectArgs {
+			expectArgs[i] = sqlmock.AnyArg()
+		}
+		mock.ExpectQuery(fmt.Sprintf(`INSERT INTO "%s"`, tableName)).
+			WithArgs(expectArgs...).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New().String()))
+		mock.ExpectCommit()
+	}
+
+	// Expect 10 tag insertions
+	for i := 0; i < 10; i++ {
+		expectInsertion("tags", 6)
+	}
+
+	// Expect other model insertions
+	expectInsertion("ai_models", 10)
+	expectInsertion("api_keys", 7)
+	expectInsertion("audit_logs", 12)
+	expectInsertion("products", 7)
+	expectInsertion("usages", 12)
+	expectInsertion("workspaces", 6)
+
 	createMockData()
-	lib.DB()
-	err = mock.ExpectationsWereMet()
-	if err != nil {
+
+	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }

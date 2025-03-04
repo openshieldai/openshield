@@ -1,8 +1,8 @@
 services:
   openshield:
     build:
-        context: ../
-        dockerfile: Dockerfile
+      context: ../
+      dockerfile: Dockerfile
     environment:
       - ENV=production
       - PORT="3005"
@@ -14,11 +14,23 @@ services:
     links:
       - redis
       - postgres
+      - vigilllm
     volumes:
       - ./demo_config.yaml:/app/config.yaml
     depends_on:
       postgres:
         condition: service_healthy
+
+  vigilllm:
+    build:
+      context: ../services/vigilllm
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "5000:5000"
+    volumes:
+      - vigil_data:/app/data
 
   rule:
     build:
@@ -26,8 +38,13 @@ services:
       dockerfile: Dockerfile
     environment:
       - HF_HOME=/app/hf_cache
+      - VIGILLLM_API_URL=http://vigilllm:5000
     volumes:
       - ./volumes/rule:/app/cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      - vigilllm
 
   cache:
     build:
@@ -42,9 +59,8 @@ services:
     ports:
       - "8082:8080"
 
-
   redis:
-    image: "valkey/valkey:8.0.0-alpine"
+    image: "valkey/valkey:8.0.1-alpine"
     restart: always
     ports:
       - "6381:6379"
@@ -69,3 +85,6 @@ services:
     restart: always
     ports:
       - 8085:8080
+
+volumes:
+  vigil_data:
