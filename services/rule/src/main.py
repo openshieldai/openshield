@@ -231,19 +231,11 @@ async def scan(scan_request: ScanRequest):
 
         # Prepare config data by copying and mapping keys as needed.
         config_data = rule.config.copy()
-        # Map 'plugin_name' (from YAML) to 'PluginName' (expected by our Config model)
         if "plugin_name" in config_data:
             config_data["PluginName"] = config_data.pop("plugin_name")
-        # Set default Relation if not present
-        if "Relation" not in config_data:
-            config_data["Relation"] = ">="
-        # Override Threshold if provided at the rule level.
-        if rule.threshold is not None:
-            config_data["Threshold"] = rule.threshold
-        # Ensure a Threshold exists; if not, set a default (e.g., 0.5)
-        if "Threshold" not in config_data:
-            config_data["Threshold"] = 0.5
-
+        if "relation"  in config_data:
+            config_data["Relation"] =  config_data.pop("relation")
+            config_data["Threshold"] = config_data.pop("threshold")
         # Build the Rule object expected by execute_plugin.
         rule_obj = Rule(
             prompt=Prompt(role="user", content=user_input),
@@ -277,7 +269,7 @@ async def scan(scan_request: ScanRequest):
 def main():
     # Get host and port from environment variables, with defaults
     host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8000))
+    port = int(os.getenv('PORT', 8001))
 
     logger.info(f"Starting server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
