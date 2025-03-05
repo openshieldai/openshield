@@ -235,6 +235,7 @@ async def scan(scan_request: ScanRequest):
             config_data["PluginName"] = config_data.pop("plugin_name")
         if "relation"  in config_data:
             config_data["Relation"] =  config_data.pop("relation")
+        if "threshold" in config_data:
             config_data["Threshold"] = config_data.pop("threshold")
         # Build the Rule object expected by execute_plugin.
         rule_obj = Rule(
