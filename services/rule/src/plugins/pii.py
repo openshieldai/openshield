@@ -181,9 +181,11 @@ def handler(text: str, threshold: float, config: dict) -> dict:
     FastAPI compatible handler function for PII detection.
     """
     print(f"Received raw config in handler: {config}")
-    
+    if "PIIService" in config:
+        config["piiservice"] = config.pop("PIIService")
+
     # Get the PIIService configuration
-    pii_service_config = config.get('PIIService', {})
+    pii_service_config = config.get('piiservice', {})
     
     # Parse configuration with proper nesting
     pii_config = PIIConfig(
