@@ -183,7 +183,7 @@ def handler(text: str, threshold: float, config: dict) -> dict:
     print(f"Received raw config in handler: {config}")
     
     # Get the PIIService configuration
-    pii_service_config = config.get('PIIService', {})
+    pii_service_config = config.get('piiservice', {})
     
     # Parse configuration with proper nesting
     pii_config = PIIConfig(
