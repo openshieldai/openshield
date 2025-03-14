@@ -100,7 +100,6 @@ async def execute_plugin(rule: Rule):
     handler = getattr(plugin_module, 'handler')
 
     prompt_user_messages = []
-
     if rule.prompt.thread and rule.prompt.thread.messages:
         for msg in rule.prompt.thread.messages:
             if msg.role == 'user':
@@ -128,7 +127,7 @@ async def execute_plugin(rule: Rule):
         logger.error("No user message found in the prompt")
         raise HTTPException(status_code=400, detail="No user message found in the prompt")
 
-    user_message = ''.join((str(x) for x in prompt_user_messages))
+    user_message = ''.join(str(x) for x in prompt_user_messages)
     threshold = rule.config.Threshold
     logger.debug(f"User message: {user_message}, Threshold: {threshold}")
 
@@ -143,23 +142,22 @@ async def execute_plugin(rule: Rule):
         logger.error("Invalid plugin result format")
         raise HTTPException(status_code=500, detail="Invalid plugin result format")
 
-    # Set up context for rule engine
-    context = rule_engine.Context(type_resolver=rule_engine.type_resolver_from_dict({
-        'score': rule_engine.DataType.FLOAT,
-        'threshold': rule_engine.DataType.FLOAT
-    }))
+    # Set up context for rule engine evaluation
+    context = rule_engine.Context(
+        type_resolver=rule_engine.type_resolver_from_dict({
+            'score': rule_engine.DataType.FLOAT,
+            'threshold': rule_engine.DataType.FLOAT
+        })
+    )
 
-    # Include the threshold in the data passed to the rule engine
     data = {'score': plugin_result['score'], 'threshold': threshold}
     logger.debug(f"Rule engine data: {data}")
 
-    # Create and evaluate the rule
     relation = rule.config.Relation
     if not relation or not relation.strip():
         logger.warning("No relation specified, defaulting to '>'")
-        relation = '>'  # Default to greater than if no relation is specified
+        relation = '>'  # Default to greater than if not specified
 
-    # Ensure there's exactly one space between components
     rule_expression = f"score {relation.strip()} {threshold}".strip()
     logger.debug(f"Rule expression: {rule_expression}")
     logger.debug(f"Data for rule engine: {data}")
@@ -168,18 +166,23 @@ async def execute_plugin(rule: Rule):
         rule_obj = rule_engine.Rule(rule_expression, context=context)
         match = rule_obj.matches(data)
         logger.debug(f"Rule engine result: match={match}")
-        response = {"match": match, "inspection": plugin_result}
+        # For the PII plugin inbclude the anonymized_content in the response.
+        if plugin_name == "pii":
+            response = {
+                "match": match,
+                "anonymized_content": plugin_result.get("anonymized_content") if match else None,
+                "inspection": plugin_result
+            }
+        else:
+            response = {"match": match, "inspection": plugin_result}
         logger.debug(f"Plugin Name: {plugin_name} API response: {response}")
-
         return response
     except Exception as e:
         logger.error(f"Error executing rule engine: {e}, Expression: score {relation} {threshold}")
         raise HTTPException(status_code=500, detail=f"Error executing rule engine: {str(e)}")
 
 
-from typing import Optional
-
-
+# Modified models for the /scan endpoint
 class ScanRule(BaseModel):
     name: str
     type: str
@@ -198,6 +201,7 @@ class ScanRequest(BaseModel):
 class SimplifiedRuleResult(BaseModel):
     rule_type: str
     status: str
+    anonymized_content: Optional[str] = None  # New field for PII responses
 
 
 class ScanResponse(BaseModel):
@@ -221,7 +225,6 @@ async def scan(scan_request: ScanRequest):
     sorted_rules = sorted(rules_list, key=lambda r: r.order_number)
 
     for rule in sorted_rules:
-        # Skip disabled rules
         if not rule.enabled:
             results.append(SimplifiedRuleResult(
                 rule_type=rule.config.get("plugin_name", rule.name),
@@ -229,7 +232,6 @@ async def scan(scan_request: ScanRequest):
             ))
             continue
 
-        # Prepare config data by copying and mapping keys as needed.
         config_data = rule.config.copy()
         if "plugin_name" in config_data:
             config_data["PluginName"] = config_data.pop("plugin_name")
@@ -254,26 +256,28 @@ async def scan(scan_request: ScanRequest):
             overall_blocked = True
             continue
 
+        # For PII, extract the anonymized_content if present.
         rule_match = plugin_result.get("match", False)
+        anonymized_content = None
+        if config_data.get("PluginName", rule.name).lower() == "pii":
+            anonymized_content = plugin_result.get("anonymized_content")
         status = "passed"
-        # If the rule's action is "block" and the plugin indicates a match, mark as matched.
         if rule.action.get("type") == "block" and rule_match:
             status = "matched"
             overall_blocked = True
 
         results.append(SimplifiedRuleResult(
             rule_type=config_data.get("PluginName", rule.name),
-            status=status
+            status=status,
+            anonymized_content=anonymized_content
         ))
 
     return ScanResponse(blocked=overall_blocked, rule_results=results)
 
 
 def main():
-    # Get host and port from environment variables, with defaults
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 8000))
-
     logger.info(f"Starting server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
