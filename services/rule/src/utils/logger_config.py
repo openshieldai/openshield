@@ -2,7 +2,7 @@ import logging
 import os
 import json
 
-def setup_logger(name):
+def setup_logger(name, is_remote=False):
     logger = logging.getLogger(name)
 
     # Only configure if handlers haven't been set up
@@ -18,7 +18,12 @@ def setup_logger(name):
             '"name":"%(name)s", "filename":"%(filename)s", "lineno":%(lineno)d}'
         )
 
-        handler = logging.StreamHandler()
+        if is_remote and os.getenv('LOG_REMOTE_HOST'):
+            handler = logging.handlers.SysLogHandler(address = (os.getenv('LOG_REMOTE_HOST', "127.0.0.1"), os.getenv('LOG_REMOTE_PORT', 514)))
+        else:
+            handler = logging.StreamHandler()
+
+        handler.setFormatter(json_formatter)
         handler.setFormatter(json_formatter)
         logger.setLevel(numeric_level)
         logger.addHandler(handler)
