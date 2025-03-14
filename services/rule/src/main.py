@@ -65,6 +65,7 @@ class Config(BaseModel):
 class Rule(BaseModel):
     prompt: Prompt
     config: Config
+    threshold: Optional[float] = None
 
 
 app = FastAPI()
@@ -128,7 +129,7 @@ async def execute_plugin(rule: Rule):
         raise HTTPException(status_code=400, detail="No user message found in the prompt")
 
     user_message = ''.join(str(x) for x in prompt_user_messages)
-    threshold = rule.config.Threshold
+    threshold = rule.threshold if rule.threshold is not None else rule.config.Threshold
     logger.debug(f"User message: {user_message}, Threshold: {threshold}")
 
     try:
@@ -237,9 +238,18 @@ async def scan(scan_request: ScanRequest):
             config_data["PluginName"] = config_data.pop("plugin_name")
         if "relation" in config_data:
             config_data["Relation"] = config_data.pop("relation")
-        if "threshold" in config_data:
-            config_data["Threshold"] = config_data.pop("threshold")
-        # Build the Rule object expected by execute_plugin.
+
+        # Use rule.threshold if available, otherwise try to get it from config_data
+        threshold = rule.threshold if rule.threshold is not None else config_data.get("threshold")
+        if threshold is not None:
+            config_data["Threshold"] = float(threshold)
+        elif "threshold" in config_data:
+            config_data["Threshold"] = float(config_data.pop("threshold"))
+        else:
+            # Default threshold if none is provided
+            config_data["Threshold"] = 1
+
+        # Build the Rule object expected by execute_plugin
         rule_obj = Rule(
             prompt=Prompt(role="user", content=user_input),
             config=Config(**config_data)
