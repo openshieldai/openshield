@@ -11,7 +11,7 @@ from huggingface_hub import login, HfApi
 from huggingface_hub.utils import GatedRepoError
 
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 DEFAULT_CATEGORIES = ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
                      "S8", "S9", "S10", "S11", "S12", "S13"]

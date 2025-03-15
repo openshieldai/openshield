@@ -22,7 +22,7 @@ import torch
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 from typing import Dict, Any
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 class PerplexityJailbreakDetector:
     """Class for detecting jailbreak attempts using perplexity scores."""
@@ -51,7 +51,7 @@ class PerplexityJailbreakDetector:
         prev_end_loc = 0
         for begin_loc in range(0, seq_len, stride):
             end_loc = min(begin_loc + max_length, seq_len)
-            trg_len = end_loc - prev_end_loc 
+            trg_len = end_loc - prev_end_loc
             input_ids = encodings.input_ids[:, begin_loc:end_loc].to(self.device)
             target_ids = input_ids.clone()
             target_ids[:, :-trg_len] = -100
@@ -65,10 +65,10 @@ class PerplexityJailbreakDetector:
             prev_end_loc = end_loc
             if end_loc == seq_len:
                 break
-        
+
         perplexity = torch.exp(torch.mean(torch.stack(nlls)))
         return perplexity.cpu().detach().numpy().item()
-    
+
     def detect_jailbreak_length_per_perplexity(self, text: str, threshold: float) -> bool:
         """
         Detect jailbreak attempts based on the length of the text and its perplexity score.
@@ -84,11 +84,11 @@ class PerplexityJailbreakDetector:
         result = score > threshold
         logger.info(f"Jailbreak detection result: {result}, Score: {score:.3f}")
         return result
-    
+
     def detect_jailbreak_prefix_suffix_perplexity(self, text: str, threshold: float) -> bool:
         """
         Detect jailbreak attempts based on the perplexity scores of the prefix and suffix of the text.
-        
+
         Args:
             text (str): The input text to analyze.
             threshold (float): The threshold perplexity score for jailbreak detection.
@@ -96,11 +96,11 @@ class PerplexityJailbreakDetector:
             bool: True if jailbreak attempt is detected, False otherwise.
         """
         words = text.strip().split()
-        
+
         if len(words) < 20:
             logger.info("Text length is less than 20 words, skipping prefix-suffix perplexity check.")
             return False
-        
+
         prefix = " ".join(words[:20])
         suffix = " ".join(words[-20:])
 
@@ -117,7 +117,7 @@ class PerplexityJailbreakDetector:
 def parse_ppl_config(config: Dict[str, Any]) -> Dict[str, Any]:
     """Extracts and returns relevant perplexity configurations."""
     ppl_service_config = config.get("PPLService", {})
-    
+
     return {
         "length_per_ppl_enabled": ppl_service_config.get("length_per_perplexity", {}).get("enabled", False),
         "length_per_ppl_threshold": ppl_service_config.get("length_per_perplexity", {}).get("threshold", 140.55),
@@ -132,10 +132,10 @@ def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, An
         logger.info(f"Extracted configuration: {ppl_config}")
 
         detector = PerplexityJailbreakDetector()
-        
+
         if ppl_config["prefix_suffix_ppl_enabled"]:
             prefix_suffix_ppl_result = detector.detect_jailbreak_prefix_suffix_perplexity(text, ppl_config["prefix_suffix_ppl_threshold"])
-        
+
         if prefix_suffix_ppl_result:
             return {
                 "check_result": True,
@@ -150,7 +150,7 @@ def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, An
                 "check_result": True,
                 "score": 1.0,
             }
-        
+
         return {
             "check_result": False,
             "score": 0.0,

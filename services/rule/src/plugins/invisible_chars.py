@@ -21,7 +21,7 @@ import unicodedata
 import logging
 
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 
 def contains_unicode(text: str) -> bool:

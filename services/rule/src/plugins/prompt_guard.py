@@ -11,7 +11,7 @@ from huggingface_hub import login, HfApi
 from huggingface_hub.utils import GatedRepoError
 
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 def get_huggingface_token():
     """Get token from environment with proper error handling."""
