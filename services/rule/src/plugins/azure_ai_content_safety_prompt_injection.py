@@ -20,7 +20,7 @@ import requests
 
 from srsly import json_dumps
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 key = os.environ["CONTENT_SAFETY_KEY"]
 if not key:

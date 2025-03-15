@@ -26,7 +26,7 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_analyzer.nlp_engine.transformers_nlp_engine import TransformersNlpEngine
 
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 class PIIEntity(BaseModel):
     """Model representing a detected PII entity."""
@@ -65,23 +65,23 @@ class PIIResult(BaseModel):
 
 class PIIService:
     """Service class for PII detection and anonymization."""
-    
+
     def __init__(self, config: PIIConfig):
         """Initialize PII detection engines based on configuration."""
         print(f"Initializing PII service with config: {config.model_dump_json()}")
-        
+
         self.config = config
         self.analyzer, self.anonymizer = self._initialize_engines()
 
     def _initialize_engines(self) -> Tuple[AnalyzerEngine, AnonymizerEngine]:
         """Initialize the analyzer and anonymizer engines."""
         print("Starting engine initialization")
-        
+
         if self.config.nlp_engine_name == "transformers":
             print("Initializing transformer-based NLP engine")
             if not self.config.engine_model_names or 'transformers' not in self.config.engine_model_names:
                 raise ValueError("Model name must be specified for transformer-based NLP engine")
-            
+
             nlp_engine = TransformersNlpEngine(
                 models=[{
                     "model_name": {
@@ -96,7 +96,7 @@ class PIIService:
             print(f"Initializing {self.config.nlp_engine_name} NLP engine")
             if not self.config.engine_model_names or 'spacy' not in self.config.engine_model_names:
                 raise ValueError("Model name must be specified for spacy engine")
-            
+
             provider = NlpEngineProvider(nlp_configuration={
                 "nlp_engine_name": self.config.nlp_engine_name,
                 "models": [{
@@ -105,10 +105,10 @@ class PIIService:
                 }]
             })
             nlp_engine = provider.create_engine()
-        
+
         nlp_engine.load()  # Load the model
         print(f"{self.config.nlp_engine_name} NLP engine loaded")
-        
+
         if self.config.pii_method == "LLM":
             print(f"Initializing LLM-based PII detection")
             registry = RecognizerRegistry()
@@ -126,7 +126,7 @@ class PIIService:
                 supported_languages=[self.config.language]
             )
             print("Rule-based analyzer engine initialized")
-        
+
         print(f"Loaded configurations: {self.config}")
         print("Anonymizer engine initialized")
         return analyzer, AnonymizerEngine()
@@ -134,10 +134,10 @@ class PIIService:
     def analyze_text(self, text: str) -> PIIResult:
         """
         Analyze text for PII content and return anonymized result.
-        
+
         Args:
             text: Input text to analyze
-            
+
         Returns:
             PIIResult containing detection results and anonymized text
         """
@@ -149,7 +149,7 @@ class PIIService:
             language=self.config.language,
             entities=self.config.entities if self.config.pii_method != "LLM" else None
         )
-        
+
         print(f"Found {len(results)} PII entities: {results}")
 
         # Anonymize detected PII
@@ -166,9 +166,9 @@ class PIIService:
         # Calculate PII density score
         pii_score = len(identified_pii) / len(text.split()) if text else 0
         print(f"PII density score: {pii_score:.2f}")
-        
+
         logger.info(f"PII analysis complete - Score: {pii_score:.2f}, Entities found: {len(identified_pii)}")
-        
+
         return PIIResult(
             check_result=pii_score > 0,
             score=pii_score,
@@ -186,7 +186,7 @@ def handler(text: str, threshold: float, config: dict) -> dict:
 
     # Get the PIIService configuration
     pii_service_config = config.get('piiservice', {})
-    
+
     # Parse configuration with proper nesting
     pii_config = PIIConfig(
         pii_method=pii_service_config.get('PIIMethod', 'RuleBased'),
@@ -203,7 +203,7 @@ def handler(text: str, threshold: float, config: dict) -> dict:
     # Initialize service and analyze text
     service = PIIService(pii_config)
     result = service.analyze_text(text)
-    
+
     logger.info(f"PII detection complete - Threshold: {threshold}, Score: {result.score}")
-    
+
     return result.model_dump()

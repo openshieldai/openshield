@@ -7,7 +7,7 @@ import whylogs as why
 from langkit import injections, extract
 from utils.logger_config import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 def initialize_langkit():
 

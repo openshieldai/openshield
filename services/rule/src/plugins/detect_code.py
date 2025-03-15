@@ -22,7 +22,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import Dict
 from utils.logger_config import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 class CodeDetector:
     def __init__(self, model="philomath-1209/programming-language-identification"):
@@ -34,7 +34,7 @@ class CodeDetector:
 
     def detect(self, text: str) -> Dict[str, float]:
         inputs = self.tokenizer(text, return_tensors="pt", truncation=True).to(self.device)
-        
+
         with torch.no_grad():
             logits = self.model(**inputs).logits
             result = torch.nn.functional.softmax(logits, dim=-1)
@@ -45,8 +45,8 @@ class CodeDetector:
         }
 
         return predictions
-        
-        
+
+
 def handler(text: str, threshold: float, config: Dict[str, float]) -> Dict[str, float]:
     try:
         detector = CodeDetector()
@@ -57,7 +57,7 @@ def handler(text: str, threshold: float, config: Dict[str, float]) -> Dict[str, 
         logger.info(f"Detected language: {language}, Score: {score}")
 
         return {"check_result": score > threshold, "score": score}
-        
+
     except Exception as e:
         logger.error(f"Error executing code detection: {e}")
         return {"check_result": False, "score": 0.0, "details" : {"error": str(e)}}

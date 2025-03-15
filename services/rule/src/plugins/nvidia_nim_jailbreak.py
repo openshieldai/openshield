@@ -13,7 +13,7 @@ import requests
 from typing import Dict, Any
 from utils.logger_config import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 
 def handler(text: str, threshold: float, config: Dict[str, Any]) -> Dict[str, Any]:
