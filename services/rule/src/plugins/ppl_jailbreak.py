@@ -19,6 +19,7 @@ Dependencies:
 """
 
 import torch
+import os
 from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 from typing import Dict, Any
 from utils.logger_config import setup_logger

@@ -18,6 +18,7 @@ Dependencies:
 """
 
 import torch
+import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import Dict
 from utils.logger_config import setup_logger
