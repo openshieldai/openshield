@@ -16,6 +16,7 @@ Dependencies:
 """
 
 import torch
+import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
 from utils.logger_config import setup_logger

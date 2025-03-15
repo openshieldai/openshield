@@ -45,6 +45,7 @@ Example configuration for using a local model:
 
 import json
 import torch
+import os
 from typing import Dict, Any
 from transformers import pipeline
 import litellm
