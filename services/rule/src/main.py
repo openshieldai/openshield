@@ -166,7 +166,7 @@ async def execute_plugin(rule: Rule):
         rule_obj = rule_engine.Rule(rule_expression, context=context)
         match = rule_obj.matches(data)
         logger.debug(f"Rule engine result: match={match}")
-        # For the PII plugin inbclude the anonymized_content in the response.
+        # For the PII plugin include the anonymized_content in the response.
         if plugin_name == "pii":
             response = {
                 "match": match,
@@ -239,6 +239,8 @@ async def scan(scan_request: ScanRequest):
             config_data["Relation"] = config_data.pop("relation")
         if "threshold" in config_data:
             config_data["Threshold"] = config_data.pop("threshold")
+        config_data["action_type"] = rule.action["type"]
+
         # Build the Rule object expected by execute_plugin.
         rule_obj = Rule(
             prompt=Prompt(role="user", content=user_input),
@@ -262,7 +264,7 @@ async def scan(scan_request: ScanRequest):
         if config_data.get("PluginName", rule.name).lower() == "pii":
             anonymized_content = plugin_result.get("anonymized_content")
         status = "passed"
-        if rule.action.get("type") == "block" and rule_match:
+        if (rule.action.get("type") == "block" or rule.action.get("type") == "anonimization") and rule_match:
             status = "matched"
             overall_blocked = True
 
@@ -277,7 +279,7 @@ async def scan(scan_request: ScanRequest):
 
 def main():
     host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8000))
+    port = int(os.getenv('PORT', 8001))
     logger.info(f"Starting server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
