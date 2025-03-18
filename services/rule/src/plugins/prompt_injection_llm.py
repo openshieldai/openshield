@@ -16,10 +16,11 @@ Dependencies:
 """
 
 import torch
+import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 # Initialize the tokenizer and model once when the module is imported
 tokenizer = AutoTokenizer.from_pretrained("protectai/deberta-v3-base-prompt-injection-v2")

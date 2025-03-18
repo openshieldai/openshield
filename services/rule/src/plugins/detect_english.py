@@ -18,10 +18,12 @@ Dependencies:
 """
 
 import torch
+import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import Dict, Any
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 
 class LanguageDetector:

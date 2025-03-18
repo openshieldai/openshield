@@ -5,9 +5,10 @@ This module provides a LangKit plugin for the ruleserver to analyze text using t
 import logging
 import whylogs as why
 from langkit import injections, extract
+import os
 from utils.logger_config import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 def initialize_langkit():
 

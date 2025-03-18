@@ -8,9 +8,10 @@ from typing import Dict, Any, List, Optional
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from huggingface_hub import login, HfApi
+from huggingface_hub.utils import GatedRepoError
 
 from utils.logger_config import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
 
 DEFAULT_CATEGORIES = ["S1", "S2", "S3", "S4", "S5", "S6", "S7",
                      "S8", "S9", "S10", "S11", "S12", "S13"]
@@ -29,7 +30,7 @@ class LlamaGuardAnalyzer:
             raise ValueError("HuggingFace token not set")
 
         try:
-            login(token=self.token, write_permission=True)
+            login(token=self.token)
             self.api = HfApi()
             logger.info("Successfully logged into HuggingFace")
         except Exception as e:
@@ -64,7 +65,9 @@ class LlamaGuardAnalyzer:
                 token=self.token
             )
             logger.info("LlamaGuard model loaded successfully")
-
+        except GatedRepoError as e:
+            logger.error(f"Not authorized to access the {model_id} model. {str(e)}")
+            raise
         except Exception as e:
             logger.error(f"Error loading LlamaGuard model: {str(e)}")
             raise
