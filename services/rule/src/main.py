@@ -289,7 +289,7 @@ async def scan(scan_request: ScanRequest):
 
 def main():
     host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8001))
+    port = int(os.getenv('PORT', 8000))
     logger.info(f"Starting server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 

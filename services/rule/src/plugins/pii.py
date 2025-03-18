@@ -1,5 +1,18 @@
 """
 Personally Identifiable Information (PII) Detection and Anonymization Module
+
+This module provides functionality for detecting and anonymizing PII in text using the Presidio library.
+It supports both rule-based and LLM-based detection methods.
+Key Components:
+    - PIIConfig: Pydantic model for configuration validation
+    - PIIResult: Pydantic model for standardized result output
+    - PIIService: Main service class handling detection and anonymization
+    - handler: FastAPI compatible entry point
+Dependencies:
+    - presidio_analyzer: For PII detection
+    - presidio_anonymizer: For PII anonymization
+    - pydantic: For data validation
+    - logging: For structured logging
 """
 import logging
 from typing import List, Tuple, Optional
