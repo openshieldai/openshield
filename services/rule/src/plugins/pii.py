@@ -21,6 +21,8 @@ from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_anonymizer import AnonymizerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_analyzer.nlp_engine.transformers_nlp_engine import TransformersNlpEngine
+import os
+
 
 from utils.logger_config import setup_logger
 logger = setup_logger(__name__, os.getenv('LOG_REMOTE', False))
