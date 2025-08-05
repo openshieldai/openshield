@@ -11,7 +11,7 @@ require (
 	github.com/go-chi/httprate v0.14.1
 	github.com/go-chi/httprate-redis v0.5.4
 	github.com/go-faker/faker/v4 v4.5.0
-	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/google/uuid v1.6.0
 	github.com/openshieldai/go-openai v1.32.1-stream
 	github.com/redis/go-redis/v9 v9.7.3
@@ -72,7 +72,7 @@ require (
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
 	golang.org/x/net v0.30.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
